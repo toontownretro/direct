@@ -25,6 +25,7 @@
 #ifdef HAVE_PYTHON
 
 #undef HAVE_LONG_LONG  // NSPR and Python both define this.
+#undef _POSIX_C_SOURCE
 #include <Python.h>
 
 // Several interfaces in this module that use Python also require
