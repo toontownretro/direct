@@ -46,6 +46,9 @@ class Interval(DirectObject):
         # if it should be ignored in this case.
         self.openEnded = openEnded
 
+    def getStartT(self):
+        return self.__startT
+
     def getName(self):
         return self.name
 

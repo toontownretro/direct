@@ -496,10 +496,10 @@ class GravityWalker(DirectObject.DirectObject):
         jump = inputState.isSet("jump")
 
         # Check for Auto-Run
-        if 'localAvatar' in __builtins__:
-            if base.localAvatar and base.localAvatar.getAutoRun():
-                forward = 1
-                reverse = 0
+        #if 'localAvatar' in __builtins__:
+        #    if base.localAvatar and base.localAvatar.getAutoRun():
+        #        forward = 1
+        #        reverse = 0
 
         # Determine what the speeds are based on the buttons:
         self.speed=(forward and self.avatarControlForwardSpeed or

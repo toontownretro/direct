@@ -247,6 +247,10 @@ class ProjectileInterval(Interval):
         return self.parabola.calcPoint(t)
 
     def privStep(self, t):
+        if self.node.isEmpty():
+            self.pause()
+            return
+            
         self.node.setFluidPos(self.__calcPos(t))
         Interval.privStep(self, t)
         if self.collNode and self.collNode.getNumSolids() > 0:

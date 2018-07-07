@@ -224,8 +224,8 @@ class ControlManager:
             ist.append(inputState.watchWithModifiers("forward", "w", inputSource=inputState.WASD))
             ist.append(inputState.watchWithModifiers("reverse", "s", inputSource=inputState.WASD))
 
-            ist.append(inputState.watchWithModifiers("slideLeft", "q", inputSource=inputState.QE))
-            ist.append(inputState.watchWithModifiers("slideRight", "e", inputSource=inputState.QE))
+            ist.append(inputState.watchWithModifiers("slideLeft", "a", inputSource=inputState.QE))
+            ist.append(inputState.watchWithModifiers("slideRight", "d", inputSource=inputState.QE))
 
             self.setWASDTurn(self.__WASDTurn)
         else:
