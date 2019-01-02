@@ -1,3 +1,4 @@
+BLUR_X = """
 //Cg
 //
 //Cg profile arbvp1 arbfp1
@@ -20,16 +21,17 @@ void fshader(float2 l_texcoord0 : TEXCOORD0,
              uniform float4 texpad_src,
              uniform sampler2D k_src : TEXUNIT0)
 {
-  float pad = texpad_src.y * 2;
-  float3 offset = float3(1.0*texpix_src.y, 2.0*texpix_src.y, 3.0*texpix_src.y);
+  float pad = texpad_src.x * 2;
+  float3 offset = float3(1.0*texpix_src.x, 2.0*texpix_src.x, 3.0*texpix_src.x);
   o_color  = tex2D(k_src, l_texcoord0);
-  o_color += tex2D(k_src, float2(l_texcoord0.x, l_texcoord0.y - offset.z));
-  o_color += tex2D(k_src, float2(l_texcoord0.x, l_texcoord0.y - offset.y));
-  o_color += tex2D(k_src, float2(l_texcoord0.x, l_texcoord0.y - offset.x));
-  o_color += tex2D(k_src, float2(l_texcoord0.x, min(l_texcoord0.y + offset.x, pad)));
-  o_color += tex2D(k_src, float2(l_texcoord0.x, min(l_texcoord0.y + offset.y, pad)));
-  o_color += tex2D(k_src, float2(l_texcoord0.x, min(l_texcoord0.y + offset.z, pad)));
+  o_color += tex2D(k_src, float2(l_texcoord0.x - offset.z, l_texcoord0.y));
+  o_color += tex2D(k_src, float2(l_texcoord0.x - offset.y, l_texcoord0.y));
+  o_color += tex2D(k_src, float2(l_texcoord0.x - offset.x, l_texcoord0.y));
+  o_color += tex2D(k_src, float2(min(l_texcoord0.x + offset.x, pad), l_texcoord0.y));
+  o_color += tex2D(k_src, float2(min(l_texcoord0.x + offset.y, pad), l_texcoord0.y));
+  o_color += tex2D(k_src, float2(min(l_texcoord0.x + offset.z, pad), l_texcoord0.y));
   o_color /= 7;
   o_color.w = 1;
 }
 
+"""
