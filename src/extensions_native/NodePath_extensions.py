@@ -8,7 +8,7 @@ NodePath-extensions module: contains methods to extend functionality
 of the NodePath class
 """
 
-from panda3d.core import NodePath
+from panda3d.core import NodePath, NodePathCollection
 from .extension_native_helpers import Dtool_funcToMethod
 
 ####################################################################
@@ -836,4 +836,15 @@ def analyze(self):
 
 Dtool_funcToMethod(analyze, NodePath)
 del analyze
+#####################################################################
+def setBSPMaterial(self, matFile, override = 0):
+    try:
+        from panda3d.bsp import BSPMaterialAttrib, BSPMaterial
+    except:
+        raise ImportError("BSP library not found!")
+    self.setAttrib(BSPMaterialAttrib.make(BSPMaterial.getFromFile(matFile)), override)
+
+Dtool_funcToMethod(setBSPMaterial, NodePath)
+Dtool_funcToMethod(setBSPMaterial, NodePathCollection)
+del setBSPMaterial
 #####################################################################
