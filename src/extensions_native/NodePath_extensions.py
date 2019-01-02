@@ -837,12 +837,14 @@ def analyze(self):
 Dtool_funcToMethod(analyze, NodePath)
 del analyze
 #####################################################################
-def setBSPMaterial(self, matFile, override = 0):
+def setBSPMaterial(self, mat, override = 0):
     try:
         from panda3d.bsp import BSPMaterialAttrib, BSPMaterial
     except:
         raise ImportError("BSP library not found!")
-    self.setAttrib(BSPMaterialAttrib.make(BSPMaterial.getFromFile(matFile)), override)
+    if isinstance(mat, str):
+        mat = BSPMaterial.getFromFile(mat)
+    self.setAttrib(BSPMaterialAttrib.make(mat), override)
 
 Dtool_funcToMethod(setBSPMaterial, NodePath)
 Dtool_funcToMethod(setBSPMaterial, NodePathCollection)
