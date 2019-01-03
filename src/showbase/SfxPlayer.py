@@ -93,6 +93,4 @@ class SfxPlayer:
                 finalVolume = 1
             if volume is not None:
                 finalVolume *= volume
-            if node is not None:
-                finalVolume *= node.getNetAudioVolume()
             sfx.setVolume(finalVolume)
