@@ -230,7 +230,7 @@ class Actor(DirectObject, NodePath):
             else:
                 # A standard Actor has a ModelNode at the root, and
                 # another ModelNode to protect the GeomNode.
-                root = ModelNode('actor')
+                root = ModelRoot('actor')
                 root.setPreserveTransform(1)
                 self.assign(NodePath(root))
                 self.setGeomNode(self.attachNewNode(ModelNode('actorGeom')))
