@@ -343,6 +343,11 @@ class DirectDialog(DirectFrame):
         self.configureDialog()
 
     def cleanup(self):
+        
+        # HACKHACK: dialog already destroyed?
+        if not hasattr(self, '_optionInfo'):
+            return
+            
         # Remove this panel out of the AllDialogs list
         uniqueName = self['dialogName']
         if uniqueName in DirectDialog.AllDialogs:
