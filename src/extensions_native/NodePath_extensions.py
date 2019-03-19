@@ -841,7 +841,7 @@ def setBSPMaterial(self, mat, override = 0):
     try:
         from panda3d.bsp import BSPMaterialAttrib, BSPMaterial
     except:
-        raise ImportError("BSP library not found!")
+        raise ImportError("BSP library needed for setBSPMaterial()")
     if isinstance(mat, str):
         mat = BSPMaterial.getFromFile(mat)
     self.setAttrib(BSPMaterialAttrib.make(mat), override)
@@ -849,4 +849,15 @@ def setBSPMaterial(self, mat, override = 0):
 Dtool_funcToMethod(setBSPMaterial, NodePath)
 Dtool_funcToMethod(setBSPMaterial, NodePathCollection)
 del setBSPMaterial
+#####################################################################
+def setAmbientBoost(self):
+    try:
+        from panda3d.bsp import AmbientBoostEffect
+    except:
+        raise ImportError("BSP library needed for setAmbientBoost()")
+    self.setEffect(AmbientBoostEffect.make())
+
+Dtool_funcToMethod(setAmbientBoost, NodePath)
+Dtool_funcToMethod(setAmbientBoost, NodePathCollection)
+del setAmbientBoost
 #####################################################################
