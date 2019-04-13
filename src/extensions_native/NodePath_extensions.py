@@ -861,3 +861,11 @@ Dtool_funcToMethod(setAmbientBoost, NodePath)
 Dtool_funcToMethod(setAmbientBoost, NodePathCollection)
 del setAmbientBoost
 #####################################################################
+def getSurfaceProp(self):
+    return self.getTag("$surfaceprop")
+Dtool_funcToMethod(getSurfaceProp, NodePath)
+del getSurfaceProp
+def setSurfaceProp(self, prop):
+    self.setTag("$surfaceprop", prop)
+Dtool_funcToMethod(setSurfaceProp, NodePath)
+del setSurfaceProp
