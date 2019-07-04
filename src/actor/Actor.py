@@ -2512,7 +2512,7 @@ class Actor(DirectObject, NodePath):
         else:
             animNames = [animName]
         for animName in animNames:
-            if animName is 'nothing':
+            if animName == 'nothing':
                 continue
             thisAnim = ''
             totalEffect = 0.
