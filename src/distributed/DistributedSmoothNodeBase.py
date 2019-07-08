@@ -63,7 +63,7 @@ class DistributedSmoothNodeBase:
     def wantSmoothPosBroadcastTask(self):
         return True
 
-    def startPosHprBroadcast(self, period=.2, stagger=0, type=None):
+    def startPosHprBroadcast(self, period=.1, stagger=0, type=None):
         if self.cnode == None:
             self.initializeCnode()
 

@@ -79,6 +79,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
 
             # flag set when we receive a stop message
             self.stopped = False
+            self.fullyStopped = False
 
     def generate(self):
         self.smoother = SmoothMover()
@@ -93,7 +94,8 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         self.activateSmoothing(GlobalSmoothing, GlobalPrediction)
 
         # clear stopped flag for re-generate
-        self.stopped = False
+        self.stopped = True
+        self.fullyStopped = True
 
     def disable(self):
         DistributedSmoothNodeBase.DistributedSmoothNodeBase.disable(self)
@@ -113,7 +115,15 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         smoothed position.  This may be overridden by a derived class
         to specialize the behavior.
         """
-        self.smoother.computeAndApplySmoothPosHpr(self, self)
+        
+        if self.fullyStopped:
+            return
+
+        if self.smoother.computeSmoothPosition():
+            self.smoother.applySmoothPos(self)
+            self.smoother.applySmoothHpr(self)
+        elif self.stopped:
+            self.fullyStopped = True
 
     def doSmoothTask(self, task):
         self.smoothPosition()
@@ -206,6 +216,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
                 self.smoother.markPosition()
 
         self.stopped = False
+        self.fullyStopped = False
 
     # distributed set pos and hpr functions
     # 'send' versions are inherited from DistributedSmoothNodeBase
