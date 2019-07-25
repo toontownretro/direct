@@ -69,6 +69,8 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
             DistributedSmoothNodeBase.DistributedSmoothNodeBase.__init__(self)
             self.smoothStarted = 0
 
+            self.smoother = None
+
             # Set this True to assert that the local process has
             # complete authority over the position of this object when
             # smoothing is not in effect.  When this is True, position
@@ -100,7 +102,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
     def disable(self):
         DistributedSmoothNodeBase.DistributedSmoothNodeBase.disable(self)
         DistributedNode.DistributedNode.disable(self)
-        del self.smoother
+        self.smoother = None
 
     def delete(self):
         DistributedSmoothNodeBase.DistributedSmoothNodeBase.delete(self)
