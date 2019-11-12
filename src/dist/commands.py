@@ -1,3 +1,9 @@
+"""Extends setuptools with the ``build_apps`` and ``bdist_apps`` commands.
+
+See the :ref:`distribution` section of the programming manual for information
+on how to use these commands.
+"""
+
 from __future__ import print_function
 
 import collections
@@ -21,7 +27,7 @@ import distutils.log
 
 from . import FreezeTool
 from . import pefile
-from direct.p3d.DeploymentTools import Icon
+from .icon import Icon
 import panda3d.core as p3d
 
 
@@ -66,6 +72,8 @@ def _parse_dict(input):
 
 
 def egg2bam(_build_cmd, srcpath, dstpath):
+    if dstpath.endswith('.gz') or dstpath.endswith('.pz'):
+        dstpath = dstpath[:-3]
     dstpath = dstpath + '.bam'
     try:
         subprocess.check_call([
@@ -357,7 +365,7 @@ class build_apps(setuptools.Command):
         tmp.update(self.file_handlers)
         self.file_handlers = tmp
 
-        tmp = self.package_data_dirs.copy()
+        tmp = PACKAGE_DATA_DIRS.copy()
         tmp.update(self.package_data_dirs)
         self.package_data_dirs = tmp
 
@@ -895,6 +903,9 @@ class build_apps(setuptools.Command):
                 os.makedirs(dst_dir)
 
             ext = os.path.splitext(src)[1]
+            # If the file ends with .gz/.pz, we strip this off.
+            if ext in ('.gz', '.pz'):
+                ext = os.path.splitext(src[:-3])[1]
             if not ext:
                 ext = os.path.basename(src)
 

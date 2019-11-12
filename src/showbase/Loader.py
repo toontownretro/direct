@@ -1,4 +1,6 @@
-"""Loader module: contains the Loader class"""
+"""This module contains a high-level interface for loading models, textures,
+sound, music, shaders and fonts from disk.
+"""
 
 __all__ = ['Loader']
 
@@ -230,7 +232,7 @@ class Loader(DirectObject):
 
         """
 
-        assert Loader.notify.debug("Loading model: %s" % (modelPath))
+        assert Loader.notify.debug("Loading model: %s" % (modelPath,))
         if loaderOptions is None:
             loaderOptions = LoaderOptions()
         else:
