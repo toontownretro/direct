@@ -839,7 +839,7 @@ del analyze
 #####################################################################
 def setBSPMaterial(self, mat, override = 0):
     try:
-        from panda3d.bsp import BSPMaterialAttrib, BSPMaterial
+        from libpandabsp import BSPMaterialAttrib, BSPMaterial
     except:
         raise ImportError("BSP library needed for setBSPMaterial()")
     if isinstance(mat, str):
@@ -852,7 +852,7 @@ del setBSPMaterial
 #####################################################################
 def setAmbientBoost(self):
     try:
-        from panda3d.bsp import AmbientBoostEffect
+        from libpandabsp import AmbientBoostEffect
     except:
         raise ImportError("BSP library needed for setAmbientBoost()")
     self.setEffect(AmbientBoostEffect.make())
