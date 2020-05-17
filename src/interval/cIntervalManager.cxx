@@ -14,7 +14,6 @@
 #include "cIntervalManager.h"
 #include "cMetaInterval.h"
 #include "dcast.h"
-#include "eventQueue.h"
 #include "mutexHolder.h"
 
 CIntervalManager *CIntervalManager::_global_ptr;

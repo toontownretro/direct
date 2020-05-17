@@ -21,8 +21,7 @@
 #include "pmap.h"
 #include "vector_int.h"
 #include "pmutex.h"
-
-class EventQueue;
+#include "eventQueue.h"
 
 /**
  * This object holds a number of currently-playing intervals and is
