@@ -1,10 +1,10 @@
 """AstronClientRepository module: contains the AstronClientRepository class"""
 
-from direct.directnotify import DirectNotifyGlobal
-from ClientRepositoryBase import ClientRepositoryBase
-from MsgTypes import *
-from direct.distributed.PyDatagram import PyDatagram
 from panda3d.direct import STUint16, STUint32
+from direct.directnotify import DirectNotifyGlobal
+from direct.distributed.PyDatagram import PyDatagram
+from .ClientRepositoryBase import ClientRepositoryBase
+from .MsgTypes import *
 
 class AstronClientRepository(ClientRepositoryBase):
     """
@@ -34,16 +34,10 @@ class AstronClientRepository(ClientRepositoryBase):
         self.message_handlers = {CLIENT_HELLO_RESP: self.handleHelloResp,
                                  CLIENT_EJECT: self.handleEject,
                                  CLIENT_ENTER_OBJECT_REQUIRED: self.handleEnterObjectRequired,
-
-                                 # Defined by DuckyDuck1553:
-                                 CLIENT_ENTER_OBJECT_REQUIRED_OTHER: self.handleEnterObjectRequiredOther,
-                                 CLIENT_ENTER_OBJECT_REQUIRED_OTHER_OWNER: self.handleEnterObjectRequiredOtherOwner,
-
                                  CLIENT_ENTER_OBJECT_REQUIRED_OWNER: self.handleEnterObjectRequiredOwner,
                                  CLIENT_OBJECT_SET_FIELD: self.handleUpdateField,
                                  CLIENT_OBJECT_SET_FIELDS: self.handleUpdateFields,
                                  CLIENT_OBJECT_LEAVING: self.handleObjectLeaving,
-                                 CLIENT_OBJECT_LEAVING_OWNER: self.handleObjectLeaving,
                                  CLIENT_OBJECT_LOCATION: self.handleObjectLocation,
                                  CLIENT_ADD_INTEREST: self.handleAddInterest,
                                  CLIENT_ADD_INTEREST_MULTIPLE: self.handleAddInterestMultiple,
@@ -82,24 +76,6 @@ class AstronClientRepository(ClientRepositoryBase):
         dclass_id = di.getArg(STUint16)
         dclass = self.dclassesByNumber[dclass_id]
         self.generateWithRequiredFields(dclass, do_id, di, parent_id, zone_id)
-
-    # Defined by DuckyDuck1553:
-    def handleEnterObjectRequiredOther(self, di):
-        do_id = di.getArg(STUint32)
-        parent_id = di.getArg(STUint32)
-        zone_id = di.getArg(STUint32)
-        dclass_id = di.getArg(STUint16)
-        dclass = self.dclassesByNumber[dclass_id]
-        self.generateWithRequiredOtherFields(dclass, do_id, di, parent_id, zone_id)
-
-    # Defined by DuckyDuck1553:
-    def handleEnterObjectRequiredOtherOwner(self, di):
-        do_id = di.getArg(STUint32)
-        parent_id = di.getArg(STUint32)
-        zone_id = di.getArg(STUint32)
-        dclass_id = di.getArg(STUint16)
-        dclass = self.dclassesByNumber[dclass_id]
-        self.generateWithRequiredOtherFieldsOwner(dclass, do_id, di)
 
     def handleEnterObjectRequiredOwner(self, di):
         avatar_doId = di.getArg(STUint32)
@@ -167,8 +143,8 @@ class AstronClientRepository(ClientRepositoryBase):
 
     def handleObjectLeaving(self, di):
         do_id = di.get_uint32()
-        #dist_obj = self.doId2do.get(do_id)
-        #dist_obj.delete()
+        dist_obj = self.doId2do.get(do_id)
+        dist_obj.delete()
         self.deleteObject(do_id)
         messenger.send("CLIENT_OBJECT_LEAVING", [do_id])
 
