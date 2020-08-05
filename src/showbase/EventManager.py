@@ -4,9 +4,9 @@ global eventMgr instance."""
 __all__ = ['EventManager']
 
 
-from .MessengerGlobal import *
+from . import MessengerGlobal
 from direct.directnotify.DirectNotifyGlobal import *
-from direct.task.TaskManagerGlobal import taskMgr
+from direct.task import TaskManagerGlobal
 from panda3d.core import PStatCollector, EventQueue, EventHandler
 from panda3d.core import ConfigVariableBool
 
@@ -14,7 +14,7 @@ class EventManager:
 
     notify = None
 
-    def __init__(self, eventQueue = None):
+    def __init__(self, eventQueue = None, messenger = None, taskMgr = None):
         """
         Create a C++ event queue and handler
         """
@@ -24,6 +24,14 @@ class EventManager:
 
         self.eventQueue = eventQueue
         self.eventHandler = None
+
+        if not messenger:
+            messenger = MessengerGlobal.messenger
+        self.messenger = messenger
+
+        if not taskMgr:
+            taskMgr = TaskManagerGlobal.taskMgr
+        self.taskMgr = taskMgr
 
         self._wantPstats = ConfigVariableBool('pstats-eventmanager', False)
 
@@ -47,7 +55,7 @@ class EventManager:
         Process all the events on the C++ event queue
         """
         self.doEvents()
-        messenger.send("event-loop-done")
+        self.messenger.send("event-loop-done")
         return task.cont
 
     def parseEventParameter(self, eventParameter):
@@ -96,7 +104,7 @@ class EventManager:
             # **************************************************************
             # Send the event, we used to send it with the event
             # name as a parameter, but now you can use extraArgs for that
-            messenger.send(eventName, paramList)
+            self.messenger.send(eventName, paramList)
 
             # Also send the event down into C++ land
             handler = self.eventHandler
@@ -142,7 +150,7 @@ class EventManager:
                 cppPstatCollector = PStatCollector(
                     'App:Show code:eventManager:' + name + ':C++')
 
-            messenger.send(eventName, paramList)
+            self.messenger.send(eventName, paramList)
 
             # Also send the event down into C++ land
             handler = self.eventHandler
@@ -170,10 +178,10 @@ class EventManager:
                 # Otherwise, we need our own event handler.
                 self.eventHandler = EventHandler(self.eventQueue)
 
-        taskMgr.add(self.eventLoopTask, 'eventManager')
+        self.taskMgr.add(self.eventLoopTask, 'eventManager')
 
     def shutdown(self):
-        taskMgr.remove('eventManager')
+        self.taskMgr.remove('eventManager')
 
         # Flush the event queue.  We do this after removing the task
         # since the task removal itself might also fire off an event.

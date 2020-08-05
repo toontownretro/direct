@@ -7,6 +7,8 @@ __all__ = ['Messenger']
 
 from .PythonUtil import *
 from direct.directnotify import DirectNotifyGlobal
+from direct.task import TaskManagerGlobal
+from . import EventManagerGlobal
 import types
 
 from direct.stdpy.threading import Lock
@@ -16,7 +18,7 @@ class Messenger:
 
     notify = DirectNotifyGlobal.directNotify.newCategory("Messenger")
 
-    def __init__(self):
+    def __init__(self, taskMgr = None):
         """
         One is keyed off the event name. It has the following structure::
 
@@ -63,6 +65,15 @@ class Messenger:
                        "event-loop-done":1,
                        'collisionLoopFinished':1,
                        } # see def quiet()
+
+        if not taskMgr:
+            taskMgr = TaskManagerGlobal.taskMgr
+        self.taskMgr = taskMgr
+
+        self.eventMgr = EventManagerGlobal.eventMgr
+
+    def setEventMgr(self, mgr):
+        self.eventMgr = mgr
 
     def _getMessengerId(self, object):
         # TODO: allocate this id in DirectObject.__init__ and get derived
@@ -116,7 +127,7 @@ class Messenger:
         """ Returns a future that is triggered by the given event name.  This
         will function only once. """
 
-        return eventMgr.eventHandler.get_future(event)
+        return self.eventMgr.eventHandler.get_future(event)
 
     def accept(self, event, object, method, extraArgs=[], persistent=1):
         """ accept(self, string, DirectObject, Function, List, Boolean)
@@ -322,13 +333,12 @@ class Messenger:
 
             if taskChain:
                 # Queue the event onto the indicated task chain.
-                from direct.task.TaskManagerGlobal import taskMgr
                 queue = self._eventQueuesByTaskChain.setdefault(taskChain, [])
                 queue.append((acceptorDict, event, sentArgs, foundWatch))
                 if len(queue) == 1:
                     # If this is the first (only) item on the queue,
                     # spawn the task to empty it.
-                    taskMgr.add(self.__taskChainDispatch, name = 'Messenger-%s' % (taskChain),
+                    self.taskMgr.add(self.__taskChainDispatch, name = 'Messenger-%s' % (taskChain),
                                 extraArgs = [taskChain], taskChain = taskChain,
                                 appendTask = True)
             else:
@@ -424,7 +434,7 @@ class Messenger:
 
                 if hasattr(result, 'cr_await'):
                     # It's a coroutine, so schedule it with the task manager.
-                    taskMgr.add(result)
+                    self.taskMgr.add(result)
 
     def clear(self):
         """
