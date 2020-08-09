@@ -7,8 +7,6 @@ __all__ = ['Messenger']
 
 from .PythonUtil import *
 from direct.directnotify import DirectNotifyGlobal
-from direct.task import TaskManagerGlobal
-from . import EventManagerGlobal
 import types
 
 from direct.stdpy.threading import Lock
@@ -66,11 +64,8 @@ class Messenger:
                        'collisionLoopFinished':1,
                        } # see def quiet()
 
-        if not taskMgr:
-            taskMgr = TaskManagerGlobal.taskMgr
         self.taskMgr = taskMgr
-
-        self.eventMgr = EventManagerGlobal.eventMgr
+        self.eventMgr = None
 
     def setEventMgr(self, mgr):
         self.eventMgr = mgr
@@ -126,6 +121,10 @@ class Messenger:
     def future(self, event):
         """ Returns a future that is triggered by the given event name.  This
         will function only once. """
+
+        if not self.eventMgr:
+            from . import EventManagerGlobal
+            self.eventMgr = EventManagerGlobal.eventMgr
 
         return self.eventMgr.eventHandler.get_future(event)
 
@@ -338,6 +337,9 @@ class Messenger:
                 if len(queue) == 1:
                     # If this is the first (only) item on the queue,
                     # spawn the task to empty it.
+                    if not self.taskMgr:
+                        from direct.task import TaskManagerGlobal
+                        self.taskMgr = TaskManagerGlobal.taskMgr
                     self.taskMgr.add(self.__taskChainDispatch, name = 'Messenger-%s' % (taskChain),
                                 extraArgs = [taskChain], taskChain = taskChain,
                                 appendTask = True)
@@ -434,6 +436,9 @@ class Messenger:
 
                 if hasattr(result, 'cr_await'):
                     # It's a coroutine, so schedule it with the task manager.
+                    if not self.taskMgr:
+                        from direct.task import TaskManagerGlobal
+                        self.taskMgr = TaskManagerGlobal.taskMgr
                     self.taskMgr.add(result)
 
     def clear(self):
