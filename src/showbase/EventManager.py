@@ -105,6 +105,8 @@ class EventManager:
             # Send the event, we used to send it with the event
             # name as a parameter, but now you can use extraArgs for that
             self.messenger.send(eventName, paramList)
+            if self.messenger != MessengerGlobal.messenger:
+                MessengerGlobal.messenger.send(eventName, paramList)
 
             # Also send the event down into C++ land
             handler = self.eventHandler
@@ -151,6 +153,8 @@ class EventManager:
                     'App:Show code:eventManager:' + name + ':C++')
 
             self.messenger.send(eventName, paramList)
+            if self.messenger != MessengerGlobal.messenger:
+                MessengerGlobal.messenger.send(eventName, paramList)
 
             # Also send the event down into C++ land
             handler = self.eventHandler
