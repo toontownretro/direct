@@ -132,8 +132,21 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
       // If we have a proxy for this field, allow the proxy method to
       // do whatever it needs to do with the args
       PyObject *proxy = PyObject_GetAttrString(dist_obj, proxy_name);
-      PyObject_CallObject(proxy, args);
+
+      if (PyTuple_Check(args)) {
+        // Args are already a tuple
+        PyObject_CallObject(proxy, args);
+
+      } else {
+        // The arguments are not already a tuple. Since we are calling a
+        // method, the arguments need to be in a tuple.
+        PyObject *tuple_args = PyTuple_Pack(1, args);
+        PyObject_CallObject(proxy, tuple_args);
+        Py_DECREF(tuple_args);
+      }
+
       Py_DECREF(proxy);
+
     } else {
       // Set the args directly on the attribute on the object with the
       // name of the field.
