@@ -10,6 +10,7 @@ add_subdirectory(src/directbase)
 #add_subdirectory(src/directd)
 #add_subdirectory(src/directdServer)
 add_subdirectory(src/distributed)
+add_subdirectory(src/distributed2)
 add_subdirectory(src/interval)
 add_subdirectory(src/motiontrail)
 add_subdirectory(src/showbase)
@@ -19,7 +20,7 @@ set(P3DIRECT_COMPONENTS
   p3interval p3motiontrail p3showbase
 )
 if(HAVE_PYTHON)
-  list(APPEND P3DIRECT_COMPONENTS p3distributed)
+  list(APPEND P3DIRECT_COMPONENTS p3distributed p3distributed2)
 endif()
 
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "DirectDevel")
@@ -38,7 +39,7 @@ if(HAVE_PYTHON)
   # Now for the Python side of everything
 
   add_python_module(panda3d.direct
-    p3dcparser p3deadrec p3distributed p3interval
+    p3dcparser p3deadrec p3distributed p3distributed2 p3interval
     p3motiontrail p3showbase LINK p3direct IMPORT panda3d.core COMPONENT Direct)
 
   # Copy Python source files into the build directory
