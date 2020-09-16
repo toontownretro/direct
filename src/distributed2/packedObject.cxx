@@ -69,8 +69,16 @@ pack_datagram(Datagram &dg) {
   dg.add_uint16(num_fields);
 
   for (int i = 0; i < num_fields; i++) {
-    const PackedField &field = get_field(i);
-    dg.add_uint16(field.field_index);
-    dg.append_data(_data + field.offset, field.length);
+    pack_field(dg, i);
   }
+}
+
+/**
+ * Packs the indicated field onto the datagram.
+ */
+void PackedObject::
+pack_field(Datagram &dg, int n) {
+  const PackedField &field = get_field(n);
+  dg.add_uint16(field.field_index);
+  dg.append_data(_data + field.offset, field.length);
 }

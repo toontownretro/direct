@@ -14,6 +14,9 @@
 #include "frameSnapshotManager.h"
 #include "frameSnapshot.h"
 
+/**
+ * Creates and returns a new PackedObject for the specified object ID.
+ */
 PT(PackedObject) FrameSnapshotManager::
 create_packed_object(DOID_TYPE do_id) {
   PT(PackedObject) obj = new PackedObject;
@@ -22,6 +25,10 @@ create_packed_object(DOID_TYPE do_id) {
   return obj;
 }
 
+/**
+ * Returns the most recently sent packed state for the specified object ID, or
+ * nullptr if no packet was ever sent for the object.
+ */
 PackedObject *FrameSnapshotManager::
 get_prev_sent_packet(DOID_TYPE do_id) const {
   auto itr = _prev_sent_packets.find(do_id);

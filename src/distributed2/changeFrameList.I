@@ -11,6 +11,9 @@
  * @date 2020-09-13
  */
 
+/**
+ * Returns the number of fields in the list.
+ */
 INLINE int ChangeFrameList::
 get_num_fields() const {
   return (int)_change_ticks.size();

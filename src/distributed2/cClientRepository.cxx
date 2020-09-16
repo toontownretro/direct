@@ -18,6 +18,10 @@
 #include "dcPacker.h"
 #include "extension.h"
 
+/**
+ * Unpacks a server snapshot from the datagram and applies the state onto the
+ * distributed objects.
+ */
 void CClientRepository::
 unpack_server_snapshot(DatagramIterator &dgi) {
   bool is_delta = (bool)dgi.get_uint8();
@@ -31,11 +35,8 @@ unpack_server_snapshot(DatagramIterator &dgi) {
     return;
   }
 
-  std::cout << num_objects << " objects" << std::endl;
-
   for (int i = 0; i < num_objects; i++) {
     DOID_TYPE do_id = dgi.get_uint32();
-    std::cout << "doid " << do_id << std::endl;
 
     PyObject *py_do_id = PyLong_FromUnsignedLong(do_id);
     PyObject *dist_obj = PyDict_GetItem(doid2do, py_do_id);
@@ -74,6 +75,10 @@ unpack_server_snapshot(DatagramIterator &dgi) {
   Py_DECREF(doid2do);
 }
 
+/**
+ * Unpacks the object state from the datagram and applies it to the specified
+ * distributed object.
+ */
 bool CClientRepository::
 unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
                     DOID_TYPE do_id) {
@@ -106,8 +111,6 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
     }
 
     const char *c_name = field->get_name().c_str();
-
-    std::cout << "field " << field->get_name() << std::endl;
 
     // Put the buffer in the DCPacker to unpack the data into python objects
     packer.set_unpack_data(data + dgi.get_current_index(), dgi.get_remaining_size(), false);

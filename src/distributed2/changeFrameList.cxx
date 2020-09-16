@@ -13,6 +13,9 @@
 
 #include "changeFrameList.h"
 
+/**
+ *
+ */
 ChangeFrameList::
 ChangeFrameList(int num_fields, int curr_tick) {
   _change_ticks.resize(num_fields);
@@ -21,6 +24,9 @@ ChangeFrameList(int num_fields, int curr_tick) {
   }
 }
 
+/**
+ * Sets the most recent tick that the specified fields changed.
+ */
 void ChangeFrameList::
 set_change_tick(const int *field_indices, int num_fields, int tick) {
   for (int i = 0; i < num_fields; i++) {
@@ -28,6 +34,9 @@ set_change_tick(const int *field_indices, int num_fields, int tick) {
   }
 }
 
+/**
+ * Builds a list of fields that changed after the specified tick.
+ */
 int ChangeFrameList::
 get_fields_changed_after_tick(int tick, vector_int &out_fields) {
 

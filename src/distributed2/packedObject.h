@@ -76,6 +76,7 @@ PUBLISHED:
                  vector_int &delta_fields);
 
   void pack_datagram(Datagram &dg);
+  void pack_field(Datagram &dg, int n);
 
 private:
   // Individual field information

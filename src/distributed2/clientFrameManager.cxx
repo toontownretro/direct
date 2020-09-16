@@ -13,6 +13,10 @@
 
 #include "clientFrameManager.h"
 
+/**
+ * Appends a new ClientFrame onto the list and returns the new length of the
+ * list.
+ */
 int ClientFrameManager::
 add_client_frame(ClientFrame *frame) {
   nassertr(frame->get_tick_count() > 0, 0);
@@ -38,6 +42,15 @@ add_client_frame(ClientFrame *frame) {
   return count;
 }
 
+/**
+ * Returns a ClientFrame for the specified tick number.
+ *
+ * If exact is true, returns the ClientFrame with the exact tick number that
+ * was specified, or nullptr if no ClientFrame has that tick number.
+ *
+ * If exact is false, returns the ClientFrame with the exact tick number that
+ * was specified, or the most recent ClientFrame before that tick number.
+ */
 ClientFrame *ClientFrameManager::
 get_client_frame(int tick, bool exact) const {
   if (tick < 0) {
@@ -71,6 +84,10 @@ get_client_frame(int tick, bool exact) const {
   return last_frame;
 }
 
+/**
+ * Removes all ClientFrames from the list before the specified tick number.
+ * If tick is -1, removes all ClientFrames.
+ */
 void ClientFrameManager::
 delete_client_frames(int tick) {
   ClientFrame *frame = _frames; // first
@@ -100,6 +117,9 @@ delete_client_frames(int tick) {
   }
 }
 
+/**
+ * Returns the number of ClientFrames in the linked-list.
+ */
 int ClientFrameManager::
 count_client_frames() const {
   int count = 0;
@@ -112,6 +132,9 @@ count_client_frames() const {
   return count;
 }
 
+/**
+ * Removes the oldest ClientFrame in the list.
+ */
 void ClientFrameManager::
 remove_oldest_frame() {
   ClientFrame *frame = _frames; // first

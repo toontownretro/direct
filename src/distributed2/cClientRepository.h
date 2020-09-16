@@ -21,6 +21,11 @@
 
 class DCClass;
 
+/**
+ * This is the C++ implementation of the ClientRepository, which currently
+ * only handles unpacking of server snapshots and object state datagrams
+ * for performance efficiency.
+ */
 class EXPCL_DIRECT_DISTRIBUTED2 CClientRepository {
 PUBLISHED:
   INLINE CClientRepository();

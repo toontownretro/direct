@@ -11,11 +11,19 @@
  * @date 2020-09-15
  */
 
+/**
+ *
+ */
 INLINE CClientRepository::
 CClientRepository() {
   _py_repo = nullptr;
 }
 
+
+/**
+ * Sets the Python ClientRepository. The `doId2do` dictionary will be queried
+ * on this object.
+ */
 INLINE void CClientRepository::
 set_python_repository(PyObject *repo) {
   _py_repo = repo;

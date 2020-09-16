@@ -21,6 +21,13 @@
 #include "dcField.h"
 #include "dcParameter.h"
 
+/**
+ * Packs the specified distributed object into the specified snapshot.
+ * If the object was previously packed in a snapshot, compares the new state
+ * to the old state to determine what fields have changed.
+ *
+ * Returns false if there was an error packing the object.
+ */
 bool Extension<FrameSnapshotManager>::
 pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_obj,
                         DOID_TYPE do_id, ZONEID_TYPE zone_id, DCClass *dclass) {
@@ -161,6 +168,11 @@ pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_o
   return true;
 }
 
+/**
+ * Builds a datagram out of the specified snapshot suitable for sending to a
+ * client. Only objects that are in the specified interest zones are packed
+ * into the datagram.
+ */
 void Extension<FrameSnapshotManager>::
 client_format_snapshot(Datagram &dg, FrameSnapshot *snapshot,
                        PyObject *py_interest_zone_ids) {
@@ -193,13 +205,7 @@ client_format_snapshot(Datagram &dg, FrameSnapshot *snapshot,
     // This is not a delta snapshot, just copy the absolute state
     // onto the datagram.
     PackedObject *packet = entry.get_packed_object();
-    int num_fields = packet->get_num_fields();
-    object_dg.add_uint16(num_fields);
-    for (int j = 0; j < num_fields; j++) {
-      const PackedObject::PackedField &field = packet->get_field(j);
-      object_dg.add_uint16(field.field_index);
-      object_dg.append_data(packet->get_data() + field.offset, field.length);
-    }
+    packet->pack_datagram(dg);
 
     num_objects++;
   }
@@ -211,6 +217,12 @@ client_format_snapshot(Datagram &dg, FrameSnapshot *snapshot,
   dg.append_data(object_dg.get_data(), object_dg.get_length());
 }
 
+/**
+ * Builds a datagram out of the specified snapshot suitable for sending to a
+ * client. Only objects that are in the specified interest zones are packed
+ * into the datagram, and only fields that have changed between `from` and `to`
+ * are packed.
+ */
 void Extension<FrameSnapshotManager>::
 client_format_delta_snapshot(Datagram &dg, FrameSnapshot *from, FrameSnapshot *to,
                              PyObject *py_interest_zone_ids) {
@@ -256,9 +268,7 @@ client_format_delta_snapshot(Datagram &dg, FrameSnapshot *from, FrameSnapshot *t
 
     // Now copy each changed field into the datagram
     for (int j = 0; j < num_changes; j++) {
-      const PackedObject::PackedField &field = packet->get_field(changed_fields[j]);
-      object_dg.add_uint16(field.field_index);
-      object_dg.append_data(packet->get_data() + field.offset, field.length);
+      packet->pack_field(dg, changed_fields[j]);
     }
 
     num_objects++;
