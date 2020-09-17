@@ -46,5 +46,8 @@ class NetMessages:
     # instantiate an owner-view instance of the object.
     SV_GenerateOwnerObject = 14
 
+    # Object is temporarily going away.
+    SV_DisableObject = 15
+
     # Object is going away.
-    SV_DeleteObject = 15
+    SV_DeleteObject = 16

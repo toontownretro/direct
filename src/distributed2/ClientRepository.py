@@ -1,6 +1,6 @@
 from panda3d.networksystem import NetworkSystem, NetworkCallbacks, NetworkMessage, NetworkConnectionInfo
 from panda3d.core import URLSpec, NetAddress
-from panda3d.direct import CClientRepository
+from panda3d.direct import CClientRepository, DCPacker
 
 from direct.distributed.PyDatagram import PyDatagram
 from direct.showbase.DirectObject import DirectObject
@@ -9,6 +9,7 @@ from direct.directnotify.DirectNotifyGlobal import directNotify
 from .BaseObjectManager import BaseObjectManager
 from .ClientConfig import *
 from .NetMessages import NetMessages
+from .DOState import DOState
 
 class ClientRepository(BaseObjectManager, CClientRepository):
     notify = directNotify.newCategory("ClientRepository")
@@ -37,7 +38,6 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.update()
 
     def runFrame(self, task):
-        print("Run client frame")
         self.readerPollUntilEmpty()
         self.runCallbacks()
 
@@ -148,13 +148,38 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         # Let the C++ repository unpack and apply the snapshot onto our objects
         self.unpackServerSnapshot(dgi)
 
-        print("Got tick %i and snapshot from server" % self.serverTickCount)
+        self.notify.debug("Got tick %i and snapshot from server" % self.serverTickCount)
 
         # Inform server we got the tick
         dg = PyDatagram()
         dg.addUint16(NetMessages.CL_Tick)
         dg.addUint32(self.serverTickCount)
         self.sendDatagram(dg)
+
+    def __handleGenerateOwnerObject(self, dgi):
+        while dgi.getRemainingSize() > 0:
+            classId = dgi.getUint16()
+            doId = dgi.getUint32()
+            zoneId = dgi.getUint32()
+            hasState = dgi.getUint8()
+            dclass = self.dclassesByNumber[classId]
+            classDef = dclass.getOwnerClassDef()
+
+            do = classDef()
+            do.doId = doId
+            do.zoneId = zoneId
+            do.dclass = dclass
+            self.doId2do[do.doId] = do
+
+            do.generate()
+
+            if hasState:
+                self.notify.debug("Unpacking baseline/initial owner object state")
+                # An initial state was supplied for the object
+                # Unpack it in the C++ repository.
+                self.unpackObjectState(dgi, do, dclass, doId)
+
+            do.announceGenerate()
 
     def __handleGenerateObject(self, dgi):
         while dgi.getRemainingSize() > 0:
@@ -171,13 +196,15 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.dclass = dclass
             self.doId2do[do.doId] = do
 
+            do.generate()
+
             if hasState:
-                print("unpacking initial state")
+                self.notify.debug("Unpacking baseline/initial object state")
                 # An initial state was supplied for the object
                 # Unpack it in the C++ repository.
                 self.unpackObjectState(dgi, do, dclass, doId)
 
-            do.generate()
+            do.announceGenerate()
 
     def __handleDeleteObject(self, dgi):
         while dgi.getRemainingSize() > 0:
@@ -189,7 +216,17 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
     def deleteObject(self, do):
         del self.doId2do[do.doId]
+        if do.doState > DOState.Disabled:
+            do.disable()
         do.delete()
+
+    def deleteAllObjects(self):
+        for do in self.doId2do.values():
+            if do.doState > DOState.Disabled:
+                do.disable()
+            do.delete()
+
+        self.doId2do = {}
 
     def disconnect(self):
         if not self.connected:
@@ -205,6 +242,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.serverTickRate = 0
         self.serverIntervalPerTick = 0
         self.stopClientLoop()
+        self.deleteAllObjects()
 
     def readerPollUntilEmpty(self):
         if not self.connected:
@@ -270,10 +308,12 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
             # Lost connection
             self.connected = False
+            self.notify.warning("Lost connection to server")
             messenger.send('connectionLost')
             self.serverAddress = None
             self.connectionHandle = None
             self.stopClientLoop()
+            self.deleteAllObjects()
 
     def handleDatagram(self, dgi):
         if self.msgType == NetMessages.SV_Hello_Resp:
@@ -284,5 +324,61 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.__handleServerTick(dgi)
         elif self.msgType == NetMessages.SV_GenerateObject:
             self.__handleGenerateObject(dgi)
+        elif self.msgType == NetMessages.SV_GenerateOwnerObject:
+            self.__handleGenerateOwnerObject(dgi)
         elif self.msgType == NetMessages.SV_DeleteObject:
             self.__handleDeleteObject(dgi)
+        elif self.msgType == NetMessages.B_ObjectMessage:
+            self.__handleObjectMessage(dgi)
+
+    def sendUpdate(self, do, name, args):
+        if not do:
+            return
+        if not do.dclass:
+            return
+        field = do.dclass.getFieldByName(name)
+        if not field:
+            self.notify.warning("Tried to send update for non-existent field %s" % name)
+            return
+        if field.asParameter():
+            self.notify.warning("Tried to send parameter field as a message")
+            return
+
+        packer = DCPacker()
+        packer.rawPackUint16(NetMessages.B_ObjectMessage)
+        packer.rawPackUint32(do.doId)
+        packer.rawPackUint16(field.getNumber())
+
+        packer.beginPack(field)
+        field.packArgs(packer, args)
+        if not packer.endPack():
+            self.notify.warning("Failed to pack object message")
+            return
+
+        dg = PyDatagram(packer.getBytes())
+        self.sendDatagram(dg)
+
+    def __handleObjectMessage(self, dgi):
+        doId = dgi.getUint32()
+        do = self.doId2do.get(doId)
+        if not do:
+            self.notify.warning("Received message for unknown object %i" % doId)
+            return
+
+        fieldNumber = dgi.getUint16()
+        field = do.dclass.getFieldByIndex(fieldNumber)
+        if not field:
+            self.notify.warning("Received message on unknown field %i on object %i" % (fieldNumber, doId))
+            return
+
+        if field.asParameter():
+            self.notify.warning("Received message for parameter field?")
+            return
+
+        # We can safely pass this message onto the object
+        packer = DCPacker()
+        packer.setUnpackData(dgi.getRemainingBytes())
+        packer.beginUnpack(field)
+        field.receiveUpdate(packer, do)
+        if not packer.endUnpack():
+            self.notify.warning("Failed to unpack message")

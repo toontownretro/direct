@@ -1,6 +1,6 @@
 from panda3d.networksystem import NetworkSystem, NetworkCallbacks, NetworkConnectionInfo, NetworkMessage
 from panda3d.core import UniqueIdAllocator, HashVal
-from panda3d.direct import FrameSnapshot, ClientFrameManager, ClientFrame, FrameSnapshotManager
+from panda3d.direct import FrameSnapshot, ClientFrameManager, ClientFrame, FrameSnapshotManager, DCPacker
 
 from direct.distributed.PyDatagram import PyDatagram
 from direct.showbase.DirectObject import DirectObject
@@ -75,6 +75,9 @@ class ServerRepository(BaseObjectManager):
         BaseObjectManager.__init__(self, False)
         self.dcSuffix = 'AI'
 
+        # The client that just sent us a message.
+        self.clientSender = None
+
         self.listenPort = listenPort
         self.netSys = NetworkSystem()
         self.netCallbacks = NetworkCallbacks()
@@ -136,6 +139,12 @@ class ServerRepository(BaseObjectManager):
             self.packObjectGenerate(dg, do)
             self.sendDatagram(dg, owner.connection)
 
+            # Follow interest system. Client implicitly has interest in the
+            # location of owned objects.
+            self.updateClientInterestZones(owner)
+
+        do.announceGenerate()
+
     def deleteObject(self, do, removeFromOwnerTable = True):
         del self.doId2do[do.doId]
         self.objectsByZoneId[do.zoneId].remove(do)
@@ -168,7 +177,6 @@ class ServerRepository(BaseObjectManager):
             do.update()
 
     def runFrame(self, task):
-        print("run server frame")
         self.readerPollUntilEmpty()
         self.runCallbacks()
 
@@ -267,6 +275,8 @@ class ServerRepository(BaseObjectManager):
             self.notify.warning("SECURITY: received message from unknown source %i" % connection)
             return
 
+        self.clientSender = client
+
         type = dgi.getUint16()
 
         if client.state == ClientState.Unverified:
@@ -288,6 +298,85 @@ class ServerRepository(BaseObjectManager):
                 self.handleClientRemoveInterest(client, dgi)
             elif type == NetMessages.CL_SetInterest:
                 self.handleClientSetInterest(client, dgi)
+            elif type == NetMessages.B_ObjectMessage:
+                self.handleObjectMessage(client, dgi)
+
+    def sendUpdate(self, do, name, args, client = None):
+        if not do:
+            return
+        if not do.dclass:
+            return
+
+        field = do.dclass.getFieldByName(name)
+        if not field:
+            self.notify.warning("Tried to send unknown field %s" % name)
+            return
+        if field.asParameter():
+            self.notify.warning("Can't sent parameter field as a message")
+            return
+
+        packer = DCPacker()
+        packer.rawPackUint16(NetMessages.B_ObjectMessage)
+        packer.rawPackUint32(do.doId)
+        packer.rawPackUint16(field.getNumber())
+
+        packer.beginPack(field)
+        field.packArgs(packer, args)
+        if not packer.endPack():
+            self.notify.warning("Failed to pack message")
+            return
+
+        dg = PyDatagram(packer.getBytes())
+        if not client:
+            if field.isBroadcast():
+                # Send to all interested clients
+                for cl in self.zonesToClients.get(do.zoneId, set()):
+                    self.sendDatagram(dg, cl.connection)
+            else:
+                self.notify.warning("Can't send non-broadcast object message without a target client")
+                return
+        else:
+            self.sendDatagram(dg, client.connection)
+
+    def handleObjectMessage(self, client, dgi):
+        doId = dgi.getUint32()
+        do = self.doId2do.get(doId)
+        if not do:
+            self.notify.warning("SUSPICIOUS: client %i tried to send message to unknown doId %i" %
+                                (client.id, doId))
+            return
+
+        fieldNumber = dgi.getUint16()
+        field = do.dclass.getFieldByIndex(fieldNumber)
+        if field.asParameter():
+            self.notify.warning("SUSPICIOUS: client %i tried to send message on a parameter field!")
+            return
+
+        if not field:
+            self.notify.warning("SUSPICIOUS: client %i tried to send message on unknown field %i on doId %i" %
+                                (client.id, doId, fieldNumber))
+            return
+
+        if do.owner != client:
+            if not field.isClsend():
+                # Not client-send
+                self.notify.warning("SUSPICIOUS: client %i tried to send non-clsend message on doId %i" %
+                                    (client.id, doId))
+                return
+        else:
+            if not field.isOwnsend() and not field.isClsend():
+                # Not client-send or owner-send
+                self.notify.warning("SUSPICIOUS: owner client %i tried to send non-ownsend and non-clsend message on doId %i" %
+                                    (client.id, doId))
+                return
+
+        # We can safely pass this message onto the object
+        packer = DCPacker()
+        packer.setUnpackData(dgi.getRemainingBytes())
+        packer.beginUnpack(field)
+        field.receiveUpdate(packer, do)
+        if not packer.endUnpack():
+            self.notify.warning("Failed to unpack object message")
 
     def handleClientAddInterest(self, client, dgi):
         """ Called when client wants to add interest into a set of zones """
@@ -362,7 +451,10 @@ class ServerRepository(BaseObjectManager):
             # The client is opening interest in this zone. Need to inform
             # client of all objects in this zone.
             for object in self.objectsByZoneId.get(zoneId, []):
-                self.packObjectGenerate(dg, object)
+                if object.owner != client:
+                    # Don't do this if the client owns the object, it should
+                    # already be generated for them.
+                    self.packObjectGenerate(dg, object)
 
         self.sendDatagram(dg, client.connection)
 
@@ -373,7 +465,9 @@ class ServerRepository(BaseObjectManager):
             # The client is abandoning interest in this zone. Any
             # objects in this zone should be deleted on the client.
             for object in self.objectsByZoneId.get(zoneId, []):
-                dg.addUint32(object.doId)
+                if object.owner != client:
+                    # Never delete objects owned by this client on interest change.
+                    dg.addUint32(object.doId)
         self.sendDatagram(dg, client.connection)
 
     def sendInterestComplete(self, client, handle):
