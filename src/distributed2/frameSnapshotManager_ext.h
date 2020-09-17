@@ -25,9 +25,18 @@ class DCClass;
 
 template<>
 class Extension<FrameSnapshotManager> : public ExtensionBase<FrameSnapshotManager> {
+private:
+  bool encode_object_state(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
+                           PackedObject::PackedFields &fields);
+
 public:
+  PackedObject *find_or_create_object_packet_for_baseline(PyObject *dist_obj, DCClass *dclass,
+                                                          DOID_TYPE do_id);
+
   bool pack_object_in_snapshot(FrameSnapshot *snapshot, int entry, PyObject *dist_obj,
                                DOID_TYPE do_id, ZONEID_TYPE zone_id, DCClass *dclass);
+
+
 
   void client_format_snapshot(Datagram &dg, FrameSnapshot *snapshot,
                               PyObject *interest_zone_ids);

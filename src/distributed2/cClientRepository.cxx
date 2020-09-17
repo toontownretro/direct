@@ -27,6 +27,11 @@ unpack_server_snapshot(DatagramIterator &dgi) {
   bool is_delta = (bool)dgi.get_uint8();
   int num_objects = dgi.get_uint16();
 
+  if (distributed2_cat.is_debug()) {
+    distributed2_cat.debug()
+      << "Unpacking " << num_objects << " objects in snapshot\n";
+  }
+
   PyMutexHolder holder;
 
   PyObject *doid2do = PyObject_GetAttrString(_py_repo, (char *)"doId2do");
@@ -84,6 +89,11 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
                     DOID_TYPE do_id) {
   int num_fields = dgi.get_uint16();
 
+  if (distributed2_cat.is_debug()) {
+    distributed2_cat.debug()
+      << "Unpacking " << num_fields << " fields on object " << do_id << "\n";
+  }
+
   char proxy_name[256];
   DCPacker packer;
 
@@ -112,6 +122,12 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
 
     const char *c_name = field->get_name().c_str();
 
+    if (distributed2_cat.is_debug()) {
+      distributed2_cat.debug()
+        << "Unpacking field " << field_number << " (" << field->get_name() << ") on "
+        << do_id << "\n";
+    }
+
     // Put the buffer in the DCPacker to unpack the data into python objects
     packer.set_unpack_data(data + dgi.get_current_index(), dgi.get_remaining_size(), false);
     packer.begin_unpack(field);
@@ -136,6 +152,11 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
       // do whatever it needs to do with the args
       PyObject *proxy = PyObject_GetAttrString(dist_obj, proxy_name);
 
+      if (distributed2_cat.is_debug()) {
+        distributed2_cat.debug()
+          << "Calling recv proxy\n";
+      }
+
       if (PyTuple_Check(args)) {
         // Args are already a tuple
         PyObject_CallObject(proxy, args);
@@ -153,6 +174,10 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
     } else {
       // Set the args directly on the attribute on the object with the
       // name of the field.
+      if (distributed2_cat.is_debug()) {
+        distributed2_cat.debug()
+          << "Setting unpacked value directly on object\n";
+      }
       PyObject_SetAttrString(dist_obj, c_name, args);
     }
 

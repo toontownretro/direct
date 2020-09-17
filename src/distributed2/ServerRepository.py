@@ -249,7 +249,6 @@ class ServerRepository(BaseObjectManager):
 
         self.notify.debug("All unique client interest zones: %s" % repr(clientZones))
 
-        print(clientZones)
         # Pack all objects visible by at least one client into the snapshot.
         items = list(self.doId2do.items())
         for i in range(len(items)):
@@ -373,16 +372,14 @@ class ServerRepository(BaseObjectManager):
         dg.addUint32(object.doId)
         dg.addUint32(object.zoneId)
 
-        # Check if we have a previously packed state to supply as an
-        # initial state.
-        prev = self.snapshotMgr.getPrevSentPacket(object.doId)
-        if prev:
-            print("we have prev state!")
-            # We do! Pack that state onto the datagram
+        # Find or create a baseline state.
+        baseline = self.snapshotMgr.findOrCreateObjectPacketForBaseline(
+            object, object.dclass, object.doId)
+        if baseline:
+            # We got a baseline, pack it into the datagram
             dg.addUint8(1)
-            prev.packDatagram(dg)
+            baseline.packDatagram(dg)
         else:
-            print("no prev state")
             dg.addUint8(0)
 
     def updateClientInterestZones(self, client):
@@ -436,7 +433,7 @@ class ServerRepository(BaseObjectManager):
     def handleClientTick(self, client, dgi):
         client.prevTickCount = int(client.tickCount)
         client.tickCount = dgi.getUint32()
-        print("Client acknowleged tick %i" % client.tickCount)
+        self.notify.debug("Client acknowleged tick %i" % client.tickCount)
 
     def handleClientSetCMDRate(self, client, dgi):
         cmdRate = dgi.getUint8()

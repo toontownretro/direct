@@ -36,7 +36,8 @@ private:
   PrevSentPackets _prev_sent_packets;
 
 PUBLISHED:
-
+  EXTENSION(PackedObject *find_or_create_object_packet_for_baseline(PyObject *dist_obj, DCClass *dclass,
+                                                                    DOID_TYPE do_id));
   EXTENSION(void client_format_snapshot(Datagram &dg, FrameSnapshot *snapshot,
                                         PyObject *interest_zone_ids));
   EXTENSION(void client_format_delta_snapshot(Datagram &dg, FrameSnapshot *from,

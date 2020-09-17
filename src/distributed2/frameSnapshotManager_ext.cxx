@@ -22,32 +22,18 @@
 #include "dcParameter.h"
 
 /**
- * Packs the specified distributed object into the specified snapshot.
- * If the object was previously packed in a snapshot, compares the new state
- * to the old state to determine what fields have changed.
- *
- * Returns false if there was an error packing the object.
+ * Packs the current state of the specified object into the packer and fills
+ * in where the individual fields are in the buffer. Returns false if the state
+ * could not be packed.
  */
 bool Extension<FrameSnapshotManager>::
-pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_obj,
-                        DOID_TYPE do_id, ZONEID_TYPE zone_id, DCClass *dclass) {
-  FrameSnapshotEntry &entry = snapshot->get_entry(entry_idx);
-  entry.set_class(dclass);
-  entry.set_do_id(do_id);
-  entry.set_zone_id(zone_id);
-  entry.set_exists(true);
-
-  snapshot->mark_entry_valid(entry_idx);
-
-  //
-  // First encode the object's state data
-  //
-
+encode_object_state(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
+                    PackedObject::PackedFields &fields) {
   char proxy_name[256];
-  DCPacker packer;
+
   int num_fields = dclass->get_num_inherited_fields();
-  PackedObject::PackedFields packed_fields;
-  packed_fields.reserve(num_fields);
+  fields.reserve(num_fields);
+
   size_t prev_length;
   size_t pos = 0;
   for (int i = 0; i < num_fields; i++) {
@@ -107,8 +93,81 @@ pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_o
     size_t field_length = packer.get_length() - prev_length;
 
     // Store the location and length of the field in the overall buffer.
-    packed_fields.push_back({ i, pos, field_length });
+    fields.push_back({ i, pos, field_length });
     pos += field_length;
+  }
+
+  return true;
+}
+
+/**
+ * Returns a PackedObject suitable for use as a baseline/initial state of an
+ * object upon generate. If a packet was previously sent for this object,
+ * the previous packet is returned. If a packet was never sent for this object
+ * (new object), then the current state is packed into a new PackedObject and
+ * stored as the most recently sent packet.
+ */
+PackedObject *Extension<FrameSnapshotManager>::
+find_or_create_object_packet_for_baseline(PyObject *dist_obj, DCClass *dclass, DOID_TYPE do_id) {
+  PackedObject *prev_pack = _this->get_prev_sent_packet(do_id);
+  if (prev_pack) {
+    // We had a previously sent packet, use that.
+    return prev_pack;
+  }
+
+  // We never sent a packet for this object, it must be brand new.
+  // Pack the initial state into a new PackedObject and store that as the most
+  // recently sent packet for the object.
+
+  DCPacker packer;
+  PackedObject::PackedFields fields;
+  if (!encode_object_state(dist_obj, dclass, packer, fields)) {
+    return nullptr;
+  }
+
+  size_t length = packer.get_length();
+  char *data = packer.take_data();
+
+  // Use a bogus -1 tick count so any fields that don't change between now and when
+  // the snapshot is built don't get sent again.
+  PT(ChangeFrameList) change_frame = new ChangeFrameList((int)fields.size(), -1);
+
+  PT(PackedObject) pack = _this->create_packed_object(do_id);
+  pack->set_change_frame_list(change_frame);
+  pack->set_class(dclass);
+  pack->set_snapshot_creation_tick(-1);
+  pack->set_data(data, length);
+  pack->set_fields(std::move(fields));
+
+  return pack;
+}
+
+/**
+ * Packs the specified distributed object into the specified snapshot.
+ * If the object was previously packed in a snapshot, compares the new state
+ * to the old state to determine what fields have changed.
+ *
+ * Returns false if there was an error packing the object.
+ */
+bool Extension<FrameSnapshotManager>::
+pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_obj,
+                        DOID_TYPE do_id, ZONEID_TYPE zone_id, DCClass *dclass) {
+  FrameSnapshotEntry &entry = snapshot->get_entry(entry_idx);
+  entry.set_class(dclass);
+  entry.set_do_id(do_id);
+  entry.set_zone_id(zone_id);
+  entry.set_exists(true);
+
+  snapshot->mark_entry_valid(entry_idx);
+
+  //
+  // First encode the object's state data
+  //
+
+  DCPacker packer;
+  PackedObject::PackedFields packed_fields;
+  if (!encode_object_state(dist_obj, dclass, packer, packed_fields)) {
+    return false;
   }
 
   // Take the bytes out of the packer
@@ -131,6 +190,12 @@ pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_o
     vector_int delta_params;
     int changes = prev_pack->calc_delta(data, length, packed_fields, delta_params);
 
+    if (distributed2_cat.is_debug()) {
+      distributed2_cat.debug()
+        << changes << " field memory changes on object " << do_id << " on tick "
+        << snapshot->get_tick_count() << "\n";
+    }
+
     if (changes == 0) {
       // If there are no changes between the previous state and the current
       // state, just use the previous state.
@@ -146,12 +211,20 @@ pack_object_in_snapshot(FrameSnapshot *snapshot, int entry_idx, PyObject *dist_o
 
       // Snag it
       change_frame = prev_pack->take_change_frame_list();
-      // Record the deltas
-      change_frame->set_change_tick(delta_params.data(), changes, snapshot->get_tick_count());
+      if (change_frame) {
+        if (distributed2_cat.is_debug()) {
+          distributed2_cat.debug()
+            << "Setting " << changes << " changed fields on tick " << snapshot->get_tick_count() << " doId " << do_id << "\n";
+        }
+        // Record the deltas if the prev pack had a change list
+        change_frame->set_change_tick(delta_params.data(), changes, snapshot->get_tick_count());
+      }
     }
+  }
 
-  } else {
-    // We have never sent a packet for this object. Create a new change list.
+  if (!change_frame) {
+    // We have never sent a packet for this object or the prev pack didn't
+    // have a change list.
     change_frame = new ChangeFrameList((int)packed_fields.size(), snapshot->get_tick_count());
   }
 
@@ -205,7 +278,7 @@ client_format_snapshot(Datagram &dg, FrameSnapshot *snapshot,
     // This is not a delta snapshot, just copy the absolute state
     // onto the datagram.
     PackedObject *packet = entry.get_packed_object();
-    packet->pack_datagram(dg);
+    packet->pack_datagram(object_dg);
 
     num_objects++;
   }
@@ -254,6 +327,13 @@ client_format_delta_snapshot(Datagram &dg, FrameSnapshot *from, FrameSnapshot *t
     vector_int changed_fields;
     int num_changes = packet->get_fields_changed_after_tick(from->get_tick_count(), changed_fields);
 
+    if (distributed2_cat.is_debug()) {
+      distributed2_cat.debug()
+        << from->get_tick_count() << " to " << to->get_tick_count() << " for client\n";
+      distributed2_cat.debug()
+        << num_changes << " fields changed for client after tick " << from->get_tick_count() << " doId " << packet->get_do_id() << "\n";
+    }
+
     if (num_changes == 0) {
       // Nothing changed from previous client snapshot, don't include this
       // object.
@@ -263,12 +343,18 @@ client_format_delta_snapshot(Datagram &dg, FrameSnapshot *from, FrameSnapshot *t
     // Object ID
     object_dg.add_uint32(entry.get_do_id());
 
-    // How many fields are there?
-    object_dg.add_uint16(num_changes);
+    if (num_changes != -1) {
+      // How many fields are there?
+      object_dg.add_uint16(num_changes);
 
-    // Now copy each changed field into the datagram
-    for (int j = 0; j < num_changes; j++) {
-      packet->pack_field(dg, changed_fields[j]);
+      // Now copy each changed field into the datagram
+      for (int j = 0; j < num_changes; j++) {
+        packet->pack_field(object_dg, changed_fields[j]);
+      }
+
+    } else {
+      // -1 means all fields changed, so just pack the whole object
+      packet->pack_datagram(object_dg);
     }
 
     num_objects++;

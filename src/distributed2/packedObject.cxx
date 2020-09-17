@@ -36,7 +36,6 @@ calc_delta(const char *data, size_t length, PackedObject::PackedFields &fields,
     return -1; // treat all fields as changed
   }
 
-
   int num_fields = get_num_fields();
 
   delta_fields.reserve(num_fields);
