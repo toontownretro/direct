@@ -75,14 +75,6 @@ class ServerRepository(BaseObjectManager):
         BaseObjectManager.__init__(self, False)
         self.dcSuffix = 'AI'
 
-        self.tickCount = 0
-        self.frameTicks = 0
-        self.currentFrameTick = 0
-        self.simTicksThisFrame = 0
-        self.remainder = 0
-        self.tickRate = sv_tickrate.getValue()
-        self.intervalPerTick = 1.0 / self.tickRate
-
         self.listenPort = listenPort
         self.netSys = NetworkSystem()
         self.netCallbacks = NetworkCallbacks()
@@ -98,6 +90,9 @@ class ServerRepository(BaseObjectManager):
         self.snapshotMgr = FrameSnapshotManager()
 
         self.objectsByZoneId = {}
+
+        base.setTickRate(sv_tickrate.getValue())
+        base.simTaskMgr.add(self.runFrame, "serverRunFrame", sort = -100)
 
     def allocateObjectID(self):
         return self.objectIdAllocator.allocate()
@@ -172,50 +167,16 @@ class ServerRepository(BaseObjectManager):
         for do in self.doId2do.values():
             do.update()
 
-    def runFrame(self):
+    def runFrame(self, task):
+        print("run server frame")
+        self.readerPollUntilEmpty()
+        self.runCallbacks()
 
-        prevremainder = self.remainder
-        if prevremainder < 0.0:
-            prevremainder = 0.0
+        self.simObjects()
 
-        self.remainder += base.frameTime
+        self.takeTickSnapshot(base.tickCount)
 
-        numticks = 0
-        if self.remainder >= self.intervalPerTick:
-            numticks = int(self.remainder / self.intervalPerTick)
-            #if sv_alternateticks.getValue():
-            #    starttick = self.tickCount
-            #    endtick = starttick + numticks
-            #    endtick =
-            self.remainder -= numticks * self.intervalPerTick
-
-        self.frameTicks = numticks
-        self.currentFrameTick = 0
-        self.simTicksThisFrame = 1
-
-        for _ in range(numticks):
-            curTime = self.intervalPerTick * self.tickCount
-            frameTime = self.intervalPerTick
-            globalClock.setFrameTime(curTime)
-            globalClock.setDt(frameTime)
-            globalClock.setFrameCount(self.tickCount)
-
-            self.readerPollUntilEmpty()
-            self.runCallbacks()
-
-            self.simObjects()
-
-            self.takeTickSnapshot(self.tickCount)
-
-            self.tickCount += 1
-            self.currentFrameTick += 1
-            self.simTicksThisFrame += 1
-
-        # Reset the clock
-        curTime = self.tickCount * self.intervalPerTick + self.remainder
-        globalClock.setFrameTime(curTime)
-        globalClock.setDt(base.frameTime)
-        globalClock.setFrameCount(base.frameCount)
+        return task.cont
 
     def clientNeedsUpdate(self, client):
         return client.isVerified() and client.nextUpdateTime <= globalClock.getFrameTime()
@@ -489,7 +450,7 @@ class ServerRepository(BaseObjectManager):
 
         # Tell the client their ID and our tick rate.
         dg.addUint16(client.id)
-        dg.addUint8(sv_tickrate.getValue())
+        dg.addUint8(base.ticksPerSec)
 
         self.sendDatagram(dg, client.connection)
 

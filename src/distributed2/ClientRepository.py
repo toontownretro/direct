@@ -28,69 +28,28 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
         self.clientId = 0
         self.serverTickCount = 0
+        self.serverTickRate = 0
+        self.serverIntervalPerTick = 0
         self.interestHandle = 0
-
-        self.tickCount = 0
-        self.frameTicks = 0
-        self.currentFrameTick = 0
-        self.simTicksThisFrame = 0
-        self.remainder = 0
-        self.tickRate = 66
-        self.intervalPerTick = 1.0 / self.tickRate
 
     def simObjects(self):
         for do in self.doId2do.values():
             do.update()
 
     def runFrame(self, task):
-        prevremainder = self.remainder
-        if prevremainder < 0.0:
-            prevremainder = 0.0
+        print("Run client frame")
+        self.readerPollUntilEmpty()
+        self.runCallbacks()
 
-        self.remainder += base.frameTime
-
-        numticks = 0
-        if self.remainder >= self.intervalPerTick:
-            numticks = int(self.remainder / self.intervalPerTick)
-            #if sv_alternateticks.getValue():
-            #    starttick = self.tickCount
-            #    endtick = starttick + numticks
-            #    endtick =
-            self.remainder -= numticks * self.intervalPerTick
-
-        self.frameTicks = numticks
-        self.currentFrameTick = 0
-        self.simTicksThisFrame = 1
-
-        for _ in range(numticks):
-            curTime = self.intervalPerTick * self.tickCount
-            frameTime = self.intervalPerTick
-            globalClock.setFrameTime(curTime)
-            globalClock.setDt(frameTime)
-            globalClock.setFrameCount(self.tickCount)
-
-            self.readerPollUntilEmpty()
-            self.runCallbacks()
-
-            self.simObjects()
-
-            self.tickCount += 1
-            self.currentFrameTick += 1
-            self.simTicksThisFrame += 1
-
-        # Reset the clock
-        curTime = self.tickCount * self.intervalPerTick + self.remainder
-        globalClock.setFrameTime(curTime)
-        globalClock.setDt(base.frameTime)
-        globalClock.setFrameCount(base.frameCount)
+        self.simObjects()
 
         return task.cont
 
     def startClientLoop(self):
-        base.taskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
+        base.simTaskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
 
     def stopClientLoop(self):
-        base.taskMgr.remove("clientRunFrame")
+        base.simTaskMgr.remove("clientRunFrame")
 
     def getNextInterestHandle(self):
         return (self.interestHandle + 1) % 256
@@ -169,8 +128,12 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         ret = dgi.getUint8()
         if ret:
             self.clientId = dgi.getUint16()
-            self.tickRate = dgi.getUint8()
-            self.intervalPerTick = 1.0 / self.tickRate
+
+            self.serverTickRate = dgi.getUint8()
+            self.serverIntervalPerTick = 1.0 / self.serverTickRate
+            # Use the same simulation rate as the server!
+            base.setTickRate(self.serverTickRate)
+
             self.notify.info("Verified with server")
             messenger.send('serverHelloSuccess')
         else:
@@ -239,7 +202,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.connectionHandle = None
         self.connected = False
         self.clientId = 0
-        self.tickRate = 0
+        self.serverTickRate = 0
+        self.serverIntervalPerTick = 0
         self.stopClientLoop()
 
     def readerPollUntilEmpty(self):
