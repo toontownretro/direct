@@ -53,12 +53,14 @@ unpack_server_snapshot(DatagramIterator &dgi) {
       ss << "Received state snapshot for object id " << do_id << ", but not found in doId2do";
       std::string message = ss.str();
       PyErr_SetString(PyExc_KeyError, message.c_str());
+      Py_DECREF(doid2do);
       return;
     }
 
     PyObject *py_dclass = PyObject_GetAttrString(dist_obj, (char *)"dclass");
     if (!py_dclass) {
       PyErr_Print();
+      Py_DECREF(doid2do);
       return;
     }
 
@@ -66,6 +68,7 @@ unpack_server_snapshot(DatagramIterator &dgi) {
     Py_DECREF(py_dclass);
     if (!py_dclass_this) {
       PyErr_Print();
+      Py_DECREF(doid2do);
       return;
     }
 
@@ -73,6 +76,7 @@ unpack_server_snapshot(DatagramIterator &dgi) {
     Py_DECREF(py_dclass_this);
 
     if (!unpack_object_state(dgi, dist_obj, dclass, do_id)) {
+      Py_DECREF(doid2do);
       return;
     }
   }
@@ -87,6 +91,15 @@ unpack_server_snapshot(DatagramIterator &dgi) {
 bool CClientRepository::
 unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
                     DOID_TYPE do_id) {
+
+  // First call the preDataUpdate method on the object so they can do stuff
+  // before we unpack the state.
+  PyObject *pre_data_update = PyObject_GetAttrString(dist_obj, (char *)"preDataUpdate");
+  if (pre_data_update) {
+    PyObject_CallObject(pre_data_update, NULL);
+    Py_DECREF(pre_data_update);
+  }
+
   int num_fields = dgi.get_uint16();
 
   if (distributed2_cat.is_debug()) {
@@ -181,7 +194,26 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
       PyObject_SetAttrString(dist_obj, c_name, args);
     }
 
+    // Check to see if the object defines a method to handle when this
+    // particuler field is unpacked.
+    // Re-use the proxy_name buffer
+    sprintf(proxy_name, "OnRecv_%s", c_name);
+    if (PyObject_HasAttrString(dist_obj, proxy_name)) {
+      // Call it
+      PyObject *recv_handler = PyObject_GetAttrString(dist_obj, proxy_name);
+      PyObject_CallObject(recv_handler, NULL);
+      Py_DECREF(recv_handler);
+    }
+
     Py_DECREF(args);
+  }
+
+  // Finally call the postDataUpdate method so they can do stuff after we've
+  // unpacked the state.
+  PyObject *post_data_update = PyObject_GetAttrString(dist_obj, (char *)"postDataUpdate");
+  if (post_data_update) {
+    PyObject_CallObject(post_data_update, NULL);
+    Py_DECREF(post_data_update);
   }
 
   return true;

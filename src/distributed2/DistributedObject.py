@@ -8,6 +8,20 @@ class DistributedObject(BaseDistributedObject):
     def __init__(self):
         BaseDistributedObject.__init__(self)
 
+    def preDataUpdate(self):
+        """
+        Override this method to do stuff before a state snapshot is unpacked
+        onto the object.
+        """
+        pass
+
+    def postDataUpdate(self):
+        """
+        Override this method to do stuff after a state snapshot has been
+        unpacked onto the object.
+        """
+        pass
+
     def sendUpdate(self, name, args = []):
         """
         Sends a non-stateful event message from one object view to another.
@@ -15,7 +29,7 @@ class DistributedObject(BaseDistributedObject):
         base.cl.sendUpdate(self, name, args)
 
     def announceGenerate(self):
-        """ Called when the object is is coming into existence *after* the
+        """ Called when the object is coming into existence *after* the
         baseline state has been applied, or when the object was disabled and
         it is coming back. """
 
