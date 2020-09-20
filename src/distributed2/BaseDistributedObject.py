@@ -45,6 +45,8 @@ class BaseDistributedObject(DirectObject):
         self.zoneId = None
         self.dclass = None
         self.doState = DOState.Fresh
+        # Set of tasks that have been created on this object.
+        self._tasks = {}
 
     def isGenerated(self):
         return self.doState >= DOState.Generated
@@ -60,6 +62,58 @@ class BaseDistributedObject(DirectObject):
 
     def isDeleted(self):
         return self.doState == DOState.Deleted
+
+    def addTask(self, method, name, extraArgs = [], appendTask = False, sim = True):
+        """
+        Convenience method to create a task for this distributed object.
+
+        If sim is True (the default), the task will be added onto the
+        simulation task manager, which runs once per simulation tick.
+
+        If sim is False, the task will be added onto the regular task manager,
+        which runs once per frame.
+        """
+
+        mgr = base.simTaskMgr if sim else base.taskMgr
+
+        task = mgr.add(method, self.taskName(name), extraArgs = extraArgs, appendTask = appendTask)
+        self._tasks[name] = (task, mgr)
+        return task
+
+    def removeTask(self, name, removeFromTable = True):
+        """
+        Removes the task from the object by name.
+        """
+
+        taskInfo = self._tasks.get(name, None)
+        if taskInfo:
+            task = taskInfo[0]
+            task.remove()
+            if removeFromTable:
+                del self._tasks[name]
+
+    def removeAllTasks(self):
+        """
+        Removes all tasks that have been created for this object.
+        """
+        for taskInfo in self._tasks.values():
+            task = taskInfo[0]
+            task.remove()
+        self._tasks = {}
+
+    def uniqueName(self, name):
+        """
+        Returns a unique identifier for the given name.
+        """
+
+        return "%s-%i" % (name, self.doId)
+
+    def taskName(self, name):
+        """
+        Returns a unique task identifier for the given name.
+        """
+
+        return self.uniqueName(name)
 
     def sendUpdate(self, name, args = []):
         """
@@ -88,6 +142,8 @@ class BaseDistributedObject(DirectObject):
         here. Clean up stuff that was created in __init__ or generate """
 
         self.ignoreAll()
+        self.removeAllTasks()
+        self._tasks = None
         self.doId = None
         self.zoneId = None
         self.dclass = None

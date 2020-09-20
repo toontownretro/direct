@@ -41,4 +41,5 @@ class DistributedObject(BaseDistributedObject):
         don't tear anything down, because it might come back later via
         announceGenerate(). """
 
-        pass
+        self.ignoreAll()
+        self.removeAllTasks()
