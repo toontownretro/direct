@@ -1,4 +1,4 @@
-from panda3d.networksystem import NetworkSystem, NetworkCallbacks, NetworkConnectionInfo, NetworkMessage
+from panda3d.bsp import NetworkSystem, NetworkCallbacks, NetworkConnectionInfo, NetworkMessage
 from panda3d.core import UniqueIdAllocator, HashVal
 from panda3d.direct import FrameSnapshot, ClientFrameManager, ClientFrame, FrameSnapshotManager, DCPacker
 

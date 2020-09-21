@@ -1,4 +1,4 @@
-from panda3d.networksystem import NetworkSystem, NetworkCallbacks, NetworkMessage, NetworkConnectionInfo
+from panda3d.bsp import NetworkSystem, NetworkCallbacks, NetworkMessage, NetworkConnectionInfo
 from panda3d.core import URLSpec, NetAddress
 from panda3d.direct import CClientRepository, DCPacker
 
