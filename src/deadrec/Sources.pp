@@ -4,10 +4,12 @@
     p3directbase
   #define OTHER_LIBS \
     p3express:c p3linmath:c \
-    p3interrogatedb:c p3dconfig:c \
+    p3interrogatedb \
     p3dtoolutil:c p3dtoolbase:c p3dtool:m \
-    p3prc:c p3pandabase:c p3putil:c \
+    p3prc p3pandabase:c p3putil:c \
     p3pipeline:c
+
+  #define BUILDING_DLL BUILDING_DIRECT_DEADREC
 
   #define SOURCES \
     config_deadrec.h \

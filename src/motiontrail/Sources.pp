@@ -3,6 +3,8 @@
   #define LOCAL_LIBS \
     p3directbase
 
+  #define BUILDING_DLL BUILDING_DIRECT_MOTIONTRAIL
+
   #define OTHER_LIBS \
     p3linmath:c \
     p3mathutil:c \
@@ -18,25 +20,25 @@
     p3express:c \
     p3downloader:c \
     pandaexpress:m \
-    p3interrogatedb:c \
-    p3dconfig:c \
-    p3dtoolconfig:m \
+    p3interrogatedb \
+    \
+     \
     p3dtoolutil:c \
     p3dtoolbase:c \
     p3dtool:m \
     p3pandabase:c \
-    p3prc:c \
+    p3prc \
     p3gsgbase:c \
     p3parametrics:c
 
-  
+
   #define SOURCES \
     config_motiontrail.cxx config_motiontrail.h \
-    cMotionTrail.cxx cMotionTrail.h 
+    cMotionTrail.cxx cMotionTrail.h
 
   #define INSTALL_HEADERS \
     config_motiontrail.h \
-    cMotionTrail.h 
+    cMotionTrail.h
 
   #define IGATESCAN all
 #end lib_target

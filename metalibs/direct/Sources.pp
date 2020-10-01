@@ -15,9 +15,9 @@
   panda:m \
   pandaexpress:m \
   p3parametrics:c \
-  p3interrogatedb:c p3dconfig:c p3dtoolconfig:m \
+  p3interrogatedb  \
   p3dtoolutil:c p3dtoolbase:c p3dtool:m \
-  p3express:c p3pstatclient:c p3prc:c p3pandabase:c p3linmath:c \
+  p3express:c p3pstatclient:c p3prc p3pandabase:c p3linmath:c \
   p3putil:c p3display:c p3event:c p3pgraph:c p3pgraphnodes:c \
   p3gsgbase:c p3gobj:c p3mathutil:c \
   p3downloader:c p3pnmimage:c p3chan:c \
@@ -29,4 +29,3 @@
 
   #define SOURCES direct.cxx
 #end metalib_target
-

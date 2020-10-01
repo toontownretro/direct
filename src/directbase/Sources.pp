@@ -1,8 +1,6 @@
-#define USE_PACKAGES cg  // from gobj.
-
 #begin lib_target
   #define TARGET p3directbase
-  
+
   #define SOURCES \
     directbase.cxx directbase.h directsymbols.h \
 
