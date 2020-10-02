@@ -27,7 +27,7 @@ DirectDClient::~DirectDClient() {
 
 void
 DirectDClient::cli_command(const string& cmd) {
-  cerr<<"command "<<cmd<<endl;
+  cerr<<"command "<<cmd<<std::endl;
   if (cmd[0]==':') {
     // ...connect to host.
     cerr<<"Local command "<<std::flush;
@@ -37,7 +37,7 @@ DirectDClient::cli_command(const string& cmd) {
     cin >> host;
     int port;
     cin >> port;
-    cerr<<"connect ("<<code<<") to "<<host<<" port "<<port<<endl;
+    cerr<<"connect ("<<code<<") to "<<host<<" port "<<port<<std::endl;
     connect_to(host, port);
   } else {
     send_command(cmd);
@@ -50,7 +50,7 @@ DirectDClient::cli_command(const string& cmd) {
 
 void
 DirectDClient::run_client(const string& host, int port) {
-  nout<<"client"<<endl;
+  nout<<"client"<<std::endl;
 
   connect_to(host, port);
 
@@ -75,7 +75,7 @@ main(int argc, char *argv[]) {
     return 1;
   }
 
-  cerr<<"directdClient "<<__DATE__<<" "<<__TIME__<<endl;
+  cerr<<"directdClient "<<__DATE__<<" "<<__TIME__<<std::endl;
   string host="localhost";
   int port=8001;
   if (argc >= 3) {

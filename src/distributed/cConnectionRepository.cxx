@@ -411,9 +411,9 @@ send_datagram(const Datagram &dg) {
     if (!result && _bdc.IsConnected()) {
 #ifdef HAVE_PYTHON
       std::ostringstream s;
-      s << endl << "Error sending message: " << endl;
+      s << std::endl << "Error sending message: " << std::endl;
       dg.dump_hex(s);
-      s << "Message data: " << dg.get_data() << endl;
+      s << "Message data: " << dg.get_data() << std::endl;
 
       string message = s.str();
       PyErr_SetString(PyExc_ConnectionError, message.c_str());
@@ -462,7 +462,7 @@ start_message_bundle() {
   // same DistributedObject) it is an error to call this again before calling
   // sendMessageBundle
   if (get_verbose()) {
-    nout << "CR::SEND:BUNDLE_START(" << _bundling_msgs << ")" << endl;
+    nout << "CR::SEND:BUNDLE_START(" << _bundling_msgs << ")" << std::endl;
   }
   if (_bundling_msgs == 0) {
     _bundle_msgs.clear();
@@ -481,7 +481,7 @@ send_message_bundle(unsigned int channel, unsigned int sender_channel) {
   --_bundling_msgs;
 
   if (get_verbose()) {
-    nout << "CR::SEND:BUNDLE_FINISH(" << _bundling_msgs << ")" << endl;
+    nout << "CR::SEND:BUNDLE_FINISH(" << _bundling_msgs << ")" << std::endl;
   }
 
   // if _bundling_msgs ref count is zero, send the bundle out

@@ -127,7 +127,7 @@ namespace {
       CloseHandle(pi.hProcess);
       CloseHandle(pi.hThread);
     } else {
-      nout<<"CreateProcess failed: "<<cmd<<endl;
+      nout<<"CreateProcess failed: "<<cmd<<std::endl;
     }
     return pid;
   }
@@ -186,7 +186,7 @@ DirectD::wait_for_servers(int count, int timeout_ms) {
       NetDatagram datagram;
       if (_reader.get_data(datagram)) {
         cout << count << ": Server at " << datagram.get_address()
-            << " is ready." << endl;
+            << " is ready." << std::endl;
         datagram.dump_hex(nout);
         // handle_datagram(datagram);
         DatagramIterator di(datagram);
@@ -215,15 +215,15 @@ DirectD::server_ready(const string& client_host, int port) {
 
 void
 DirectD::start_app(const string& cmd) {
-  nout<<"start_app(cmd="<<cmd<<")"<<endl;
+  nout<<"start_app(cmd="<<cmd<<")"<<std::endl;
   if (_useOldStuff) {
     _pids.push_back(StartApp(cmd));
-    nout<<"    pid="<<_pids.back()<<endl;
+    nout<<"    pid="<<_pids.back()<<std::endl;
   } else {
     if (!_jobObject) {
       _jobObject=CreateJobObject(0, 0);
       if (!_jobObject) {
-        nout<<"CreateProcess failed: no _jobObject: "<<GetLastError()<<endl;
+        nout<<"CreateProcess failed: no _jobObject: "<<GetLastError()<<std::endl;
         return;
       }
     }
@@ -241,17 +241,17 @@ DirectD::start_app(const string& cmd) {
       // starts sub-processes.
       if (!AssignProcessToJobObject(_jobObject, pi.hProcess)) {
         // ...The assign failed.
-        cerr<<"StartJob AssignProcessToJobObject Error: "<<GetLastError()<<endl;
+        cerr<<"StartJob AssignProcessToJobObject Error: "<<GetLastError()<<std::endl;
       }
       CloseHandle(pi.hProcess); //?????
       // Because we called CreateProcess with the CREATE_SUSPEND flag, we must
       // explicitly resume the processes main thread.
       if (ResumeThread(pi.hThread) == -1) {
-        cerr<<"StartJob ResumeThread Error: "<<GetLastError()<<endl;
+        cerr<<"StartJob ResumeThread Error: "<<GetLastError()<<std::endl;
       }
       CloseHandle(pi.hThread);
     } else {
-      nout<<"StartJob CreateProcess failed: "<<cmd<<endl;
+      nout<<"StartJob CreateProcess failed: "<<cmd<<std::endl;
     }
   }
 }
@@ -262,12 +262,12 @@ DirectD::kill_app(int index) {
     int i = _pids.size() - 1 - index % _pids.size();
     PidStack::iterator pi = _pids.begin() + i;
     if (pi!=_pids.end()) {
-      nout<<"trying kill "<<(*pi)<<endl;
+      nout<<"trying kill "<<(*pi)<<std::endl;
       TerminateApp((*pi), 1000);
       _pids.erase(pi);
     }
   } else {
-    cerr<<"kill_app(index) not implemented, calling kill_all() instead."<<endl;
+    cerr<<"kill_app(index) not implemented, calling kill_all() instead."<<std::endl;
     kill_all();
   }
 }
@@ -277,15 +277,15 @@ DirectD::kill_all() {
   if (_useOldStuff) {
     PidStack::reverse_iterator pi;
     for (pi = _pids.rbegin(); pi != _pids.rend(); ++pi) {
-      nout<<"trying kill "<<(*pi)<<endl;
+      nout<<"trying kill "<<(*pi)<<std::endl;
       TerminateApp((*pi), 1000);
     }
     _pids.clear();
   } else {
     if (!_jobObject) {
-      cerr<<"kill_all(): No open _jobObject"<<endl;
+      cerr<<"kill_all(): No open _jobObject"<<std::endl;
     } else if (!TerminateJobObject(_jobObject, 0)) {
-      cerr<<"kill_all() TerminateJobObject Error: "<<GetLastError()<<endl;
+      cerr<<"kill_all() TerminateJobObject Error: "<<GetLastError()<<std::endl;
     }
     CloseHandle(_jobObject);
     _jobObject=0;
@@ -312,7 +312,7 @@ DirectD::handle_datagram(NetDatagram& datagram){
 
 void
 DirectD::handle_command(const string& cmd) {
-  nout<<"DirectD::handle_command: "<<cmd<<endl;
+  nout<<"DirectD::handle_command: "<<cmd<<std::endl;
 }
 
 void
@@ -373,11 +373,11 @@ DirectD::connect_to(const string& host_name, int port) {
 
 void
 DirectD::disconnect_from(const string& host_name, int port) {
-  nout<<"disconnect_from(\""<<host_name<<", port="<<port<<")"<<endl;
+  nout<<"disconnect_from(\""<<host_name<<", port="<<port<<")"<<std::endl;
   for (ConnectionSet::iterator i=_connections.begin(); i != _connections.end(); ++i) {
-    nout<<"    found "<<(*i)->get_address().get_ip_string()<<", port "<<(*i)->get_address().get_port()<<endl;
+    nout<<"    found "<<(*i)->get_address().get_ip_string()<<", port "<<(*i)->get_address().get_port()<<std::endl;
     if ((*i)->get_address().get_ip_string()==host_name) {
-      nout<<"    disconnecting."<<endl;
+      nout<<"    disconnecting."<<std::endl;
       _reader.remove_connection((*i));
       _cm.close_connection((*i));
       _connections.erase(i);
@@ -391,7 +391,7 @@ DirectD::check_for_lost_connection() {
   while (_cm.reset_connection_available()) {
     PT(Connection) c;
     if (_cm.get_reset_connection(c)) {
-      nout<<"Lost connection from "<<c->get_address()<<endl;
+      nout<<"Lost connection from "<<c->get_address()<<std::endl;
       _connections.erase(c);
       _cm.close_connection(c);
     }
@@ -405,7 +405,7 @@ DirectD::check_for_datagrams(){
     NetDatagram datagram;
     if (_reader.get_data(datagram)) {
       nout << "Got datagram " /*<< datagram <<*/ "from "
-           << datagram.get_address() << endl;
+           << datagram.get_address() << std::endl;
       datagram.dump_hex(nout);
       handle_datagram(datagram);
     }

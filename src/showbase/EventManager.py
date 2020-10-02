@@ -8,7 +8,7 @@ from . import MessengerGlobal
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.task import TaskManagerGlobal
 from panda3d.core import PStatCollector, EventQueue, EventHandler
-from panda3d.core import ConfigVariableBool
+from panda3d.core import ConfigVariableBool, EventStorePandaNode
 
 class EventManager:
 
@@ -77,7 +77,14 @@ class EventManager:
         else:
             # Must be some user defined type, return the ptr
             # which will be downcast to that type.
-            return eventParameter.getPtr()
+            ptr = eventParameter.getPtr()
+
+            if isinstance(ptr, EventStorePandaNode):
+                # Actually, it's a kludgey wrapper around a PandaNode
+                # pointer.  Return the node.
+                ptr = ptr.getValue()
+
+            return ptr
 
     def processEvent(self, event):
         """

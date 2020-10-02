@@ -25,7 +25,7 @@ DirectDServer::~DirectDServer() {
 
 void
 DirectDServer::handle_command(const string& cmd) {
-  nout<<"DirectDServer::handle_command: "<<cmd<<", size="<<cmd.size()<<endl;
+  nout<<"DirectDServer::handle_command: "<<cmd<<", size="<<cmd.size()<<std::endl;
   if (cmd.size()==1) {
     switch (cmd[0]) {
     case 'k':
@@ -35,7 +35,7 @@ DirectDServer::handle_command(const string& cmd) {
       _shutdown=true;
       break;
     default:
-      cerr<<"unknown command: "<<cmd<<endl;
+      cerr<<"unknown command: "<<cmd<<std::endl;
       break;
     }
   } else {
@@ -72,19 +72,19 @@ DirectDServer::read_command(string& cmd) {
     f.getline(buf, buf_size);
     if (f.gcount() > 0) {
       cmd = buf;
-      cerr<<"read_command "<<cmd<<endl;
+      cerr<<"read_command "<<cmd<<std::endl;
     }
     f.close();
   } catch (...) {
     // This could be bad, I suppose.  But we're going to throw out any
     // exceptions that happen during the above read.
-    cerr<<"DirectD::read_command() exception."<<endl;
+    cerr<<"DirectD::read_command() exception."<<std::endl;
   }
 }
 
 void
 DirectDServer::run_server(int port) {
-  nout<<"server"<<endl;
+  nout<<"server"<<std::endl;
 
   listen_to(port);
 
@@ -107,7 +107,7 @@ main(int argc, char *argv[]) {
     return 1;
   }
 
-  cerr<<"directdServer "<<__DATE__<<" "<<__TIME__<<endl;
+  cerr<<"directdServer "<<__DATE__<<" "<<__TIME__<<std::endl;
   int port=8001;
   if (argc > 1) {
     port=(atoi(argv[argc-1]));

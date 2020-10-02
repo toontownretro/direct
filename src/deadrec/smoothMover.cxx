@@ -154,7 +154,7 @@ mark_position() {
       _points.push_back(_sample);
     }
   }
-  // cout << "mark_position: " << _points.back()._pos << endl;
+  // cout << "mark_position: " << _points.back()._pos << std::endl;
 }
 
 /**
@@ -589,7 +589,7 @@ linear_interpolate(int point_before, int point_after, double timestamp) {
   for (pi = _points.begin(); pi != _points.end(); ++pi) {
     cout << "(" << (*pi)._pos << "), ";
   }
-  cout << endl;
+  cout << std::endl;
   */
 
   if (point_before == _last_point_before &&
@@ -720,7 +720,7 @@ handle_wrt_reparent(NodePath &old_parent, NodePath &new_parent) {
     (*pi)._hpr = np.get_hpr(new_parent);
     // cout << "(" << (*pi)._pos << "), ";
   }
-  // cout << endl;
+  // cout << std::endl;
 
   np.set_pos_hpr(_sample._pos, _sample._hpr);
   _sample._pos = np.get_pos(new_parent);
