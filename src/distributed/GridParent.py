@@ -1,5 +1,6 @@
 
-from pandac.PandaModules import *
+from panda3d.core import *
+from panda3d.direct import *
 
 #
 # GridParent.py
@@ -97,5 +98,3 @@ class GridParent:
 
         #print "gridParent: reparent to %s" % self.av
         #print "gridParent: pos = %s, %s" % (self.av.getPos(), self.av.getParent().getPos())
-
-

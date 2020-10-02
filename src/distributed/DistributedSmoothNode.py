@@ -1,6 +1,7 @@
 """DistributedSmoothNode module: contains the DistributedSmoothNode class"""
 
-from pandac.PandaModules import *
+from panda3d.core import *
+from panda3d.direct import *
 from .ClockDelta import *
 from . import DistributedNode
 from . import DistributedSmoothNodeBase
@@ -117,7 +118,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         smoothed position.  This may be overridden by a derived class
         to specialize the behavior.
         """
-        
+
         if self.fullyStopped:
             return
 

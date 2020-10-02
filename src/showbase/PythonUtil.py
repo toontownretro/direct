@@ -256,6 +256,106 @@ if __debug__:
         print(traceFunctionCall(sys._getframe(1)))
         return 1 # to allow "assert printThisCall()"
 
+def pdir(obj, str = None, width = None,
+            fTruncate = 1, lineWidth = 75, wantPrivate = 0):
+    # Remove redundant class entries
+    uniqueLineage = []
+    for l in getClassLineage(obj):
+        if type(l) == types.ClassType:
+            if l in uniqueLineage:
+                break
+        uniqueLineage.append(l)
+    # Pretty print out directory info
+    uniqueLineage.reverse()
+    for obj in uniqueLineage:
+        _pdir(obj, str, width, fTruncate, lineWidth, wantPrivate)
+        print()
+
+def _pdir(obj, str = None, width = None,
+            fTruncate = 1, lineWidth = 75, wantPrivate = 0):
+    """
+    Print out a formatted list of members and methods of an instance or class
+    """
+    def printHeader(name):
+        name = ' ' + name + ' '
+        length = len(name)
+        if length < 70:
+            padBefore = int((70 - length)/2.0)
+            padAfter = max(0, 70 - length - padBefore)
+            header = '*' * padBefore + name + '*' * padAfter
+        print(header)
+        print()
+    def printInstanceHeader(i, printHeader = printHeader):
+        printHeader(i.__class__.__name__ + ' INSTANCE INFO')
+    def printClassHeader(c, printHeader = printHeader):
+        printHeader(c.__name__ + ' CLASS INFO')
+    def printDictionaryHeader(d, printHeader = printHeader):
+        printHeader('DICTIONARY INFO')
+    # Print Header
+    if type(obj) == types.InstanceType:
+        printInstanceHeader(obj)
+    elif type(obj) == types.ClassType:
+        printClassHeader(obj)
+    elif type (obj) == types.DictionaryType:
+        printDictionaryHeader(obj)
+    # Get dict
+    if type(obj) == types.DictionaryType:
+        dict = obj
+    # FFI objects are builtin types, they have no __dict__
+    elif not hasattr(obj, '__dict__'):
+        dict = {}
+    else:
+        dict = obj.__dict__
+    # Adjust width
+    if width:
+        maxWidth = width
+    else:
+        maxWidth = 10
+    keyWidth = 0
+    aproposKeys = []
+    privateKeys = []
+    remainingKeys = []
+    for key in dict.keys():
+        if not width:
+            keyWidth = len(key)
+        if str:
+            if re.search(str, key, re.I):
+                aproposKeys.append(key)
+                if (not width) and (keyWidth > maxWidth):
+                    maxWidth = keyWidth
+        else:
+            if key[:1] == '_':
+                if wantPrivate:
+                    privateKeys.append(key)
+                    if (not width) and (keyWidth > maxWidth):
+                        maxWidth = keyWidth
+            else:
+                remainingKeys.append(key)
+                if (not width) and (keyWidth > maxWidth):
+                    maxWidth = keyWidth
+    # Sort appropriate keys
+    if str:
+        aproposKeys.sort()
+    else:
+        privateKeys.sort()
+        remainingKeys.sort()
+    # Print out results
+    if wantPrivate:
+        keys = aproposKeys + privateKeys + remainingKeys
+    else:
+        keys = aproposKeys + remainingKeys
+    format = '%-' + repr(maxWidth) + 's'
+    for key in keys:
+        value = dict[key]
+        if callable(value):
+            strvalue = repr(Signature(value))
+        else:
+            strvalue = repr(value)
+        if fTruncate:
+            # Cut off line (keeping at least 1 char)
+            strvalue = strvalue[:max(1, lineWidth - maxWidth)]
+        print (format % key)[:maxWidth] + '\t' + strvalue
+
 # Magic numbers: These are the bit masks in func_code.co_flags that
 # reveal whether or not the function has a *arg or **kw argument.
 _POS_LIST = 4
@@ -2194,6 +2294,75 @@ if __debug__:
             _exceptionLogged.__doc__ = f.__doc__
             return _exceptionLogged
         return _decoratorFunc
+
+# class 'decorator' that records the stack at the time of creation
+# be careful with this, it creates a StackTrace, and that can take a
+# lot of CPU
+def recordCreationStack(cls):
+    if not hasattr(cls, '__init__'):
+        raise 'recordCreationStack: class \'%s\' must define __init__' % cls.__name__
+    cls.__moved_init__ = cls.__init__
+    def __recordCreationStack_init__(self, *args, **kArgs):
+        self._creationStackTrace = StackTrace(start=1)
+        return self.__moved_init__(*args, **kArgs)
+    def getCreationStackTrace(self):
+        return self._creationStackTrace
+    def getCreationStackTraceCompactStr(self):
+        return self._creationStackTrace.compact()
+    def printCreationStackTrace(self):
+        print(self._creationStackTrace)
+    cls.__init__ = __recordCreationStack_init__
+    cls.getCreationStackTrace = getCreationStackTrace
+    cls.getCreationStackTraceCompactStr = getCreationStackTraceCompactStr
+    cls.printCreationStackTrace = printCreationStackTrace
+    return cls
+
+# like recordCreationStack but stores the stack as a compact stack list-of-strings
+# scales well for memory usage
+def recordCreationStackStr(cls):
+    if not hasattr(cls, '__init__'):
+        raise 'recordCreationStackStr: class \'%s\' must define __init__' % cls.__name__
+    cls.__moved_init__ = cls.__init__
+    def __recordCreationStackStr_init__(self, *args, **kArgs):
+        # store as list of strings to conserve memory
+        self._creationStackTraceStrLst = StackTrace(start=1).compact().split(',')
+        return self.__moved_init__(*args, **kArgs)
+    def getCreationStackTraceCompactStr(self):
+        return(','.join(self._creationStackTraceStrLst))
+    def printCreationStackTrace(self):
+        print(','.join(self._creationStackTraceStrLst))
+    cls.__init__ = __recordCreationStackStr_init__
+    cls.getCreationStackTraceCompactStr = getCreationStackTraceCompactStr
+    cls.printCreationStackTrace = printCreationStackTrace
+    return cls
+
+# class 'decorator' that logs all method calls for a particular class
+def logMethodCalls(cls):
+    if not hasattr(cls, 'notify'):
+        raise 'logMethodCalls: class \'%s\' must have a notify' % cls.__name__
+    for name in dir(cls):
+        method = getattr(cls, name)
+        if hasattr(method, '__call__'):
+            def getLoggedMethodCall(method):
+                def __logMethodCall__(obj, *args, **kArgs):
+                    s = '%s(' % method.__name__
+                    for arg in args:
+                        try:
+                            argStr = repr(arg)
+                        except:
+                            argStr = 'bad repr: %s' % arg.__class__
+                        s += '%s, ' % argStr
+                    for karg, value in kArgs.items():
+                        s += '%s=%s, ' % (karg, repr(value))
+                    if len(args) or len(kArgs):
+                        s = s[:-2]
+                    s += ')'
+                    obj.notify.info(s)
+                    return method(obj, *args, **kArgs)
+                return __logMethodCall__
+            setattr(cls, name, getLoggedMethodCall(method))
+    __logMethodCall__ = None
+    return cls
 
 # http://en.wikipedia.org/wiki/Golden_ratio
 GoldenRatio = (1. + math.sqrt(5.)) / 2.

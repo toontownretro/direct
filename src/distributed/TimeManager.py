@@ -1,5 +1,6 @@
 from direct.showbase.DirectObject import *
-from pandac.PandaModules import *
+from panda3d.core import *
+from panda3d.direct import *
 from direct.task import Task
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
@@ -184,4 +185,3 @@ class TimeManager(DistributedObject.DistributedObject):
 
         messenger.send("gotTimeSync", taskChain = 'default')
         messenger.send(self.cr.uniqueName("gotTimeSync"), taskChain = 'default')
-
