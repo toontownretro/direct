@@ -1,35 +1,35 @@
 #begin lib_target
-  #define TARGET p3motiontrail
+  #define TARGET motiontrail
   #define LOCAL_LIBS \
-    p3directbase
+    directbase
 
   #define BUILDING_DLL BUILDING_DIRECT_MOTIONTRAIL
 
   #define OTHER_LIBS \
-    p3linmath:c \
-    p3mathutil:c \
-    p3gobj:c \
-    p3putil:c \
-    p3pipeline:c \
-    p3event:c \
-    p3pstatclient:c \
-    p3pnmimage:c \
-    $[if $[HAVE_NET],p3net:c] $[if $[WANT_NATIVE_NET],p3nativenet:c] \
-    p3pgraph:c \
+    linmath:c \
+    mathutil:c \
+    gobj:c \
+    putil:c \
+    pipeline:c \
+    event:c \
+    pstatclient:c \
+    pnmimage:c \
+    $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
+    pgraph:c \
     panda:m \
-    p3express:c \
-    p3downloader:c \
+    express:c \
+    downloader:c \
     pandaexpress:m \
-    p3interrogatedb \
+    interrogatedb \
     \
      \
-    p3dtoolutil:c \
-    p3dtoolbase:c \
-    p3dtool:m \
-    p3pandabase:c \
-    p3prc \
-    p3gsgbase:c \
-    p3parametrics:c
+    dtoolutil:c \
+    dtoolbase:c \
+    dtool:m \
+    pandabase:c \
+    prc \
+    gsgbase:c \
+    parametrics:c
 
 
   #define SOURCES \

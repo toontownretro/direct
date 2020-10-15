@@ -1,12 +1,12 @@
 #define LOCAL_LIBS \
-  p3dcparser
+  dcparser
 #define OTHER_LIBS \
-  p3express:c pandaexpress:m \
-  p3interrogatedb  \
-  p3dtoolutil:c p3dtoolbase:c p3dtool:m \
-  p3prc p3pstatclient:c p3pandabase:c p3linmath:c p3putil:c \
-  p3pipeline:c p3downloader:c \
-  $[if $[HAVE_NET],p3net:c] $[if $[WANT_NATIVE_NET],p3nativenet:c] \
+  express:c pandaexpress:m \
+  interrogatedb  \
+  dtoolutil:c dtoolbase:c dtool:m \
+  prc pstatclient:c pandabase:c linmath:c putil:c \
+  pipeline:c downloader:c \
+  $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
   panda:m
 
 #define C++FLAGS -DWITHIN_PANDA

@@ -1,16 +1,16 @@
 #begin lib_target
-  #define TARGET p3interval
+  #define TARGET interval
   #define LOCAL_LIBS \
-    p3directbase
+    directbase
   #define OTHER_LIBS \
-    p3downloader:c p3linmath:c \
-    p3chan:c p3event:c p3gobj:c p3pnmimage:c p3mathutil:c \
-    p3pgraph:c p3putil:c panda:m p3express:c pandaexpress:m \
-    p3interrogatedb  \
-    p3dtoolutil:c p3dtoolbase:c p3dtool:m \
-    p3pandabase:c p3prc p3gsgbase:c p3pstatclient:c \
-    $[if $[HAVE_NET],p3net:c] $[if $[WANT_NATIVE_NET],p3nativenet:c] \
-    p3pipeline:c
+    downloader:c linmath:c \
+    chan:c event:c gobj:c pnmimage:c mathutil:c \
+    pgraph:c putil:c panda:m express:c pandaexpress:m \
+    interrogatedb  \
+    dtoolutil:c dtoolbase:c dtool:m \
+    pandabase:c prc gsgbase:c pstatclient:c \
+    $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
+    pipeline:c
 
   #define BUILDING_DLL BUILDING_DIRECT_INTERVAL
 

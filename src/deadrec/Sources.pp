@@ -1,13 +1,13 @@
 #begin lib_target
-  #define TARGET p3deadrec
+  #define TARGET deadrec
   #define LOCAL_LIBS \
-    p3directbase
+    directbase
   #define OTHER_LIBS \
-    p3express:c p3linmath:c \
-    p3interrogatedb \
-    p3dtoolutil:c p3dtoolbase:c p3dtool:m \
-    p3prc p3pandabase:c p3putil:c \
-    p3pipeline:c
+    express:c linmath:c \
+    interrogatedb \
+    dtoolutil:c dtoolbase:c dtool:m \
+    prc pandabase:c putil:c \
+    pipeline:c
 
   #define BUILDING_DLL BUILDING_DIRECT_DEADREC
 

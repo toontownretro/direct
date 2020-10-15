@@ -1,19 +1,19 @@
 #define OTHER_LIBS \
-    p3express:c pandaexpress:m \
-    p3pstatclient:c p3pipeline:c panda:m \
-    p3interrogatedb  \
-    p3dtoolutil:c p3dtoolbase:c p3dtool:m p3prc p3pandabase:c \
-    p3downloader:c $[if $[HAVE_NET],p3net:c] $[if $[WANT_NATIVE_NET],p3nativenet:c] \
-    p3linmath:c p3putil:c
+    express:c pandaexpress:m \
+    pstatclient:c pipeline:c panda:m \
+    interrogatedb  \
+    dtoolutil:c dtoolbase:c dtool:m prc pandabase:c \
+    downloader:c $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
+    linmath:c putil:c
 
 #define LOCAL_LIBS \
-    p3directbase
+    directbase
 #define YACC_PREFIX dcyy
 #define C++FLAGS -DWITHIN_PANDA
 #define UNIX_SYS_LIBS m
 
 #begin lib_target
-  #define TARGET p3dcparser
+  #define TARGET dcparser
 
   #define BUILDING_DLL BUILDING_DIRECT_DCPARSER
 
