@@ -14,6 +14,7 @@
 #include "cClientRepository.h"
 #include "dcClass.h"
 #include "dcField.h"
+#include "dcField_ext.h"
 #include "dcParameter.h"
 #include "dcPacker.h"
 #include "extension.h"

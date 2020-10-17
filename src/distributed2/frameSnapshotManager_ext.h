@@ -22,6 +22,7 @@
 
 class FrameSnapshot;
 class DCClass;
+class DCPacker;
 
 template<>
 class Extension<FrameSnapshotManager> : public ExtensionBase<FrameSnapshotManager> {

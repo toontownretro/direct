@@ -19,6 +19,7 @@
 #include "dcClass.h"
 #include "dcPacker.h"
 #include "dcField.h"
+#include "dcField_ext.h"
 #include "dcParameter.h"
 
 /**
