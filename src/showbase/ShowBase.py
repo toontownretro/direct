@@ -40,15 +40,9 @@ __all__ = ['ShowBase', 'WindowControls']
 from panda3d.core import *
 from panda3d.direct import throw_new_frame, init_app_for_gui
 from panda3d.direct import storeAccessibilityShortcutKeys, allowAccessibilityShortcutKeys
-from . import DConfig
 
-# Register the extension methods for NodePath.
-from direct.extensions_native import NodePath_extensions
-
-# This needs to be available early for DirectGUI imports
 import sys
 import builtins
-builtins.config = DConfig
 
 from direct.directnotify.DirectNotifyGlobal import directNotify, giveNotify
 from .MessengerGlobal import messenger
@@ -60,13 +54,12 @@ from .EventManagerGlobal import eventMgr
 from direct.interval import IntervalManager
 from direct.showbase.BufferViewer import BufferViewer
 from direct.task import Task
-from . import Loader
 import time
 import atexit
 import importlib
 from direct.showbase import ExceptionVarDump
-from . import DirectObject
 from . import SfxPlayer
+from .HostBase import HostBase
 if __debug__:
     from direct.showbase import GarbageReport
     from direct.directutil import DeltaProfiler
@@ -80,10 +73,8 @@ def exitfunc():
 # Now ShowBase is a DirectObject.  We need this so ShowBase can hang
 # hooks on messages, particularly on window-event.  This doesn't
 # *seem* to cause anyone any problems.
-class ShowBase(DirectObject.DirectObject):
+class ShowBase(HostBase):
 
-    #: The deprecated `.DConfig` interface for accessing config variables.
-    config = DConfig
     notify = directNotify.newCategory("ShowBase")
 
     def __init__(self, fStartDirect=True, windowType=None):
@@ -99,6 +90,8 @@ class ShowBase(DirectObject.DirectObject):
         including this instance itself (under the name ``base``).
         """
 
+        HostBase.__init__(self)
+
         #: Set if the want-dev Config.prc variable is enabled.  By default, it
         #: is set to True except when using Python with the -O flag.
         self.__dev__ = self.config.GetBool('want-dev', __debug__)
@@ -112,10 +105,6 @@ class ShowBase(DirectObject.DirectObject):
 
         if __debug__:
             self.__autoGarbageLogging = self.__dev__ and self.config.GetBool('auto-garbage-logging', False)
-
-        #: The directory containing the main Python file of this application.
-        self.mainDir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
-        self.main_dir = self.mainDir
 
         # This contains the global appRunner instance, as imported from
         # `.AppRunnerGlobal`.  This is deprecated and always None nowadays.
@@ -149,7 +138,6 @@ class ShowBase(DirectObject.DirectObject):
         self.sfxManagerList = []
         self.sfxManagerIsValidList = []
 
-        self.wantStats = self.config.GetBool('want-pstats', 0)
         self.wantTk = False
         self.wantWx = False
 
@@ -339,21 +327,7 @@ class ShowBase(DirectObject.DirectObject):
         self.mouseInterface = self.trackball
         self.useTrackball()
 
-        #: `.Loader.Loader` object.
-        self.loader = Loader.Loader(self)
         self.graphicsEngine.setDefaultLoader(self.loader.loader)
-
-        #: The global event manager, as imported from `.EventManagerGlobal`.
-        self.eventMgr = eventMgr
-        #: The global messenger, as imported from `.MessengerGlobal`.
-        self.messenger = messenger
-        #: The global bulletin board, as imported from `.BulletinBoardGlobal`.
-        self.bboard = bulletinBoard
-        #: The global task manager, as imported from `.TaskManagerGlobal`.
-        self.taskMgr = taskMgr
-        self.task_mgr = taskMgr
-        #: The global job manager, as imported from `.JobManagerGlobal`.
-        self.jobMgr = jobMgr
 
         #: If `enableParticles()` has been called, this is the particle manager
         #: as imported from :mod:`direct.particles.ParticleManagerGlobal`.
@@ -374,21 +348,6 @@ class ShowBase(DirectObject.DirectObject):
         self.createStats()
 
         self.AppHasAudioFocus = 1
-
-        # Get a pointer to Panda's global ClockObject, used for
-        # synchronizing events between Python and C.
-        globalClock = ClockObject.getGlobalClock()
-
-        # Since we have already started up a TaskManager, and probably
-        # a number of tasks; and since the TaskManager had to use the
-        # TrueClock to tell time until this moment, make sure the
-        # globalClock object is exactly in sync with the TrueClock.
-        trueClock = TrueClock.getGlobalPtr()
-        globalClock.setRealTime(trueClock.getShortTime())
-        globalClock.tick()
-
-        # Now we can make the TaskManager start using the new globalClock.
-        taskMgr.globalClock = globalClock
 
         # client CPU affinity is determined by, in order:
         # - client-cpu-affinity-mask config
@@ -413,35 +372,14 @@ class ShowBase(DirectObject.DirectObject):
                 # Windows XP supports a 32-bit affinity mask
                 TrueClock.getGlobalPtr().setCpuAffinity(1 << (affinity % 32))
 
-        # Make sure we're not making more than one ShowBase.
-        if hasattr(builtins, 'base'):
-            raise Exception("Attempt to spawn multiple ShowBase instances!")
-
         # DO NOT ADD TO THIS LIST.  We're trying to phase out the use of
         # built-in variables by ShowBase.  Use a Global module if necessary.
-        builtins.base = self
         builtins.render2d = self.render2d
         builtins.aspect2d = self.aspect2d
         builtins.pixel2d = self.pixel2d
         builtins.render = self.render
         builtins.hidden = self.hidden
         builtins.camera = self.camera
-        builtins.loader = self.loader
-        builtins.taskMgr = self.taskMgr
-        builtins.jobMgr = self.jobMgr
-        builtins.eventMgr = self.eventMgr
-        builtins.messenger = self.messenger
-        builtins.bboard = self.bboard
-        # Config needs to be defined before ShowBase is constructed
-        #builtins.config = self.config
-        builtins.ostream = Notify.out()
-        builtins.directNotify = directNotify
-        builtins.giveNotify = giveNotify
-        builtins.globalClock = globalClock
-        builtins.vfs = vfs
-        builtins.cpMgr = ConfigPageManager.getGlobalPtr()
-        builtins.cvMgr = ConfigVariableManager.getGlobalPtr()
-        builtins.pandaSystem = PandaSystem.getGlobalPtr()
         if __debug__:
             builtins.deltaProfiler = DeltaProfiler.DeltaProfiler("ShowBase")
             self.onScreenDebug = OnScreenDebug.OnScreenDebug()
@@ -454,8 +392,6 @@ class ShowBase(DirectObject.DirectObject):
 
         # Now add this instance to the ShowBaseGlobal module scope.
         from . import ShowBaseGlobal
-        builtins.run = ShowBaseGlobal.run
-        ShowBaseGlobal.base = self
         ShowBaseGlobal.__dev__ = self.__dev__
 
         if self.__dev__:
@@ -517,8 +453,6 @@ class ShowBase(DirectObject.DirectObject):
                 if not self.texmem or self.texmem.cleanedUp:
                     self.toggleTexMem()
 
-        taskMgr.finalInit()
-
         # Start IGLOOP
         self.restart()
 
@@ -576,15 +510,7 @@ class ShowBase(DirectObject.DirectObject):
         for cb in self.finalExitCallbacks[:]:
             cb()
 
-        # Remove the built-in base reference
-        if getattr(builtins, 'base', None) is self:
-            del builtins.run
-            del builtins.base
-            del builtins.loader
-            del builtins.taskMgr
-            ShowBaseGlobal = sys.modules.get('direct.showbase.ShowBaseGlobal', None)
-            if ShowBaseGlobal:
-                del ShowBaseGlobal.base
+        HostBase.destroy(self)
 
         self.aspect2d.node().removeAllChildren()
         self.render2d.node().removeAllChildren()
@@ -594,18 +520,12 @@ class ShowBase(DirectObject.DirectObject):
         if self.config.GetBool('disable-sticky-keys', 0):
             allowAccessibilityShortcutKeys(True)
 
-        self.ignoreAll()
-        self.shutdown()
-
         if getattr(self, 'musicManager', None):
             self.musicManager.shutdown()
             self.musicManager = None
             for sfxManager in self.sfxManagerList:
                 sfxManager.shutdown()
             self.sfxManagerList = []
-        if getattr(self, 'loader', None):
-            self.loader.destroy()
-            self.loader = None
         if getattr(self, 'graphicsEngine', None):
             self.graphicsEngine.removeAllWindows()
 
@@ -2222,8 +2142,12 @@ class ShowBase(DirectObject.DirectObject):
     def restart(self, clusterSync=False, cluster=None):
         self.shutdown()
         # __resetPrevTransform goes at the very beginning of the frame.
-        self.taskMgr.add(
-            self.__resetPrevTransform, 'resetPrevTransform', sort = -51)
+        if self.fixedSimulationStep:
+            self.simTaskMgr.add(
+                self.__resetPrevTransform, 'resetPrevTransform', sort = -51)
+        else:
+            self.taskMgr.add(
+                self.__resetPrevTransform, 'resetPrevTransform', sort = -51)
         # give the dataLoop task a reasonably "early" sort,
         # so that it will get run before most tasks
         self.taskMgr.add(self.__dataLoop, 'dataLoop', sort = -50)
@@ -2234,7 +2158,10 @@ class ShowBase(DirectObject.DirectObject):
         # make the collisionLoop task run before igLoop,
         # but leave enough room for the app to insert tasks
         # between collisionLoop and igLoop
-        self.taskMgr.add(self.__collisionLoop, 'collisionLoop', sort = 30)
+        if self.fixedSimulationStep:
+            self.simTaskMgr.add(self.__collisionLoop, 'collisionLoop', sort = 30)
+        else:
+            self.taskMgr.add(self.__collisionLoop, 'collisionLoop', sort = 30)
 
         if ConfigVariableBool('garbage-collect-states').getValue():
             self.taskMgr.add(self.__garbageCollectStates, 'garbageCollectStates', sort = 46)
@@ -2259,7 +2186,7 @@ class ShowBase(DirectObject.DirectObject):
         self.taskMgr.remove('resetPrevTransform')
         self.taskMgr.remove('ivalLoop')
         self.taskMgr.remove('garbageCollectStates')
-        self.eventMgr.shutdown()
+        HostBase.shutdown(self)
 
     def getBackgroundColor(self, win = None):
         """
@@ -3299,19 +3226,6 @@ class ShowBase(DirectObject.DirectObject):
                    (self.config.GetString("cluster-mode", '') != ''))
         # Set fWantTk to 0 to avoid starting Tk with this call
         self.startDirect(fWantDirect = fDirect, fWantTk = fTk, fWantWx = fWx)
-
-    def run(self):
-        """This method runs the :class:`~direct.task.Task.TaskManager`
-        when ``self.appRunner is None``, which is to say, when we are
-        not running from within a p3d file.  When we *are* within a p3d
-        file, the Panda3D runtime has to be responsible for running the
-        main loop, so we can't allow the application to do it.
-        """
-
-        if self.appRunner is None or self.appRunner.dummy or \
-           (self.appRunner.interactiveConsole and not self.appRunner.initialAppImport):
-            self.taskMgr.run()
-
 
     # Snake-case aliases, for people who prefer these.  We're in the process
     # of migrating everyone to use the snake-case alternatives.

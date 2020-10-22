@@ -6,3 +6,7 @@ from . import Task
 
 #: The global task manager.
 taskMgr = Task.TaskManager()
+#: The global task manager that runs fixed-step simulations.
+from panda3d.core import AsyncTaskManager
+simTaskMgr = Task.TaskManager()
+simTaskMgr.mgr = AsyncTaskManager("simulation")

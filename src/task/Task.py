@@ -539,7 +539,7 @@ class TaskManager:
                     self.stop()
                     raise
                 except IOError as ioError:
-                    code, message = self._unpackIOError(ioError)
+                    code, message = self.unpackIOError(ioError)
                     # Since upgrading to Python 2.4.1, pausing the execution
                     # often gives this IOError during the sleep function:
                     #     IOError: [Errno 4] Interrupted function call
@@ -568,7 +568,7 @@ class TaskManager:
 
         self.mgr.stopThreads()
 
-    def _unpackIOError(self, ioError):
+    def unpackIOError(self, ioError):
         # IOError unpack from http://www.python.org/doc/essays/stdexceptions/
         # this needs to be in its own method, exceptions that occur inside
         # a nested try block are not caught by the inner try block's except
