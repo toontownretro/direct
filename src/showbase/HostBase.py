@@ -89,6 +89,10 @@ class HostBase(DirectObject):
         vfs = VirtualFileSystem.getGlobalPtr()
         self.vfs = vfs
 
+        # Make sure we're not making more than one HostBase.
+        if hasattr(builtins, 'base'):
+            raise Exception("Attempt to spawn multiple HostBase instances!")
+
         # DO NOT ADD TO THIS LIST.  We're trying to phase out the use of
         # built-in variables by ShowBase.  Use a Global module if necessary.
         builtins.base = self
