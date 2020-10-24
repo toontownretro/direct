@@ -1,6 +1,7 @@
 import collections
 
 from panda3d.core import *
+from panda3d.direct import *
 from direct.showbase import ShowBase # __builtin__.config
 from direct.task.TaskManagerGlobal import * # taskMgr
 from direct.directnotify import DirectNotifyGlobal
