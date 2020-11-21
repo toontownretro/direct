@@ -6,3 +6,7 @@ Makefile
 pp.dep
 /built/
 Opt?-*
+src/configfiles/40_direct.prc
+src/dcparser/dcLexer.cxx
+src/dcparser/dcParser.cxx
+src/dcparser/dcParser.h
