@@ -16,6 +16,17 @@
 static struct _frozen *frozen_modules = NULL;
 static int num_frozen_modules = 0;
 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef module_def = {
+  PyModuleDef_HEAD_INIT,
+  "panda3d.extend_frozen",
+  NULL,
+  -1,
+  NULL,
+  NULL, NULL, NULL, NULL
+};
+#endif
+
 /*
  * Call this function to extend the frozen modules array with a new
  * array of frozen modules, provided in a C-style array, at runtime.
@@ -204,7 +215,11 @@ py_get_frozen_module_names(PyObject *self, PyObject *args) {
   list = PyList_New(0);
   i = 0;
   while (PyImport_FrozenModules[i].name != NULL) {
+#if PY_MAJOR_VERSION >= 3
+    PyObject *name = PyUnicode_FromString(PyImport_FrozenModules[i].name);
+#else
     PyObject *name = PyString_FromString(PyImport_FrozenModules[i].name);
+#endif
     PyList_Append(list, name);
     Py_DECREF(name);
     ++i;
@@ -227,5 +242,10 @@ DLLEXPORT void initextend_frozen() {
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
 
-  Py_InitModule("extend_frozen", extend_frozen_methods);
+#if PY_MAJOR_VERSION >= 3
+  module_def.m_methods = extend_frozen_methods;
+  PyModule_Create(&module_def);
+#else
+  Py_InitModule("panda3d.extend_frozen", extend_frozen_methods);
+#endif
 }
