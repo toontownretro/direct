@@ -15,11 +15,11 @@ import importlib
 
 from . import pefile
 
-# Temporary (?) try..except to protect against unbuilt p3extend_frozen.
+# Temporary (?) try..except to protect against unbuilt extend_frozen.
 try:
-    import p3extend_frozen
+    from panda3d import extend_frozen
 except ImportError:
-    p3extend_frozen = None
+    extend_frozen = None
 
 from panda3d.core import *
 
@@ -2571,7 +2571,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
         # ours, or maybe it's frozen?
         if not path:
             # Only if we're not looking on a particular path, though.
-            if p3extend_frozen and p3extend_frozen.is_frozen_module(name):
+            if extend_frozen and extend_frozen.is_frozen_module(name):
                 # It's a frozen module.
                 return (None, name, ('', '', imp.PY_FROZEN))
 
