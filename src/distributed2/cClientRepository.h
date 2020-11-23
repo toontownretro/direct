@@ -26,7 +26,7 @@ class DCClass;
  * only handles unpacking of server snapshots and object state datagrams
  * for performance efficiency.
  */
-class EXPCL_DIRECT_DISTRIBUTED2 CClientRepository {
+class CClientRepository {
 PUBLISHED:
   INLINE CClientRepository();
 
