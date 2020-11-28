@@ -6,6 +6,13 @@ Makefile
 pp.dep
 /built/
 Opt?-*
+*.sln
+*.vcxproj
+*.vcxproj.user
+.vs
+*.log
+x64
+Win32
 src/configfiles/40_direct.prc
 src/dcparser/dcLexer.cxx
 src/dcparser/dcParser.cxx
