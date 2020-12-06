@@ -1,6 +1,8 @@
 #begin lib_target
   #define TARGET directbase
 
+  #define USE_PACKAGES eigen
+
   #define SOURCES \
     directbase.cxx directbase.h directsymbols.h \
 
