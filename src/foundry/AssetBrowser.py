@@ -36,6 +36,10 @@ class AssetFolder:
         self.children = []
         self.item = None
 
+        # Custom name for the folder.  Used for the top-level folder of a tree,
+        # like $DMODELS.
+        self.alias = None
+
         if parent:
             self.parentRelativeFilename = core.Filename(self.absFilename)
             self.parentRelativeFilename.makeRelativeTo(parent.absFilename)
@@ -295,6 +299,8 @@ class AssetBrowser(QtWidgets.QDialog):
         folder.item = item
         if folder.parentRelativeFilename:
             item.setText(0, folder.parentRelativeFilename.getFullpath())
+        elif folder.alias:
+            item.setText(0, folder.alias)
         else:
             item.setText(0, folder.filename.getFullpath())
         item.setToolTip(0, item.text(0))
@@ -364,6 +370,7 @@ class AssetBrowser(QtWidgets.QDialog):
             assert self.notify.debug("Generating asset tree for " + name + " (" + rootFilename.getFullpath() + ")")
             tree = ModelTree("$" + name.upper(), rootFilename)
             tree.rootFolder = self.r_generateAssets(tree, rootFilename, None)[0]
+            tree.rootFolder.alias = tree.name
             self.modelTrees.append(tree)
 
     def generateAssets(self):
