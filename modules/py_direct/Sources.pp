@@ -3,7 +3,7 @@
   #define TARGET panda3d.direct
   #define IGATE_LIBS \
     dcparser deadrec interval motiontrail showbase \
-    distributed distributed2
+    distributed distributed2 foundry
   #define IMPORT panda3d.core
   #define LOCAL_LIBS direct
 #end python_module_target

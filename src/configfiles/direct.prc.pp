@@ -21,6 +21,8 @@ model-path      $DMODELS
 sound-path      $DMODELS
 #endif
 
+fgd-file $DIRECT/src/configfiles/direct.fgd
+
 # Define a new egg object type.  See the comments in _panda.prc about this.
 
 egg-object-type-direct-widget   <Scalar> collide-mask { 0x80000000 } <Collide> { Polyset descend }

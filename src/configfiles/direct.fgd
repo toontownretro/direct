@@ -1,0 +1,1035 @@
+//
+// worldspawn
+//
+
+@SolidClass = worldspawn : "World entity"
+[
+	message(string) : "Map Description / Title"
+	skytype(choices) : "Toontown Sky Type" : 1 =
+    [
+        0 : "None"
+        1 : "Midday"
+        2 : "Cloudy"
+        3 : "Evening"
+        4 : "Night"
+        5 : "Cog"
+    ]
+	MaxRange(string) : "Max viewable distance" : "4096"
+	startdark(choices) : "Level Fade In" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	gametitle(choices) : "Display game title" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	newunit(choices) : "New Level Unit" : 0 =
+	[
+		0 : "No, keep current"
+		1 : "Yes, clear previous levels"
+	]
+]
+
+//
+// BaseClasses
+//
+
+@BaseClass = ZHLT
+[
+	zhlt_lightflags(choices) : "ZHLT Lightflags" : 0 =
+	[
+		0 : "Default"
+		1 : "Embedded Fix"
+		2 : "Opaque (blocks light)"
+		3 : "Opaque + Embedded fix"
+		6 : "Opaque + Concave Fix"
+	]
+	light_origin(string) : "Light Origin Target"
+]
+
+@BaseClass = ZHLT_point
+[
+	_fade(string) : "ZHLT Fade" : "1.0"
+	_falloff(choices) : "ZHLT Falloff" : 0 =
+	[
+		0 : "Default"
+		1 : "Inverse Linear"
+		2 : "Inverse Square"
+	]
+]
+
+@BaseClass = LightSource
+[
+    propsources(target_destination) : "Prop Sources" : "" : "Which props `cast` the light."
+]
+
+@BaseClass = Appearflags
+[
+	spawnflags(Flags) =
+	[
+		2048 : "Not in Deathmatch" : 0
+	]
+]
+
+@BaseClass size(0 0 0, 32 32 32) color(80 0 200) base(Appearflags) = Ammo []
+
+@BaseClass = SpawnIO
+[
+    output OnSpawn(void) : "Fired as soon as this entity spawns into the world"
+]
+
+@BaseClass = Targetname
+[
+	targetname(target_source) : "Name"
+]
+@BaseClass = Target
+[
+	target(target_destination) : "Target"
+]
+@BaseClass = Global
+[
+	globalname(string) : "Global Entity Name"
+]
+
+@BaseClass base(Target) = Targetx
+[
+	delay(string) : "Delay before trigger" : "0"
+	killtarget(target_destination) : "KillTarget"
+]
+
+@BaseClass = RenderFxChoices
+[
+	renderfx(choices) :"Render FX" : 0 =
+	[
+		0: "Normal"
+		1: "Slow Pulse"
+		2: "Fast Pulse"
+		3: "Slow Wide Pulse"
+		4: "Fast Wide Pulse"
+		9: "Slow Strobe"
+		10: "Fast Strobe"
+		11: "Faster Strobe"
+		12: "Slow Flicker"
+		13: "Fast Flicker"
+		5: "Slow Fade Away"
+		6: "Fast Fade Away"
+		7: "Slow Become Solid"
+		8: "Fast Become Solid"
+		14: "Constant Glow"
+		15: "Distort"
+		16: "Hologram (Distort + fade)"
+	]
+]
+
+@BaseClass base(RenderFxChoices) = RenderFields
+[
+	rendermode(choices) : "Render Mode" : 0 =
+	[
+		0: "Normal"
+		1: "Color"
+		2: "Texture"
+		3: "Glow"
+		4: "Solid"
+		5: "Additive"
+	]
+	renderamt(integer) : "FX Amount (1 - 255)"
+	rendercolor(color255) : "FX Color (R G B)" : "0 0 0"
+]
+
+@BaseClass base(Appearflags) size(-16 -16 -36, 16 16 36) color(0 255 0) = PlayerClass []
+
+@BaseClass = Light
+[
+	_light(color255) : "Brightness" : "255 255 255 200"
+    style(Choices) : "Appearance" : 0 =
+	[
+		0 : "Normal"
+		10: "Fluorescent flicker"
+		2 : "Slow, strong pulse"
+		11: "Slow pulse, noblack"
+		5 : "Gentle pulse"
+		1 : "Flicker A"
+		6 : "Flicker B"
+		3 : "Candle A"
+		7 : "Candle B"
+		8 : "Candle C"
+		4 : "Fast strobe"
+		9 : "Slow strobe"
+	]
+	pattern(string) : "Custom Appearance" : "" : "Set a custom pattern of light brightness for this light. Pattern format is a string of characters, where 'a' is total darkness, 'z' fully bright. i.e. 'aaggnnttzz' would be a steppy fade in from dark to light."
+	_constant_attn(string)	: "Constant" : "0"
+	_linear_attn(string)	: "Linear" : "0"
+	_quadratic_attn(string)	: "Quadratic" : "1"
+	_fifty_percent_distance(string) : "50 percent falloff distance" : "0": "Distance at which brightness should fall off to 50%. If set, overrides linear constant and quadratic paramaters."
+	_zero_percent_distance(string) : "0 percent falloff distance" : "0": "Distance at which brightness should fall off to negligible (1/256)%. Must set _fifty_percent_distance to use."
+	_hardfalloff(integer) : "hard falloff" : 0 : "If set, causes lights to fall to exactly zero beyond the zero percent distance. May cause unrealistic lightijng if not used carefully."
+]
+
+@BaseClass = Moveable
+[
+    movedir(string) : "Movement Direction" : "1 0 0" : "A vector relative to the world (left/right, forward/back, up/down). Keep values from 0.0-1.0 unless you want the door to move further than it's bounding box."
+	speed(integer) : "Speed" : 100
+    lip(integer) : "Lip" : 0
+]
+
+@BaseClass = NPC
+[
+    attacklist(string) : "Attack list (semicolon delimited)" : "" : "Empty for default list"
+    marginchat(choices) : "Show speech in margin" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+    health(integer) : "NPC Health (-1 default)" : -1
+    speedMod(string) : "Speed modifier" : "1.0" : "Modifies the base walk speed of the NPC"
+]
+
+@BaseClass = Parent
+[
+    parent(target_destination) : "Parent" : "" : "Makes this entity move with parent entity"
+]
+
+@BaseClass base(Appearflags, Targetname, RenderFields, Global, Moveable, SpawnIO, Parent) = Door
+[
+	movesnd(sound) : "Move Sound" : ""
+	stopsnd(sound) : "Stop Sound" : ""
+    locked_sound(sound) : "Locked Sound" : ""
+	unlocked_sound(sound) : "Unlocked Sound" : ""
+	wait(string) : "Delay Before Close" : "4.0" : "In seconds, -1 to remain open."
+    loop_movesnd(choices) : "Loop Move Sound" : 1 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    spawnflags(Flags) =
+	[
+		1   : "Starts Open" : 0
+        2   : "Starts Locked" : 0
+		4   : "Use Opens" : 0
+		8   : "Touch Opens" : 0
+	]
+
+	//health(integer) : "Health" : 0 : "How much health the door should have. This would make the door have to be damaged to open."
+
+    input Close(void) : "Closes the door"
+    input Open(void) : "Opens the door"
+    input Lock(void) : "Locks the door"
+    input Unlock(void) : "unlocks the door"
+
+    output OnCloseStart(void) : "Fired when the door begins closing"
+    output OnCloseFinish(void) : "Fired when the door finishes closing"
+    output OnOpenStart(void) : ""
+    output OnOpenFinish(void) : ""
+    output OnLockStart(void): ""
+    output OnLockFinish(void):""
+    output OnUnlockStart(void):""
+    output OnUnlockFinish(void):""
+]
+
+@BaseClass = EnableDisable
+[
+	StartDisabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// Inputs
+	input Enable(void) : "Enable this entity."
+	input Disable(void) : "Disable this entity."
+]
+
+@BaseClass base(Target, Targetname, EnableDisable) = Trigger
+[
+    output OnEnter(void) : "Fired when the player enters the volume of the trigger"
+    output OnExit(void) : "Fired when the player exits the volume of the trigger"
+]
+
+@SolidClass base(Trigger) = trigger_once : "One-Time Trigger"
+[
+]
+
+@SolidClass base(Trigger) = trigger_multiple : "Multi-time trigger"
+[
+    delay(string) : "Delay before re-entrance" : "0"
+]
+
+//
+// Entities
+//
+
+@PointClass base(Targetname) iconsprite("materials/editor/speaker.mat") = ambient_generic : "Universal Ambient"
+[
+	soundfile(sound) : "Sound File"
+	volume(string) : "Volume" : "1.0"
+    looping(choices) : "Looping" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+        2 : "Yes (Random Delay)"
+    ]
+    playnow(choices) : "Play immediately" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    spawnflags(Flags) =
+    [
+        1 : "Play everywhere" : 0
+    ]
+
+    randomDelayMin(string) : "Random delay min" : "1.0"
+    randomDelayMax(string) : "Random delay max" : "20.0"
+
+    input FadeIn(void) : "Play the sound, fading in"
+    input FadeOut(void) : "Stop the sound, fading out"
+
+    input Play(void) : "Play the sound"
+    input Stop(void) : "Stop the sound"
+]
+
+@SolidClass base(Global, Targetname, Target, RenderFields, ZHLT, Moveable, Parent) = func_button : "Button"
+[
+	health(integer) : "Health (shootable if > 0)"
+	master(string) : "Master"
+	sounds(choices) : "Press sound" : "phase_5/audio/sfx/AA_drop_trigger_box.ogg"
+	wait(integer) : "delay before reset (-1 stay)" : 3
+
+	spawnflags(Flags) =
+	[
+		1 : "Don't move" : 0
+        2 : "Press when locked" : 0
+		4 : "Toggle" : 0
+		8 : "Sparks" : 0
+		16 : "Touch Activates": 0
+        32 : "Starts pressed" : 0
+	]
+
+	locked_sound(sound) : "Locked Sound"
+	unlocked_sound(sound) : "Unlocked Sound"
+
+    output OnPress(void) : "Fired when the button is pressed"
+
+    input Press(void) : "Automatically presses the button"
+    input Depress(void) : "Automatically depresses the button"
+    input Unlock(void) : "Allows the button to be pressed"
+    input Lock(void) : "Stops the button from being pressed"
+]
+
+@SolidClass base(Door, ZHLT) = func_door : "Basic door" []
+
+@SolidClass base(Door, ZHLT) = func_door_rotating : "Rotating door"
+[
+	spawnflags(flags) =
+	[
+		2 : "Reverse Dir" : 0
+		16: "One-way" : 0
+		64: "X Axis" : 0
+		128: "Y Axis" : 0
+	]
+	distance(integer) : "Distance (deg)" : 90
+]
+
+@SolidClass base(Targetname, SpawnIO, Parent) = func_rotating : "Rotating brush"
+[
+    axis(string) : "Axis of rotation" : "0 0 1"
+    speed(string) : "Speed of rotation" : "50.0"
+    timeToFull(string) : "Time to full speed" : "5.0"
+
+    spawnflags(flags) =
+    [
+        1 : "Starts rotating" : 0
+    ]
+
+    input Start(void) : "Starts the rotation"
+    input Stop(void) : "Stops the rotation"
+
+    output OnStart(void) : "Fired when rotation begins"
+    output OnStop(void) : "Fired when rotation stops"
+]
+
+@SolidClass base(Appearflags, RenderFields, ZHLT, Parent) = func_friction : "Surface with a change in friction"
+[
+	modifier(integer) : "Percentage of standard (0 - 100)" : 15
+]
+
+@SolidClass base(Targetname, RenderFields, ZHLT, Parent) = func_illusionary : "Fake Wall/Light"
+[
+
+	skin(choices) : "Contents" : -1 =
+	[
+		-1: "Empty"
+		-7: "Volumetric Light"
+	]
+	_minlight(string) : "Minimum light level"
+]
+
+@SolidClass base(Targetname, Parent) = func_ladder : "Ladder" []
+
+@SolidClass base(Targetname, Appearflags, RenderFields, Global, ZHLT, Parent) = func_wall : "Wall"
+[
+	_minlight(string) : "Minimum light level"
+]
+
+@SolidClass base(func_wall) = func_detail : "Detail" []
+
+@SolidClass base(func_wall) = func_wall_toggle : "Toggleable geometry"
+[
+	spawnflags(flags) =
+	[
+		1 : "Starts Invisible" : 0
+	]
+]
+
+@SolidClass base(ZHLT) = func_water : "Liquid"
+[
+	waterspec(string) : "Water type" : "pond"
+]
+
+@SolidClass = func_clip : "Clip entity"
+[
+]
+
+@SolidClass = func_player_clip : "Player clip"
+[
+]
+
+@SolidClass = func_npc_clip : "NPC clip"
+[
+]
+
+//
+// info entities
+//
+
+@PointClass decal() base(Targetname, Appearflags) = infodecal : "Decal"
+[
+	texture(decal)
+]
+
+@PointClass base(Targetname) = info_null : "info_null (spotlight target)" []
+
+@PointClass base(PlayerClass, Targetname) studio("phase_14/models/misc/toon_ref.bam")  = info_player_start : "Player 1 start"
+[
+	output OnPlayerSpawn(void) : "Fired when the player is spawned here"
+]
+
+@PointClass base(PlayerClass, Targetname) studio("phase_14/models/misc/toon_ref.bam") = info_player_relocate : "Player relocation point"
+[
+    input Relocate(void) : "Teleports the player to the position and angles of the entity"
+]
+
+@PointClass base(Targetname) iconsprite("materials/editor/info_cutscene.mat") = info_cutscene : "Cutscene"
+[
+    cutsceneId(string) : "Cutscene ID" : ""
+	length(string) : "Length of cutscene" : "10.0"
+
+    input DoCutscene(void) : "Executes the cutscene"
+
+    output OnBegin(void) : "Fired when the cutscene begins"
+    output OnFinish(void) : "Fired when the cutscene ends"
+]
+
+@PointClass base(Targetname, SpawnIO) iconsprite("materials/editor/info_bgm.mat") = info_bgm : "Background Music"
+[
+    songName(string) : "Name of song" : ""
+    looping(choices) : "Looping" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+    volume(string) : "Volume" : "1.0"
+
+    input PlayMusic(void) : "Plays a specified song, params: [song;volume;looping]"
+    input StopMusic(void) : "Stops the current song"
+    output OnSongFinish(void) : "Fired when the song ends"
+    output OnSongStart(void) : "Fired when the song starts"
+]
+
+@PointClass base(Targetname, SpawnIO, Parent) studio("phase_14/models/props/indicator_light.bam") = info_indicator_light : "Fake indicator light"
+[
+    _light(color255) : "Initial light color" : "0 255 0 255"
+    spawnflags(flags) =
+    [
+        1 : "Starts on" : 0
+    ]
+    changeSound(sound) : "Change sound" : "phase_14/audio/sfx/light_turn_on.ogg"
+    input SetLightColor(void) : "Changes light color"
+    input TurnOn(void) : "Turns the light on"
+    input TurnOff(void) : "Turns the light off"
+]
+
+@PointClass base(Targetname, SpawnIO) iconsprite("materials/editor/logic_counter.mat") = logic_counter : "Counter"
+[
+    startVal(integer) : "Initial value" : 0
+    maxVal(integer) : "Max value" : 1
+    minVal(integer) : "Min value" : 0
+
+    input CountUp(void) : "Increase counter by one"
+    input CountDown(void) : "Decrease counter by one"
+
+    output OnHitMax(void) : "Fired when the counter has reached its goal"
+    output OnLoseMax(void) : "Fired when the counter was at max but now dropped"
+    output OnLoseMin(void) : "Fired when the counter was at min but now increased"
+    output OnHitMin(void) : "Fired when the count was at full but then dropped"
+]
+
+//
+// lights
+//
+
+@PointClass base(Target, Targetname, Light, ZHLT_point, LightSource) pointlight() iconsprite("materials/editor/lightbulb.mat") = light : "Invisible lightsource"
+[
+	spawnflags(flags) = [ 1 : "Initially dark" : 0 ]
+]
+
+@PointClass base(Targetname, Target, Light, ZHLT_point, LightSource) spotlight() iconsprite("materials/editor/lightbulb.mat") = light_spot : "Spotlight"
+[
+	_inner_cone(float) : "Inner (bright) angle" : 30
+	_cone(float) : "Outer (fading) angle" : 45
+	_exponent(float) : "Focus" : 1
+	_distance(integer) : "Maximum distance" : 0 : "This is the distance that light is allowed to cast, in inches."
+	pitch(float) : "Pitch" : -90
+	spawnflags(flags) = [ 1 : "Initially dark" : 0 ]
+]
+
+@PointClass base(Targetname, ZHLT_point) dirlight() iconsprite("materials/editor/light_env.mat") = light_environment : "Environment"
+[
+	pitch(float) : "Pitch" : 0 : "The downward pitch of the light from the sun. 0 is horizontal, -90 is straight down."
+	_light(color255) : "Brightness" : "255 255 255 200"
+	_ambient(color255) : "Ambient" : "255 255 255 20"
+	//_lightHDR(color255) : "BrightnessHDR" : "-1 -1 -1 1"
+	//_lightscaleHDR(float) : "BrightnessScaleHDR" : "1" : "Amount to scale the light by when compiling for HDR."
+	//_ambientHDR(color255) : "AmbientHDR" : "-1 -1 -1 1"
+	//_AmbientScaleHDR(float) : "AmbientScaleHDR" : "1" : "Amount to scale the ambient light by when compiling for hdr."
+	//pitch(integer) : "Pitch" : 0 : "The downward pitch of the light from the sun. 0 is horizontal, -90 is straight down."
+	SunSpreadAngle(float) : "SunSpreadAngle" : 0 : "The angular extent of the sun for casting soft shadows. Higher numbers are more diffuse. 5 is a good starting value."
+]
+
+//
+// Triggers
+//
+
+@PointClass base(Targetname) = env_sun : "Sun sprite"
+[
+    spriteScale(string) : "Scale of sun" : "1.0"
+    spriteColor(color255) : "Color of sun" : "255 255 255 255"
+    sunAngles(choices) : "Use light_environment angles" : 1 =
+    [
+	0 : "No"
+	1 : "Yes"
+    ]
+]
+
+@PointClass size(-16, -16, -16, 16, 16, 16) base(Targetname) = env_fog : "Fog"
+[
+    fogcolor(color255) : "Fog color" : "255 255 255 255"
+    fogdensity(string) : "Fog density" : "0.001"
+    startDisabled(choices) : "Start disabled" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    input EnableFog(void) : "Enables the fog"
+    input DisableFog(void) : "Disables the fog"
+]
+
+@PointClass base(Targetname, Parent) size(-16, -16, -16, 16, 16, 16) = env_particlesystem : "Particle System"
+[
+    file(string) : "PTF File" : ""
+    aliveTime(string) : "Alive time (-1 forever)" : "-1"
+
+    spawnflags(flags) =
+    [
+        1 : "Starts Enabled" : 0
+        2 : "World Velocities" : 1
+    ]
+
+    input Start(void) : "Starts the particle system"
+    input Stop(void) : "Stops the particle system"
+]
+
+@PointClass base(Parent) iconsprite("materials/editor/light_glow.mat") = env_lightglow : "Light glow"
+[
+	_light(color255) : "Light glow color" : "255 255 128 200"
+	width(string) : "Glow width" : "1.0"
+	height(string) : "Glow height" : "1.0"
+]
+
+@PointClass base(Parent) iconsprite("materials/editor/light_glow.mat") = point_spotlight : "Beam and halo effect"
+[
+	angles(string) : "Pitch Yaw Roll (Y Z X)" : "-90 0 0"
+	_light(color255) : "Light color" : "255 255 128 200"
+	SpotlightWidth(string) : "Beam width" : "5.0"
+	SpotlightLength(string) : "Beam length" : "500.0"
+]
+
+@PointClass base(Targetname, Parent) size(-16, -16, 0, 16 16 32) studio() = prop_static : "Static prop"
+[
+    model(studio) : "Prop Model" : "models/smiley.egg.pz"
+
+    testBool(boolean) : "Test Boolean" : "1" : "This is a test boolean value for the checkbox editor. Please work."
+
+	spawnflags(flags) =
+	[
+		1	:	"No Lighting"			: 0
+		2	:	"Baked Lighting"		: 1
+		4	:	"Dynamic Lighting"		: 0
+
+		8	:	"Hard Flatten"			: 1
+		16	:	"Leaf Group Flatten"	: 1
+
+		32	:	"Real-Time Shadows"		: 0
+		64	:	"Lightmap Shadows"		: 0
+
+		128	:	"Double-Sided"			: 0
+	]
+]
+
+//
+// Toon
+//
+@PointClass base(Targetname) size(-20, -20, 0, 20, 20, 60) = npc_toon : "NPC Toon"
+[
+	npcId(integer)	:	"ID of NPC (instead of name)"	:	0
+	name(string)	:	"Name of NPC (instead of ID)"	:	""
+]
+
+@PointClass base(Targetname) size(-100, -100, 0, 100, 100, 200) studio("phase_4/models/props/tt_a_ara_ttc_sillyMeter_default.bam") = item_sillymeter : "Silly Meter"
+[
+    phase(choices) : "Start Phase" : 0 =
+    [
+        0 : "Phase 1 (begin)"
+        1 : "Phase 2"
+        2 : "Phase 3"
+        3 : "Phase 4 (crazy)"
+        4 : "Phase 5 (dead)"
+    ]
+]
+
+@PointClass base(Targetname) studio("phase_9/models/char/Cog_Goonie-zero.bam") = npc_goon : "Goon Enemy"
+[
+    hat(choices) : "Hat Type" : 0 =
+    [
+        0 : "Security"
+        1 : "Construction"
+        2 : "Nothing"
+    ]
+	spawnflags(flags) =
+	[
+		1 : "Starts Asleep" : 0
+	]
+
+    input Patrol(void) : "Starts the goon patrolling"
+    input Wakeup(void) : "Wakes the goon up, then starts patrolling"
+
+    output OnDie(void) : "Thrown when the goon dies"
+]
+
+@SolidClass base(Targetname) = func_physics : "Physics Brush"
+[
+    mass(string) : "Mass of physics object" : "1.0"
+]
+
+@PointClass base(Targetname, NPC) studio("phase_3.5/models/char/suitA-mod.bam")  = npc_suit : "Cog"
+[
+    spawnflags(flags) =
+    [
+        1 : "Random Suit Plan (based on neighborhood)" : 0
+        2 : "Chair Suit" : 0
+        4 : "Guard Suit" : 0
+        8 : "Starts Active": 1
+    ]
+    suitPlan(choices) : "Suit Plan" : 0 =
+    [
+        0 : "Flunky"
+        1 : "Pencil Pusher"
+        2 : "Yesman"
+        3 : "Micromanager"
+        4 : "Downsizer"
+        5 : "Head Hunter"
+        6 : "Corporate Raider"
+        7 : "The Big Cheese"
+        8 : "Bottom Feeder"
+        9 : "Bloodsucker"
+        10 : "Double Talker"
+        11 : "Ambulance Chaser"
+        12 : "Back Stabber"
+        13 : "Spin Doctor"
+        14 : "Legal Eagle"
+        15 : "Big Wig"
+        16 : "Short Change"
+        17 : "Penny Pincher"
+        18 : "Tightwad"
+        19 : "Bean Counter"
+        20 : "Number Cruncher"
+        21 : "Money Bags"
+        22 : "Loan Shark"
+        23 : "Robber Baron"
+        24 : "Cold Caller"
+        25 : "Telemarketer"
+        26 : "Name Dropper"
+        27 : "Glad Hander"
+        28 : "Mover Shaker"
+        29 : "Two Face"
+        30 : "The Mingler"
+        31 : "Mr. Hollywood"
+        32 : "Vice President"
+        33 : "Lucy Crossbill"
+    ]
+    variant(choices) : "Variant" : 0 =
+    [
+        0 : "Normal"
+        1 : "Skeleton"
+        2 : "Waiter"
+        3 : "Minigame"
+        4 : "Zombie"
+        5 : "Corroded"
+    ]
+    level(integer) : "Level of Suit" : 1
+
+    input Activate(void) : "Starts the AI brain of the suit"
+    input Deactivate(void) : "Stops the AI brain of the suit"
+    input Kill(void) : "Kills the suit"
+    output OnDie(void) : "Fired when HP reaches 0"
+]
+
+@BaseClass = Keyframes
+[
+	nextKeyframe(target_destination) : "Next keyframe in this sequence" : ""
+]
+
+@BaseClass = EnableDisable
+[
+    input Enable(void) : "enabled the entity"
+    input Disable(void) : "disables the entity"
+
+    output OnEnable(void) : "Fired when entity is enabled"
+    output OnDisable(void) : "Fired when entity is disabled"
+]
+
+@PointClass base(Targetname, Keyframes, Parent) = rope_begin : "Beginning point in a rope/cable"
+[
+	resolution(integer) : "How smooth this rope (and all connecting node ropes) should be." : 3
+	thickness(string) : "How thicc is this rope" : "1.0"
+	color(color255) : "Color of rope" : "0 0 0 255"
+]
+
+@PointClass base(Targetname, Keyframes, Parent) = rope_keyframe : "Node in a rope"
+[
+]
+
+@SolidClass base(Targetname) = func_generator : "Sewer generator"
+[
+    input PowerOn(void) : "Powers on this generator"
+    input PowerOff(void) : "Powers off this generator"
+
+    output OnPowerOn(void) : "Fired when the generator powers on completely"
+    output OnPowerOff(void) : "Fired when the generator powers off completely"
+]
+
+@PointClass base(Targetname, EnableDisable, Parent) size(-20, -20, 0, 20, 20, 40) studio("phase_5/models/cogdominium/tt_m_ara_cbr_barrel.bam") = item_gagbarrel : "Gag restock barrel"
+[
+    track(choices) : "Gag Track" : -1 =
+    [
+        -1 : "Random"
+        0  : "Toon-Up"
+        1  : "Trap"
+        2  : "Lure"
+        3  : "Sound"
+        4  : "Throw"
+        5  : "Squirt"
+        6  : "Drop"
+    ]
+    gag(integer) : "Gag (-1 all)" : -1 : "Specific gag index in this track to restock. -1 is all."
+]
+
+@PointClass base(Targetname, EnableDisable, Parent) size(-20, -20, 0, 20, 20, 40) studio("phase_5/models/cogdominium/tt_m_ara_cbr_laughBarrel.bam") = item_laffbarrel : "Laff Barrel"
+[
+    healamt(integer) : "Heal amount" : 10 : "How much this laff barrel heals. -1 means to use the heal amount for the neighborhood"
+]
+
+@PointClass base(Targetname, EnableDisable, Parent) size(-20, -20, 0, 20, 20, 40) studio("phase_5/models/cogdominium/tt_m_ara_cbr_laughBarrel.bam") = mod_item_laffbarrel : "Mod Laff Barrel"
+[
+    maxHeal(integer) : "Max heal" : 100 : "Capacity of barrel"
+]
+
+@PointClass base(Targetname, Parent) studio("phase_4/models/modules/elevator.bam") = cogoffice_elevator : "Cog Office Elevator"
+[
+    index(integer) : "Elevator index" : 0
+    type(choices) : "Elevator type" : 0 =
+    [
+        0 : "Building"
+        1 : "Cogdominium"
+    ]
+
+    input SpawnCogs(void) : "Spawns cogs from this elevator"
+]
+
+@PointClass base(Targetname) = cogoffice_suitspawn : "Office Cog Spawn point"
+[
+    spawnflags(flags) =
+    [
+        1 : "Force boss" : 0
+        2 : "Spawn immediately" : 1
+        4 : "Don't ignore": 0
+		8 : "No hangout": 0
+        16 : "Do supa fly in move" : 0
+    ]
+
+	section(integer) : "Room section" : 0
+
+    spawnScript(target_destination) : "Spawn script" : "" : "Script to run when the suit spawns"
+
+    input Spawn(void) : "Spawns a cog at this point"
+    output OnSpawnCog(void) : "Fired when a cog is spawned"
+]
+
+@PointClass base(Targetname) = cogoffice_hangoutpoint : "Office Cog Hangout point"
+[
+]
+
+@PointClass base(Targetname) = cogoffice_faceoff_point : "Office Toon Faceoff point"
+[
+]
+
+@SolidClass base(Trigger) = trigger_cogoffice_group : "Activates a cog group when touched"
+[
+    group(integer) : "Group number" : 0
+]
+
+@PointClass base(Targetname) = info_cogoffice_floor : "Cog Office Floor"
+[
+    input ActivateCogGroup(void) : "Activates the nonchair cogs in the indicated group"
+    input ActivateChairsInGroup(void) : "Activates the char cogs in the indicated group"
+    output OnFloorBegin(void) : "Fired when the floor begins"
+    output OnFloorEnd(void) : "Fired when all cogs in the floor died"
+    output OnCogGroupDead(void): "Fired when an entire cog group has died"
+]
+
+@PointClass base(Targetname, SpawnIO) iconsprite("materials/editor/info_timer.mat") = info_timer : "A timer"
+[
+    delay(string) : "Delay of timer"
+    loop(choices) : "loop the timer" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    output OnTimeout(void) : "Fired when the timer runs to completion"
+    output OnStart(void) : "Fired when the timer begins timing"
+    output OnStop(void) : "Fired when the timer stops timing"
+
+    input Reset(void) : "Resets the timer back to 0"
+    input Start(void) : "Starts the timer"
+    input Stop(void) : "Stops the timer"
+    input SetDelay(void) : "Sets the delay on the timer"
+    input SetLoop(void) : "Sets if the timer should loop"
+]
+
+@PointClass iconsprite("materials/editor/env_cubemap.mat") = env_cubemap : "Cubemap sample point"
+[
+    size(integer) : "Quality of cubemap" : 128
+]
+
+@PointClass = shadow_control : "Controls shadow appearance"
+[
+    color(color255) : "Shadow color" : "127 127 127 255"
+]
+
+@PointClass base(Targetname) = info_hint_cover : "Cover hint location"
+[
+]
+
+@PointClass base(Targetname) = batch_cog_spawner : "Batch cog spawner"
+[
+    ivalMin(string) : "Min time between spawns"	: "5.0"
+    ivalMax(string) : "Max time between spawns"	: "10.0"
+    looping(choices) : "Looping" : 1 =
+    [
+	0 : "No"
+	1 : "Yes"
+    ]
+    startNow(choices) : "Start now" : 1 =
+    [
+	0 : "No"
+	1 : "Yes"
+    ]
+    maxBatchMin(integer) : "Batch minimum"	:	"4"
+    maxBatchMax(integer) : "Batch maximum"	:	"8"
+
+    output OnSpawnBatch(void)	:	"Fired when we spawn a batch"
+    input Start(void)	:	"Start the spawning"
+    input Stop(void)	:	"Stop the spawning"
+]
+
+@PointClass base(Targetname) = gag_pickup : "Deathmatch gag pickup"
+[
+    gagName(string) : "Name of gag (empty for random)" : ""
+    oneTimePickup(choices) : "One-time pickup" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    output OnRespawn(void) : "Fired when the pickup respawns"
+    output OnPickup(void) : "Fired when the gag/object is picked up"
+]
+
+@PointClass base(Targetname) = scripted_sequence : "Scripted sequence"
+[
+    targetEnt(target_destination) : "NPC Target" : "" : "The NPC entity to play this sequence on."
+    nextScript(target_destination) : "Next Script" : "" : "The next sequence to play after this one."
+    entryAnimation(string) : "Entry action" : "ACT_IDLE"
+    actionAnimation(string) : "Main action" : "ACT_IDLE"
+    exitAnimation(string) : "Exit action" : "ACT_IDLE"
+    loopAction(choices) : "Loop main action" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+    moveToPosition(choices) : "Move NPC to this entity" : 1 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    input StartSequence(void) : "Starts it"
+    input StopSequence(void) : "Stops it"
+    output OnStartSequence(void) : "Thrown when sequence starts"
+    output OnStopSequence(void) : "Thrown when sequence stops"
+]
+
+@PointClass base(Targetname) = scripted_speech : "Scripted speech"
+[
+    targetEntity(target_destination) : "NPC Target" : "" : "The NPC entity that should speak."
+    speech(string) : "What should they say?" : "Hello, world!"
+
+    input Speak(void) : "Speak!"
+    output OnSpeak(void) : "When we speak"
+]
+
+@PointClass base(Targetname) studio("phase_9/models/cogHQ/square_stomper.bam") = cog_stomper : "Cog stomper"
+[
+    height(string) : "Height" : "64"
+    stompSpeed(string) : "Stomp speed" : "200"
+    raiseSpeed(string) : "Raise speed" : "200"
+    timeOnGround(string) : "Time on ground (-1 stay)" : "1.0"
+    timeInAir(string) : "Time in air (-1 stay)" : "4.0"
+    startDelay(string) : "Start delay" : "0.0"
+
+    damage(string) : "Damage dealt (-1 insta kill)" : "-1"
+
+    input Stomp(void) : "Stomp it"
+    input Raise(void) : "Raise it"
+    output OnStomp(void) : "When it stomps"
+    output OnRaise(void) : "When it raises"
+]
+
+@PointClass base(Targetname) studio("models/cage.bam") = cog_cage : "Cog cage"
+[
+    output OnOpenCage(void) : "Fired when the cage opens"
+
+    input OpenCage(void) : "Open this gate!"
+    input CloseCage(void) : "Close the cage"
+]
+
+@PointClass base(Targetname) = logic_script : "Executable Python script"
+[
+    spawnflags(flags) =
+    [
+        1 : "Execute immediately" : 0
+    ]
+    scriptFilename(string) : "Path to Python script" : ""
+    scriptTarget(target_destination) : "Target entity" : "" : "The target NPC of this script."
+
+    output OnScriptFinish(void) : "Fired when script finishes executing"
+    output OnScriptExecute(void) : "Fired when the script begins executing"
+
+    input ExecuteScript(void) : "Execute the script"
+    input FinishScript(void) : "Finish the script"
+]
+
+@PointClass base(Targetname) = goonie_spawner : "Goonie spawner"
+[
+    output OnSpawn(void) : "When it spawns a goonie"
+    input StartSpawning(void) : "Begin the spawns"
+    input StopSpawning(void) : "End the spawns"
+    input Spawn(void) : "Spawns a goonie"
+
+    spawnScript(target_destination) : "Spawn script" : "" : "Script to run when the goon spawns"
+]
+
+@PointClass base(Targetname, EnableDisable) = env_elevator_camera : "Elevator camera effect"
+[
+]
+
+@PointClass base(Targetname, EnableDisable) = env_postprocess_flash : "Post process flash effect"
+[
+    color(color255) : "Color of flash" : "255 0 0 255"
+    brightTime(string) : "Brighten time" : "0.5"
+    darkTime(string) : "Darken time" : "1.0"
+]
+
+@PointClass base(Targetname) = info_landmark : "Transition landmark point"
+[
+]
+
+@SolidClass base(Targetname) = trigger_transition : "Entities in this volume transition to next level"
+[
+]
+
+@SolidClass base(Targetname) = trigger_changelevel : "Changes the level"
+[
+    nextLevel(string) : "Transition to level" : ""
+
+    input ChangeLevel(void) : "Transitions to the new level"
+]
+
+@PointClass base(Targetname, SpawnIO) = logic_auto : "Logic to run when the map spawns"
+[
+]
+
+@PointClass base(Targetname, NPC) = npc_vp : "Vice President"
+[
+    input Damage(void) : "Damage the VP"
+
+    output OnFinishOpeningSpeech(void) : "Fired when VP finishes his pre-battle speech"
+]
+
+@PointClass base(Targetname) studio("models/keypad.bam") = item_keypad : "Keypad"
+[
+    code(string) : "Keypad code" : "1234"
+
+    output OnCodeCorrect(void) : "Fired when correct code is entered"
+    output OnCodeIncorrect(void) : "Fired when incorrect code is entered"
+]
+
+@PointClass base(Targetname, Parent) = prop_dynamic : "Dynamic prop (can move, dynamically lit)"
+[
+    model(studio) : "Prop Model" : ""
+]
+
+@SolidClass base(Targetname) = func_elevator : "Moving elevator brush"
+[
+    startPoint(target_destination) : "Start point" : ""
+    endPoint(target_destination) : "End point" : ""
+    speed(string) : "Speed at which elevator moves" : "100"
+
+    input Move(void) : "Move the elevator from start to end"
+    output OnStartMove(void) : "Fired when elevator begins moving"
+    output OnFinishMove(void) : "Fired when elevator finishes moving"
+]
+
+@PointClass base(Targetname) = path_track : "Point in path"
+[
+]
+
+@PointClass base(Targetname) studio("models/camera.bam") = point_devshot_camera : "Camera"
+[
+]
