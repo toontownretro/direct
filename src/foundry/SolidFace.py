@@ -12,7 +12,7 @@ from panda3d.direct import SolidFaceGeom, PlaneCulledGeomNode
 from .MapWritable import MapWritable
 from .SolidVertex import SolidVertex
 
-from direct.foundry.ViewportType import VIEWPORT_3D_MASK, VIEWPORT_2D_MASK
+from direct.foundry.ViewportType import VIEWPORT_3D_MASK, VIEWPORT_2D_MASK, VIEWPORT_3D_FULL
 from direct.foundry import LEUtils, LEGlobals, LEConfig
 from direct.foundry import PlaneClassification
 from direct.foundry.Plane import Plane
@@ -629,7 +629,7 @@ class SolidFace(MapWritable):
         #
 
         geom3D = SolidFaceGeom(vdata)
-        geom3D.setDrawMask(VIEWPORT_3D_MASK)
+        geom3D.setDrawMask(VIEWPORT_3D_FULL)
         geom3D.setPlaneCulled(True)
         geom3D.setPlane(self.plane)
         geom3D.addPrimitive(prim3D)

@@ -4,7 +4,9 @@ VIEWPORT_2D_FRONT   = 6
 VIEWPORT_2D_SIDE    = 7
 VIEWPORT_2D_TOP     = 8
 
+from direct.directbase import DirectRender
 VIEWPORT_3D_MASK = BitMask32.bit(VIEWPORT_3D)
+VIEWPORT_3D_FULL = VIEWPORT_3D_MASK | DirectRender.ShadowCameraBitmask | DirectRender.ReflectionCameraBitmask
 VIEWPORT_2D_MASK = BitMask32.bit(VIEWPORT_2D_FRONT) | \
     BitMask32.bit(VIEWPORT_2D_SIDE) | \
     BitMask32.bit(VIEWPORT_2D_TOP)

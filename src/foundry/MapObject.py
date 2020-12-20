@@ -4,6 +4,7 @@ from panda3d.core import PStatCollector
 
 from .MapWritable import MapWritable
 from direct.foundry import LEGlobals
+from direct.directbase import DirectRender
 from .TransformProperties import OriginProperty, AnglesProperty, ScaleProperty, ShearProperty, TransformProperty
 from . import MetaData
 from .ObjectProperty import ObjectProperty
@@ -46,6 +47,9 @@ class MapObject(MapWritable):
         self.boundsBox.addView(GeomView.Lines, VIEWPORT_3D_MASK, state = BoundsBox3DState)
         self.boundsBox.addView(GeomView.Lines, VIEWPORT_2D_MASK, state = BoundsBox2DState)
         self.boundsBox.generateGeometry()
+        self.boundsBox.np.setLightOff(1)
+        self.boundsBox.np.setFogOff(1)
+        self.boundsBox.np.hide(DirectRender.ShadowCameraBitmask | DirectRender.ReflectionCameraBitmask)
         self.collNp = None
 
         self.group = None
@@ -65,6 +69,12 @@ class MapObject(MapWritable):
         self.np.node().setFinal(True)
 
         MapObjectInit.stop()
+
+    def disable(self):
+        pass
+
+    def unDisable(self):
+        pass
 
     def shouldWriteTransform(self):
         return True
@@ -444,8 +454,8 @@ class MapObject(MapWritable):
 
         invalid, mins, maxs = self.fixBounds(mins, maxs)
         if invalid:
-            mins = Point3(-8)
-            maxs = Point3(8)
+            mins = Point3(-0.5)
+            maxs = Point3(0.5)
 
         self.boundingBox = BoundingBox(mins, maxs)
         self.boundsBox.setMinMax(mins, maxs)

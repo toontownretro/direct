@@ -70,12 +70,14 @@ class AssetCreationContext:
         self.callback = callback
         self.isPaused = False
         self.done = False
+        self.destroyed = False
         self.queuedUpItems = []
         self.maxQueued = 10
 
         self.items = {}
 
     def cleanup(self):
+        self.destroyed = True
         if self.createAssetTask:
             self.createAssetTask.remove()
         self.createAssetTask = None
@@ -134,6 +136,9 @@ class AssetCreationContext:
         self.queuedUpItems = []
 
     def addAssetItem(self, thumbnail, filename):
+        if self.destroyed:
+            return
+
         if self.dlg.PreloadItems:
             item = self.items.get(filename, None)
             if item:
@@ -168,6 +173,9 @@ class AssetCreationContext:
             extraArgs = [filename], appendTask = True)
 
     def __createAssetItemTask(self, filename, task):
+        if self.destroyed:
+            return task.done
+
         thumbnail = self.dlg.getThumbnail(filename, self)
         if thumbnail:
             self.addAssetItem(thumbnail, filename)

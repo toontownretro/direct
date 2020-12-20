@@ -29,5 +29,11 @@ class MapHelper(DirectObject):
     def deselect(self):
         pass
 
+    def disable(self):
+        pass
+
+    def unDisable(self):
+        pass
+
     def cleanup(self):
         self.mapObject = None

@@ -4,6 +4,7 @@ from panda3d.core import Point3, Vec3, NodePath, LineSegs, Vec4, \
 
 from .BoxTool import BoxAction, ResizeHandle
 from .ToolOptions import ToolOptions
+from direct.directbase import DirectRender
 from direct.foundry.SelectionType import SelectionModeTransform
 from direct.foundry.Ray import Ray
 from direct.foundry.ViewportType import VIEWPORT_3D_MASK

@@ -18,7 +18,7 @@ class FlyCam(DocObject):
 
         self.enabled = False
         self.mouseSensitivity = 0.3
-        self.cameraSpeed = 500 # 1/16 feet per second
+        self.cameraSpeed = 500 / 16.0
         self.timeToSpeed = 0.5 # seconds
         self.moveStart = 0.0
         self.cameraRotateSpeed = 75.0

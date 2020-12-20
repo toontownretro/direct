@@ -28,3 +28,7 @@ default_texture_scale = ConfigVariableDouble(
 default_lightmap_scale = ConfigVariableInt(
   "default-lightmap-scale", 16,
   "The default lightmap scale for solid faces. Lower value = more detailed")
+
+default_prop_model = ConfigVariableString(
+  "default-prop-model", "models/misc/smiley.bam",
+  "The default model used when placing a prop_static or prop_dynamic entity.")

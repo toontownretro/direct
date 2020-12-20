@@ -50,6 +50,8 @@ class DoubleScrubSpinBox(QtWidgets.QDoubleSpinBox, BaseScrubSpinBox):
 
     def __init__(self, parent):
         QtWidgets.QDoubleSpinBox.__init__(self, parent)
+        self.setDecimals(5)
+        self.setSingleStep(1)
         BaseScrubSpinBox.__init__(self)
 
     def mousePressEvent(self, e):

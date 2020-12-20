@@ -8,6 +8,7 @@ from panda3d.core import Vec4, ModifierButtons, Point2, Vec3, Point3, Vec2, Mode
 from panda3d.core import OmniBoundingVolume, OrthographicLens, MouseButton
 
 from direct.foundry import LEGlobals
+from direct.directbase import DirectRender
 
 from .ViewportType import *
 from .ViewportGizmo import ViewportGizmo
@@ -131,6 +132,9 @@ class Viewport(QtWidgets.QWidget, DirectObject):
 
     def getViewportMask(self):
         return BitMask32.bit(self.type)
+
+    def getViewportFullMask(self):
+        return self.getViewportMask()
 
     def makeLens(self):
         raise NotImplementedError
@@ -667,7 +671,12 @@ class Viewport(QtWidgets.QWidget, DirectObject):
 
         self.fixRatio(newsize)
 
+        self.onResize(newsize)
+
         self.updateView()
+
+    def onResize(self, newsize):
+        pass
 
     def draw(self):
         pass
@@ -679,5 +688,5 @@ class Viewport(QtWidgets.QWidget, DirectObject):
 
     def disable(self):
         # Don't render to the viewport
-        #self.win.setActive(False)
+        self.win.setActive(False)
         self.enabled = False

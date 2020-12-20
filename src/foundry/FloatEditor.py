@@ -10,15 +10,15 @@ class FloatEditor(BaseEditor):
 
         self.spinBox = DoubleScrubSpinBox(self)
         self.spinBox.setRange(MinVal, MaxVal)
-        self.spinBox.valueChanged.connect(self.__valueChanged)
+        self.spinBox.editingFinished.connect(self.__valueChanged)
         self.layout().addWidget(self.spinBox)
 
-    def __valueChanged(self, val):
+    def __valueChanged(self):
         self.setModelData(self.model, self.item.index())
 
     def setEditorData(self, index):
         self.spinBox.blockSignals(True)
-        self.spinBox.setValue(int(self.getItemData()))
+        self.spinBox.setValue(float(self.getItemData()))
         self.spinBox.blockSignals(False)
 
     def setModelData(self, model, index):

@@ -10,6 +10,7 @@ class EntityProperty(ObjectProperty):
         self.metaData = metaData
         self.name = metaData.name
         self.valueType = metaData.value_type
+        self.choices = metaData.choices
 
         # Set the default value
         if self.metaData.default_value is None:

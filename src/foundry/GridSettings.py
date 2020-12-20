@@ -1,12 +1,12 @@
 from panda3d.core import Vec4
 
 class GridSettings:
-    DefaultStep = 64
+    DefaultStep = 1
     Highlight1Toggle = True
     Highlight1Line = 8
     Highlight1 = Vec4(32 / 255.0, 32 / 255.0, 32 / 255.0, 1.0)
     Highlight2Toggle = True
-    Highlight2Unit = 1024
+    Highlight2Unit = 64
     Highlight2 = Vec4(100 / 255.0, 46 / 255.0, 0, 1.0)
     GridSnap = True
     EnableGrid = True
@@ -17,5 +17,5 @@ class GridSettings:
     HideSmallerToggle = True
     HideSmallerThan = 4
     HideFactor = 8
-    Low = -16384
-    High = 16384
+    Low = -1024
+    High = 1024

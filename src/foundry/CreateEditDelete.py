@@ -53,6 +53,7 @@ class CreateEditDelete(Action):
         for delete in reversed(self.deleteObjects):
             if delete.isSelected:
                 base.selectionMgr.deselect(delete.mapObject)
+            delete.mapObject.disable()
             delete.mapObject.reparentTo(NodePath())
 
         for create in self.createObjects:
@@ -74,6 +75,7 @@ class CreateEditDelete(Action):
                 delete.mapObject.reparentTo(base.document.world.findChildByID(delete.parentId))
             else:
                 delete.mapObject.reparentTo(base.document.world)
+            delete.mapObject.unDisable()
             if delete.isSelected:
                 base.selectionMgr.select(delete.mapObject)
 

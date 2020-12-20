@@ -17,6 +17,16 @@ class Entity(MapObject):
         self.helperRoot = self.np.attachNewNode("helpers")
         self.helpers = []
 
+    def disable(self):
+        MapObject.disable(self)
+        for helper in self.helpers:
+            helper.disable()
+
+    def unDisable(self):
+        MapObject.unDisable(self)
+        for helper in self.helpers:
+            helper.unDisable()
+
     def copy(self, generator):
         e = Entity(generator.getNextID())
         self.copyBase(e, generator)

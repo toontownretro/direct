@@ -370,6 +370,12 @@ class Document(DirectObject):
             if vp.is2D():
                 vp.updateView(now)
 
+    def get3DViewport(self):
+        for vp in self.viewportMgr.viewports:
+            if vp.is3D():
+                return vp
+        return None
+
     def update3DViews(self, now = False):
         for vp in self.viewportMgr.viewports:
             if vp.is3D():

@@ -106,7 +106,7 @@ class EntityTool(BaseTool):
         # Maintain a constant visual scale for the box in 2D,
         # but a constant physical scale in 3D.
         self.size2D = 4
-        self.size3D = 32
+        self.size3D = 2
 
         self.boxSize = 0.5
 

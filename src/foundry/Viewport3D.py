@@ -1,8 +1,10 @@
 from panda3d.core import WindowProperties, PerspectiveLens, NodePath, Fog, Vec4, Point3, LineSegs, TextNode, AntialiasAttrib
-from panda3d.core import Vec3
+from panda3d.core import Vec3, BitMask32
 
 from .Viewport import Viewport
+from .ViewportType import VIEWPORT_3D
 from .FlyCam import FlyCam
+from direct.directbase import DirectRender
 from direct.foundry.Grid3D import Grid3D
 
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -12,11 +14,20 @@ class Viewport3D(Viewport):
     def __init__(self, vpType, window, doc):
         Viewport.__init__(self, vpType, window, doc)
         self.flyCam = None
+        self.pp = None
+        self.ppTask = None
 
     def cleanup(self):
         self.flyCam.cleanup()
         self.flyCam = None
+        self.ppTask.remove()
+        self.ppTask = None
+        self.pp.cleanup()
+        self.pp = None
         Viewport.cleanup(self)
+
+    def getViewportFullMask(self):
+        return self.getViewportMask() | DirectRender.ShadowCameraBitmask | DirectRender.ReflectionCameraBitmask
 
     def mouseMove(self):
         base.qtWindow.coordsLabel.setText("")
@@ -37,21 +48,25 @@ class Viewport3D(Viewport):
         self.lens.setNearFar(0.1, 5000)
 
         # Set a default camera position + angle
-        self.camera.setPos(193, 247, 124)
+        self.camera.setPos(193 / 16, 247 / 16, 124 / 16)
         self.camera.setHpr(143, -18, 0)
 
-        from panda3d.core import DirectionalLight, AmbientLight
-        dlight = DirectionalLight('dlight')
-        dlight.setColor((0.35, 0.35, 0.35, 1))
-        dlnp = self.doc.render.attachNewNode(dlight)
-        direction = -Vec3(1, 2, 3).normalized()
-        dlight.setDirection(direction)
-        self.doc.render.setLight(dlnp)
-        self.dlnp = dlnp
-        alight = AmbientLight('alight')
-        alight.setColor((0.65, 0.65, 0.65, 1))
-        alnp = self.doc.render.attachNewNode(alight)
-        self.doc.render.setLight(alnp)
+        # FIXME: Move this to direct
+        from toontown.toonbase.ToontownPostProcess import ToontownPostProcess
+        #pp = ToontownPostProcess()
+        #pp.startup(self.win)
+        #pp.addCamera(self.cam, 0)
+        #pp.setup()
+        #self.pp = pp
+        #self.ppTask = self.doc.taskMgr.add(self.__updatePostProcess, "doc.updatePostProcess")
+
+    def onResize(self, newsize):
+        if self.pp:
+            self.pp.windowEvent()
+
+    def __updatePostProcess(self, task):
+        self.pp.update()
+        return task.cont
 
     def makeLens(self):
         return PerspectiveLens()

@@ -8,7 +8,7 @@ class ChoicesEditor(BaseEditor):
         BaseEditor.__init__(self, parent, item, model)
 
         self.combo = QtWidgets.QComboBox(self)
-        #self.combo.currentIndexChanged.connect(self.__selectedItem)
+        self.combo.currentIndexChanged.connect(self.__selectedItem)
         self.layout().addWidget(self.combo)
 
     def __selectedItem(self, index):

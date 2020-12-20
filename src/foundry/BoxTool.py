@@ -3,6 +3,7 @@ from panda3d.core import Geom, GeomNode, GeomVertexFormat, GeomLines, GeomVertex
 from panda3d.core import TextNode
 
 from .BaseTool import BaseTool, ToolUsage
+from direct.directbase import DirectRender
 from direct.foundry.Viewport2D import Viewport2D
 from direct.foundry.ViewportType import *
 from direct.foundry import LEGlobals
@@ -297,6 +298,9 @@ class BoxTool(BaseTool):
         # Render as dashed lines in 2D viewports
         self.box.addView(GeomView.Lines, VIEWPORT_2D_MASK, state = RenderModes.DashedLineNoZ())
         self.box.generateGeometry()
+        self.box.np.setLightOff(1)
+        self.box.np.setFogOff(1)
+        self.box.np.hide(DirectRender.ShadowCameraBitmask | DirectRender.ReflectionCameraBitmask)
 
     def cleanup(self):
         self.handleWidth = None

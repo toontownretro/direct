@@ -2,17 +2,23 @@ from panda3d.core import ModelNode, NodePath, Vec4, CKeyValues, Vec3
 #from panda3d.bsp import BSPMaterialAttrib
 
 from .MapHelper import MapHelper
+from direct.foundry import LEGlobals
+
+from direct.directbase import DirectRender
 
 class ModelHelper(MapHelper):
 
     ChangeWith = [
-        "model"
+        "model",
+        "color_scale",
+        "cast_shadows",
+        "reflect",
+        "receive_lighting"
     ]
 
     def __init__(self, mapObject):
         MapHelper.__init__(self, mapObject)
         self.modelRoot = NodePath(ModelNode("modelHelper"))
-        self.modelRoot.setScale(16.0)
         self.modelRoot.reparentTo(self.mapObject.helperRoot)
 
         self.vpRoots = []
@@ -71,10 +77,27 @@ class ModelHelper(MapHelper):
         if not modelNp:
             return
 
+        colorScale = LEGlobals.colorFromRGBScalar255(
+            self.mapObject.getPropertyValue("color_scale", default = Vec4(255, 255, 255, 255)))
+        castShadows = self.mapObject.getPropertyValue("cast_shadows")
+        reflect = self.mapObject.getPropertyValue("reflect")
+        lighting = self.mapObject.getPropertyValue("receive_lighting")
+
+        if colorScale != Vec4(1):
+            modelNp.setColorScale(colorScale)
+        if not lighting:
+            modelNp.setLightOff(2)
+
         # Create a representation in each viewport
         for vp in base.viewportMgr.viewports:
             vpRoot = self.modelRoot.attachNewNode("vpRepr")
-            vpRoot.hide(~vp.getViewportMask())
+            showMask = vp.getViewportFullMask()
+            if vp.is3D():
+                if not castShadows:
+                    showMask &= (~DirectRender.ShadowCameraBitmask)
+                if not reflect:
+                    showMask &= (~DirectRender.ReflectionCameraBitmask)
+            vpRoot.hide(~showMask)
             self.vpRoots.append((vp, vpRoot))
 
             vpModel = modelNp.instanceTo(vpRoot)

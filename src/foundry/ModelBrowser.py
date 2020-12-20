@@ -77,6 +77,9 @@ class ModelBrowser(AssetBrowser):
             return pixmap
 
     def gotModel(self, mdl, filename, context):
+        if context.destroyed:
+            return
+
         self.currentLoadContext = None
 
         if not mdl or mdl.isEmpty():

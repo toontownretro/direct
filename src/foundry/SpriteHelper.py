@@ -33,9 +33,10 @@ class SpriteHelper(MapHelper):
         spritePath = helperInfo['args'][0].replace("\"", "")
 
         cm = CardMaker("sprite")
-        cm.setFrame(-12, 12, -12, 12)
+        cm.setFrame(-0.75, 0.75, -0.75, 0.75)
         np = NodePath(cm.generate())
         #np.setBSPMaterial(spritePath)
+        np.setTexture(base.loader.loadTexture(spritePath))
         np.setColorScale(color)
         np.setLightOff(1)
         np.setFogOff(1)

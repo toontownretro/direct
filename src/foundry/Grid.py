@@ -1,6 +1,7 @@
 from panda3d.core import LineSegs, NodePath, Vec4, Point3, AntialiasAttrib
 
 from direct.foundry import LEGlobals
+from direct.directbase import DirectRender
 
 from .GridSettings import GridSettings
 
@@ -103,6 +104,9 @@ class Grid:
         #segs.drawTo(self.viewport.expand(Point3(high, 0, low)))
 
         np = NodePath(segs.create())
+        np.setLightOff(1)
+        np.setFogOff(1)
+        np.hide(DirectRender.ShadowCameraBitmask | DirectRender.ReflectionCameraBitmask)
         #np.setAntialias(AntialiasAttrib.MLine)
         #loader.loadModel("models/smiley.egg.pz").reparentTo(np)
         self.gridsByStep[step] = np

@@ -7,7 +7,10 @@ from panda3d.core import ClockObject, TrueClock, PStatClient, ConfigVariableBool
 from panda3d.core import ExecutionEnvironment, VirtualFileSystem, getModelPath
 from panda3d.direct import throwNewFrame
 
+# This needs to be available early for DirectGUI imports
+from direct.showbase import DConfig
 import builtins
+builtins.config = DConfig
 
 from direct.showbase.DirectObject import DirectObject
 from direct.directnotify.DirectNotifyGlobal import directNotify
@@ -160,9 +163,9 @@ class LevelEditorWindow(QtWidgets.QMainWindow, DirectObject):
         base.statusBar = self.ui.statusbar
 
         self.selectedLabel = self.addPaneLabel(300, "No selection.")
-        self.coordsLabel = self.addPaneLabel(100)
-        self.zoomLabel = self.addPaneLabel(90)
-        self.gridSnapLabel = self.addPaneLabel(135)
+        self.coordsLabel = self.addPaneLabel(175)
+        self.zoomLabel = self.addPaneLabel(110)
+        self.gridSnapLabel = self.addPaneLabel(140)
         self.fpsLabel = self.addPaneLabel(135)
 
         self.toolBar = self.ui.leftBar
@@ -349,6 +352,8 @@ class LevelEditorApp(QtWidgets.QApplication):
 
 class LevelEditor(DirectObject):
     notify = directNotify.newCategory("Foundry")
+
+    config = DConfig
 
     DocActions = [
         KeyBind.FileSave,
@@ -617,18 +622,18 @@ class LevelEditor(DirectObject):
 
     def __incGridSize(self):
         GridSettings.DefaultStep *= 2
-        GridSettings.DefaultStep = min(256, GridSettings.DefaultStep)
+        GridSettings.DefaultStep = min(256 / 16, GridSettings.DefaultStep)
         self.adjustGridText()
         self.document.updateAllViews()
 
     def __decGridSize(self):
-        GridSettings.DefaultStep //= 2
-        GridSettings.DefaultStep = max(1, GridSettings.DefaultStep)
+        GridSettings.DefaultStep /= 2
+        GridSettings.DefaultStep = max(1 / 16, GridSettings.DefaultStep)
         self.adjustGridText()
         self.document.updateAllViews()
 
     def adjustGridText(self):
-        text = "Snap: %s Grid: %i" % ("On" if GridSettings.GridSnap else "Off", GridSettings.DefaultStep)
+        text = "Snap: %s Grid: %.2f" % ("On" if GridSettings.GridSnap else "Off", GridSettings.DefaultStep)
         self.qtApp.window.gridSnapLabel.setText(text)
 
     def run(self):

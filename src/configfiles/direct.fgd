@@ -14,7 +14,7 @@
         4 : "Night"
         5 : "Cog"
     ]
-	MaxRange(string) : "Max viewable distance" : "4096"
+	MaxRange(string) : "Max viewable distance" : "256"
 	startdark(choices) : "Level Fade In" : 0 =
 	[
 		0 : "No"
@@ -49,22 +49,6 @@
 	light_origin(string) : "Light Origin Target"
 ]
 
-@BaseClass = ZHLT_point
-[
-	_fade(string) : "ZHLT Fade" : "1.0"
-	_falloff(choices) : "ZHLT Falloff" : 0 =
-	[
-		0 : "Default"
-		1 : "Inverse Linear"
-		2 : "Inverse Square"
-	]
-]
-
-@BaseClass = LightSource
-[
-    propsources(target_destination) : "Prop Sources" : "" : "Which props `cast` the light."
-]
-
 @BaseClass = Appearflags
 [
 	spawnflags(Flags) =
@@ -73,7 +57,7 @@
 	]
 ]
 
-@BaseClass size(0 0 0, 32 32 32) color(80 0 200) base(Appearflags) = Ammo []
+@BaseClass size(0 0 0, 2 2 2) color(80 0 200) base(Appearflags) = Ammo []
 
 @BaseClass = SpawnIO
 [
@@ -138,11 +122,34 @@
 	rendercolor(color255) : "FX Color (R G B)" : "0 0 0"
 ]
 
-@BaseClass base(Appearflags) size(-16 -16 -36, 16 16 36) color(0 255 0) = PlayerClass []
+@BaseClass base(Appearflags) size(-1 -1 -2, 1 1 2) color(0 255 0) = PlayerClass []
 
-@BaseClass = Light
+@BaseClass = ShadowCaster
 [
-	_light(color255) : "Brightness" : "255 255 255 200"
+    _shadow_caster(choices) : "Casts Shadows" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+    _depth_bias(float) : "Shadow Depth Bias" : "0.0001"
+    _normal_offset_scale(float) : "Shadow Normal Offset Scale" : "3.0"
+    _normal_offset_uv_space(choices) : "Shadow Normal Offset UV Space" : 1 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+    _softness_factor(float) : "Shadow Softness Factor" : "2.0"
+    _shadow_map_size(integer) : "Shadow Map Size" : 1024
+]
+
+@BaseClass = LightColor
+[
+    _light(color255) : "Color" : "255 255 255 255"
+    _intensity(float) : "Intensity" : 1
+]
+
+@BaseClass base(LightColor, ShadowCaster) = FiniteLight
+[
     style(Choices) : "Appearance" : 0 =
 	[
 		0 : "Normal"
@@ -159,12 +166,11 @@
 		9 : "Slow strobe"
 	]
 	pattern(string) : "Custom Appearance" : "" : "Set a custom pattern of light brightness for this light. Pattern format is a string of characters, where 'a' is total darkness, 'z' fully bright. i.e. 'aaggnnttzz' would be a steppy fade in from dark to light."
-	_constant_attn(string)	: "Constant" : "0"
-	_linear_attn(string)	: "Linear" : "0"
-	_quadratic_attn(string)	: "Quadratic" : "1"
-	_fifty_percent_distance(string) : "50 percent falloff distance" : "0": "Distance at which brightness should fall off to 50%. If set, overrides linear constant and quadratic paramaters."
-	_zero_percent_distance(string) : "0 percent falloff distance" : "0": "Distance at which brightness should fall off to negligible (1/256)%. Must set _fifty_percent_distance to use."
-	_hardfalloff(integer) : "hard falloff" : 0 : "If set, causes lights to fall to exactly zero beyond the zero percent distance. May cause unrealistic lightijng if not used carefully."
+	_constant_attn(float)	: "Constant" : 0
+	_linear_attn(float)	: "Linear" : 0
+	_quadratic_attn(float)	: "Quadratic" : "0.01"
+    _inner_radius(float) : "Inner Radius" : 5
+    _outer_radius(float) : "Outer Radius" : 10
 ]
 
 @BaseClass = Moveable
@@ -482,32 +488,35 @@
 // lights
 //
 
-@PointClass base(Target, Targetname, Light, ZHLT_point, LightSource) pointlight() iconsprite("materials/editor/lightbulb.mat") = light : "Invisible lightsource"
+@PointClass base(Target, Targetname, FiniteLight) pointlight() iconsprite("icons/editor-light-bulb.png") = light : "Invisible lightsource"
 [
 	spawnflags(flags) = [ 1 : "Initially dark" : 0 ]
 ]
 
-@PointClass base(Targetname, Target, Light, ZHLT_point, LightSource) spotlight() iconsprite("materials/editor/lightbulb.mat") = light_spot : "Spotlight"
+@PointClass base(Targetname, Target, FiniteLight) spotlight() = light_spot : "Spotlight"
 [
 	_inner_cone(float) : "Inner (bright) angle" : 30
 	_cone(float) : "Outer (fading) angle" : 45
 	_exponent(float) : "Focus" : 1
-	_distance(integer) : "Maximum distance" : 0 : "This is the distance that light is allowed to cast, in inches."
-	pitch(float) : "Pitch" : -90
 	spawnflags(flags) = [ 1 : "Initially dark" : 0 ]
 ]
 
-@PointClass base(Targetname, ZHLT_point) dirlight() iconsprite("materials/editor/light_env.mat") = light_environment : "Environment"
+@PointClass base(Targetname, LightColor) ambientlight() iconsprite("icons/editor-light-bulb.png") = light_ambient : "Ambient Light"
 [
-	pitch(float) : "Pitch" : 0 : "The downward pitch of the light from the sun. 0 is horizontal, -90 is straight down."
-	_light(color255) : "Brightness" : "255 255 255 200"
-	_ambient(color255) : "Ambient" : "255 255 255 20"
-	//_lightHDR(color255) : "BrightnessHDR" : "-1 -1 -1 1"
-	//_lightscaleHDR(float) : "BrightnessScaleHDR" : "1" : "Amount to scale the light by when compiling for HDR."
-	//_ambientHDR(color255) : "AmbientHDR" : "-1 -1 -1 1"
-	//_AmbientScaleHDR(float) : "AmbientScaleHDR" : "1" : "Amount to scale the ambient light by when compiling for hdr."
-	//pitch(integer) : "Pitch" : 0 : "The downward pitch of the light from the sun. 0 is horizontal, -90 is straight down."
-	SunSpreadAngle(float) : "SunSpreadAngle" : 0 : "The angular extent of the sun for casting soft shadows. Higher numbers are more diffuse. 5 is a good starting value."
+]
+
+@PointClass base(Targetname, LightColor, ShadowCaster) dirlight() iconsprite("materials/editor/light_env.mat") = light_sun : "Sun Light"
+[
+    _csm_distance(float) : "Max Shadow Distance" : 100
+    _sun_distance(float) : "Sun Distance" : 500
+    _csm_log_factor(float) : "Cascade Log Factor" : 1
+    _csm_border_bias(float) : "Cascade Border Bias" : 0
+    _csm_fixed_film_size(choices) : "Cascade Fixed Film Size" : 0 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+    _num_cascades(integer) : "Cascade Count" : 4
 ]
 
 //
@@ -525,7 +534,7 @@
     ]
 ]
 
-@PointClass size(-16, -16, -16, 16, 16, 16) base(Targetname) = env_fog : "Fog"
+@PointClass size(-1, -1, -1, 1, 1, 1) base(Targetname) = env_fog : "Fog"
 [
     fogcolor(color255) : "Fog color" : "255 255 255 255"
     fogdensity(string) : "Fog density" : "0.001"
@@ -539,7 +548,7 @@
     input DisableFog(void) : "Disables the fog"
 ]
 
-@PointClass base(Targetname, Parent) size(-16, -16, -16, 16, 16, 16) = env_particlesystem : "Particle System"
+@PointClass base(Targetname, Parent) size(-1, -1, -1, 1, 1, 1) = env_particlesystem : "Particle System"
 [
     file(string) : "PTF File" : ""
     aliveTime(string) : "Alive time (-1 forever)" : "-1"
@@ -565,15 +574,33 @@
 [
 	angles(string) : "Pitch Yaw Roll (Y Z X)" : "-90 0 0"
 	_light(color255) : "Light color" : "255 255 128 200"
-	SpotlightWidth(string) : "Beam width" : "5.0"
-	SpotlightLength(string) : "Beam length" : "500.0"
+	SpotlightWidth(float) : "Beam width" : "0.3125"
+	SpotlightLength(float) : "Beam length" : "31.25"
 ]
 
-@PointClass base(Targetname, Parent) size(-16, -16, 0, 16 16 32) studio() = prop_static : "Static prop"
+@PointClass base(Targetname, Parent) size(-1, -1, 0, 1 1 2) studio() = prop_static : "Static prop"
 [
-    model(studio) : "Prop Model" : "models/smiley.egg.pz"
+    model(studio) : "Prop Model" : "models/misc/smiley.bam"
 
-    testBool(boolean) : "Test Boolean" : "1" : "This is a test boolean value for the checkbox editor. Please work."
+    color_scale(color255) : "Color Scale" : "255 255 255 255"
+
+    receive_lighting(choices) : "Receive Lighting" : 1 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    cast_shadows(choices) : "Cast Shadows" : 1 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
+
+    reflect(choices) : "Appear in Reflections" : 1 =
+    [
+        0 : "No"
+        1 : "Yes"
+    ]
 
 	spawnflags(flags) =
 	[
@@ -594,13 +621,13 @@
 //
 // Toon
 //
-@PointClass base(Targetname) size(-20, -20, 0, 20, 20, 60) = npc_toon : "NPC Toon"
+@PointClass base(Targetname) size(-1.25, -1.25, 0, 1.25, 1.25, 3.75) = npc_toon : "NPC Toon"
 [
 	npcId(integer)	:	"ID of NPC (instead of name)"	:	0
 	name(string)	:	"Name of NPC (instead of ID)"	:	""
 ]
 
-@PointClass base(Targetname) size(-100, -100, 0, 100, 100, 200) studio("phase_4/models/props/tt_a_ara_ttc_sillyMeter_default.bam") = item_sillymeter : "Silly Meter"
+@PointClass base(Targetname) size(-6.25, -6.25, 0, 6.25, 6.25, 12.5) studio("phase_4/models/props/tt_a_ara_ttc_sillyMeter_default.bam") = item_sillymeter : "Silly Meter"
 [
     phase(choices) : "Start Phase" : 0 =
     [
@@ -733,7 +760,7 @@
     output OnPowerOff(void) : "Fired when the generator powers off completely"
 ]
 
-@PointClass base(Targetname, EnableDisable, Parent) size(-20, -20, 0, 20, 20, 40) studio("phase_5/models/cogdominium/tt_m_ara_cbr_barrel.bam") = item_gagbarrel : "Gag restock barrel"
+@PointClass base(Targetname, EnableDisable, Parent) size(-1.25, -1.25, 0, 1.25, 1.25, 2.5) studio("phase_5/models/cogdominium/tt_m_ara_cbr_barrel.bam") = item_gagbarrel : "Gag restock barrel"
 [
     track(choices) : "Gag Track" : -1 =
     [
@@ -749,12 +776,12 @@
     gag(integer) : "Gag (-1 all)" : -1 : "Specific gag index in this track to restock. -1 is all."
 ]
 
-@PointClass base(Targetname, EnableDisable, Parent) size(-20, -20, 0, 20, 20, 40) studio("phase_5/models/cogdominium/tt_m_ara_cbr_laughBarrel.bam") = item_laffbarrel : "Laff Barrel"
+@PointClass base(Targetname, EnableDisable, Parent) size(-1.25, -1.25, 0, 1.25, 1.25, 2.5) studio("phase_5/models/cogdominium/tt_m_ara_cbr_laughBarrel.bam") = item_laffbarrel : "Laff Barrel"
 [
     healamt(integer) : "Heal amount" : 10 : "How much this laff barrel heals. -1 means to use the heal amount for the neighborhood"
 ]
 
-@PointClass base(Targetname, EnableDisable, Parent) size(-20, -20, 0, 20, 20, 40) studio("phase_5/models/cogdominium/tt_m_ara_cbr_laughBarrel.bam") = mod_item_laffbarrel : "Mod Laff Barrel"
+@PointClass base(Targetname, EnableDisable, Parent) size(-1.25, -1.25, 0, 1.25, 1.25, 2.5) studio("phase_5/models/cogdominium/tt_m_ara_cbr_laughBarrel.bam") = mod_item_laffbarrel : "Mod Laff Barrel"
 [
     maxHeal(integer) : "Max heal" : 100 : "Capacity of barrel"
 ]
@@ -916,7 +943,7 @@
 
 @PointClass base(Targetname) studio("phase_9/models/cogHQ/square_stomper.bam") = cog_stomper : "Cog stomper"
 [
-    height(string) : "Height" : "64"
+    height(string) : "Height" : "4"
     stompSpeed(string) : "Stomp speed" : "200"
     raiseSpeed(string) : "Raise speed" : "200"
     timeOnGround(string) : "Time on ground (-1 stay)" : "1.0"
@@ -1012,7 +1039,7 @@
 
 @PointClass base(Targetname, Parent) = prop_dynamic : "Dynamic prop (can move, dynamically lit)"
 [
-    model(studio) : "Prop Model" : ""
+    model(studio) : "Prop Model" : "models/misc/smiley.bam"
 ]
 
 @SolidClass base(Targetname) = func_elevator : "Moving elevator brush"

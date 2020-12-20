@@ -15,7 +15,7 @@ class Viewport2D(Viewport):
 
     def __init__(self, vpType, window, doc):
         Viewport.__init__(self, vpType, window, doc)
-        self.zoom = 0.25
+        self.zoom = 4
         self.dragging = False
         self.dragCamStart = Point3()
         self.dragCamMouseStart = Point3()
@@ -54,7 +54,7 @@ class Viewport2D(Viewport):
         if scrolled:
             before = self.viewportToWorld(md, False)
             self.zoom *= math.pow(1.2, float(delta))
-            self.zoom = min(256.0, max(0.0028, self.zoom))
+            self.zoom = min(256.0 * 16, max(0.0028 * 16, self.zoom))
 
         self.fixRatio()
 
@@ -92,7 +92,7 @@ class Viewport2D(Viewport):
             self.lastMouse = Point2(mouse)
 
         world = self.viewportToWorld(self.getMouse(), flatten = False)
-        base.qtWindow.coordsLabel.setText("%i %i %i" % (world.x, world.y, world.z))
+        base.qtWindow.coordsLabel.setText("%.2f %.2f %.2f" % (world.x, world.y, world.z))
 
     def mouse2Up(self):
         base.qtApp.restoreOverrideCursor()
