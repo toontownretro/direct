@@ -53,6 +53,7 @@ from .EventManagerGlobal import eventMgr
 #from PythonUtil import *
 from direct.interval import IntervalManager
 from direct.showbase.BufferViewer import BufferViewer
+from direct.directbase import DirectRender
 from direct.task import Task
 import time
 import atexit
@@ -833,7 +834,7 @@ class ShowBase(HostBase):
                             stereo = stereo, useCamera = self.cam)
         elif makeCamera:
             self.makeCamera(win, scene = scene, aspectRatio = aspectRatio,
-                            stereo = stereo)
+                            stereo = stereo, mask = DirectRender.MainCameraBitmask)
 
         messenger.send('open_window', [win, mainWindow])
         if mainWindow:
