@@ -1107,7 +1107,7 @@ class ShowBase(HostBase):
 
         self.render2d.setDepthTest(0)
         self.render2d.setDepthWrite(0)
-        self.render2d.setMaterialOff(1)
+        #self.render2d.setMaterialOff(1)
         self.render2d.setTwoSided(1)
 
         ## The normal 2-d DisplayRegion has an aspect ratio that
@@ -1198,7 +1198,7 @@ class ShowBase(HostBase):
         self.render2dp.setDepthTest(0)
         self.render2dp.setDepthWrite(0)
 
-        self.render2dp.setMaterialOff(1)
+        #self.render2dp.setMaterialOff(1)
         self.render2dp.setTwoSided(1)
 
         ## The normal 2-d DisplayRegion has an aspect ratio that
