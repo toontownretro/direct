@@ -1681,6 +1681,33 @@ class Actor(DirectObject, NodePath):
         for control in self.getAnimControls(animName, partName, lodName):
             control.getPart().setControlEffect(control, effect)
 
+    def setControlJointWeight(self, animName, jointName, weight,
+                              partName = None, lodName = None):
+        """
+        Sets the amount by which the named animation on the named joint
+        contributes to the pose for that joint.
+        """
+        for control in self.getAnimControls(animName, partName, lodName):
+            control.setPartWeight(control.getPart().findChild(jointName), weight)
+
+    def setControlJointWeights(self, animName, weights, partName = None, lodName = None):
+        """
+        Sets the amount by which the named animation on the named joints
+        contribute to the pose for those joints.
+
+        `weights` should be a dictionary of joint name to weight.
+        """
+        for control in self.getAnimControls(animName, partName, lodName):
+            for jointName, weight in weights.items():
+                control.setPartWeight(control.getPart().findChild(jointName), weight)
+
+    def setControlBlendType(self, animName, blendType, partName = None, lodName = None):
+        """
+        Sets how the named animation should be applied to the overall pose.
+        """
+        for control in self.getAnimControls(animName, partName, lodName):
+            control.setBlendType(blendType)
+
     def getAnimFilename(self, animName, partName='modelRoot'):
         """
         getAnimFilename(self, animName)
