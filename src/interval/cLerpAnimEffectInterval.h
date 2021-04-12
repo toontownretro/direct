@@ -11,12 +11,14 @@
  * @date 2002-08-27
  */
 
+#if 0
+
 #ifndef CLERPANIMEFFECTINTERVAL_H
 #define CLERPANIMEFFECTINTERVAL_H
 
 #include "directbase.h"
 #include "cLerpInterval.h"
-#include "animControl.h"
+#include "animMixNode.h"
 #include "pointerTo.h"
 #include "pvector.h"
 
@@ -34,7 +36,7 @@ PUBLISHED:
   INLINE explicit CLerpAnimEffectInterval(const std::string &name, double duration,
                                           BlendType blend_type);
 
-  INLINE void add_control(AnimControl *control, const std::string &name,
+  INLINE void add_control(AnimBlendGroup *control, const std::string &name,
                           float begin_effect, float end_effect);
 
   virtual void priv_step(double t);
@@ -44,9 +46,9 @@ PUBLISHED:
 private:
   class ControlDef {
   public:
-    INLINE ControlDef(AnimControl *control, const std::string &name,
+    INLINE ControlDef(AnimBlendGroup *control, const std::string &name,
                       float begin_effect, float end_effect);
-    PT(AnimControl) _control;
+    PT(AnimBlendGroup) _control;
     std::string _name;
     float _begin_effect;
     float _end_effect;
@@ -75,5 +77,7 @@ private:
 };
 
 #include "cLerpAnimEffectInterval.I"
+
+#endif
 
 #endif

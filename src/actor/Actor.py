@@ -48,9 +48,11 @@ class Actor(DirectObject, NodePath):
             self.partBundleNP = partBundleNP
             self.partBundleHandle = partBundleHandle
             self.partModel = partModel
+            self.animGraph = AnimStateMachine()
+            self.partBundleHandle.setAnimGraph(self.animGraph)
 
         def getBundle(self):
-            return self.partBundleHandle.getBundle()
+            return self.partBundleHandle
 
         def __repr__(self):
             return 'Actor.PartDef(%s, %s)' % (repr(self.partBundleNP), repr(self.partModel))
@@ -1326,21 +1328,31 @@ class Actor(DirectObject, NodePath):
         if not anyGood:
             self.notify.warning("Cannot freeze joint %s" % (jointName))
 
-    def addEndEffector(self, node, partName, jointName, lodName="lodRoot"):
+    def addEndEffector(self, node, name, partName, jointName, lodName="lodRoot"):
         subpartDef = self.__subpartDict.get(partName, Actor.SubpartDef(partName))
         trueName = subpartDef.truePartName
         for bundleDict in self.__partBundleDict.values():
             bundle = bundleDict[trueName].getBundle()
             joint = bundle.findChild(jointName)
             if node is None and joint and isinstance(joint, CharacterJoint):
-                node = self.attachNewNode(ModelNode(jointName))
+                node = self.attachNewNode(ModelNode(name))
                 mat = Mat4()
                 joint.getNetTransform(mat)
                 node.setMat(mat)
 
-            IKEffector(joint, node.node())
+            IKEffector(joint, name, node.node())
 
         return node
+
+    def addIKChain(self, chainName, effectorName, chainLength, partName, lodName="lodRoot"):
+        subpartDef = self.__subpartDict.get(partName, Actor.SubpartDef(partName))
+        trueName = subpartDef.truePartName
+        for bundleDict in self.__partBundleDict.values():
+            bundle = bundleDict[trueName].getBundle()
+            joint = bundle.findChild(effectorName)
+            if joint and isinstance(joint, IKEffector):
+                chain = IKChain(chainName, joint, chainLength)
+                bundle.addIkChain(chain)
 
     def releaseJoint(self, partName, jointName):
         """Undoes a previous call to controlJoint() or freezeJoint()
@@ -1653,14 +1665,14 @@ class Actor(DirectObject, NodePath):
         Config.prc variable.
         """
         for bundle in self.getPartBundles(partName = partName):
-            if blendType is not None:
-                bundle.setBlendType(blendType)
-            if animBlend is not None:
-                bundle.setAnimBlendFlag(animBlend)
+            #if blendType is not None:
+            #    bundle.setBlendType(blendType)
+            #if animBlend is not None:
+            #    bundle.setAnimBlendFlag(animBlend)
             if frameBlend is not None:
                 bundle.setFrameBlendFlag(frameBlend)
 
-    def enableBlend(self, blendType = PartBundle.BTNormalizedLinear, partName = None):
+    def enableBlend(self, blendType = None, partName = None):
         """
         Enables blending of multiple animations simultaneously.
         After this is called, you may call play(), loop(), or pose()
@@ -1961,7 +1973,7 @@ class Actor(DirectObject, NodePath):
         if model.node().isOfType(Character.getClassType()):
             bundleNP = model
         else:
-            bundleNP = model.find("**/+Character")
+            bundleNP = model.find("**/+CharacterNode")
 
         if bundleNP.isEmpty():
             Actor.notify.warning("%s is not a character!" % (modelPath))
@@ -2030,8 +2042,8 @@ class Actor(DirectObject, NodePath):
 
         node = bundleNP.node()
         # A model loaded from disk will always have just one bundle.
-        assert(node.getNumBundles() == 1)
-        bundleHandle = node.getBundleHandle(0)
+        #assert(node.getNumBundles() == 1)
+        bundleHandle = node.getBundle()
 
         if self.mergeLODBundles:
             loadedBundleHandle = self.__commonBundleHandles.get(partName, None)

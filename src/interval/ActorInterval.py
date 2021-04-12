@@ -4,7 +4,7 @@ See the :ref:`actor-intervals` page in the programming manual for explanation
 of this class.
 """
 
-__all__ = ['ActorInterval', 'LerpAnimInterval']
+__all__ = ['ActorInterval']
 
 from panda3d.core import *
 from panda3d.direct import *
@@ -200,7 +200,7 @@ class ActorInterval(Interval.Interval):
     def resetControls(self, partName, lodName=None):
         self.controls = self.actor.getAnimControls(
             self.animName, partName = partName, lodName = lodName)
-
+"""
 class LerpAnimInterval(CLerpAnimEffectInterval):
     # Blends between two anims.  Start both anims first (or use
     # parallel ActorIntervals), then invoke LerpAnimInterval to
@@ -237,3 +237,4 @@ class LerpAnimInterval(CLerpAnimEffectInterval):
             for control in controls:
                 self.addControl(control, endAnim,
                                 startWeight, endWeight)
+"""

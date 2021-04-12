@@ -4,7 +4,7 @@
     directbase
   #define OTHER_LIBS \
     downloader:c linmath:c \
-    chan:c event:c gobj:c pnmimage:c mathutil:c \
+    anim:c event:c gobj:c pnmimage:c mathutil:c \
     pgraph:c putil:c panda:m express:c pandaexpress:m \
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m \
@@ -25,7 +25,7 @@
     cConstrainPosHprInterval.cxx cConstrainPosHprInterval.I cConstrainPosHprInterval.h \
     cLerpInterval.cxx cLerpInterval.I cLerpInterval.h \
     cLerpNodePathInterval.cxx cLerpNodePathInterval.I cLerpNodePathInterval.h \
-    cLerpAnimEffectInterval.cxx cLerpAnimEffectInterval.I cLerpAnimEffectInterval.h \
+    //cLerpAnimEffectInterval.cxx cLerpAnimEffectInterval.I cLerpAnimEffectInterval.h \
     cMetaInterval.cxx cMetaInterval.I cMetaInterval.h \
     hideInterval.cxx hideInterval.I hideInterval.h \
     lerpblend.cxx lerpblend.h \
@@ -44,7 +44,7 @@
     cConstrainPosHprInterval.I cConstrainPosHprInterval.h \
     cLerpInterval.I cLerpInterval.h \
     cLerpNodePathInterval.I cLerpNodePathInterval.h \
-    cLerpAnimEffectInterval.I cLerpAnimEffectInterval.h \
+    //cLerpAnimEffectInterval.I cLerpAnimEffectInterval.h \
     cMetaInterval.I cMetaInterval.h \
     hideInterval.I hideInterval.h \
     lerpblend.h \
