@@ -1,5 +1,4 @@
-from panda3d.bsp import NetworkSystem, NetworkCallbacks, NetworkMessage, NetworkConnectionInfo
-from panda3d.core import URLSpec, NetAddress
+from panda3d.core import URLSpec, NetAddress, SteamNetworkSystem, SteamNetworkMessage
 from panda3d.direct import CClientRepository, DCPacker
 
 from direct.distributed.PyDatagram import PyDatagram
@@ -19,9 +18,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         CClientRepository.__init__(self)
         self.setPythonRepository(self)
 
-        self.netSys = NetworkSystem()
-        self.netCallbacks = NetworkCallbacks()
-        self.netCallbacks.setCallback(self.__handleNetCallback)
+        self.netSys = SteamNetworkSystem()
         self.connected = False
         self.connectionHandle = None
         self.serverAddress = None
@@ -252,10 +249,19 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             pass
 
     def runCallbacks(self):
-        self.netSys.runCallbacks(self.netCallbacks)
+        # This will fill up a list of connection events for us to process
+        # below.
+        self.netSys.runCallbacks()
+
+        # Process the events.
+        event = self.netSys.getNextEvent()
+        while event:
+            self.__handleNetCallback(event.getConnection(),
+                event.getState(), event.getOldState())
+            event = self.netSys.getNextEvent()
 
     def readerPollOnce(self):
-        msg = NetworkMessage()
+        msg = SteamNetworkMessage()
         if self.netSys.receiveMessageOnConnection(self.connectionHandle, msg):
             self.msgType = msg.getDatagramIterator().getUint16()
             self.handleDatagram(msg.getDatagramIterator())
@@ -265,7 +271,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
     def sendDatagram(self, dg):
         if dg.getLength() <= 0 or not self.connected:
             return
-        self.netSys.sendDatagram(self.connectionHandle, dg, NetworkSystem.NSFReliableNoNagle)
+        self.netSys.sendDatagram(self.connectionHandle, dg, SteamNetworkSystem.NSFReliableNoNagle)
 
     def connect(self, url):
         self.notify.info("Attemping to connect to %s" % (url))
@@ -290,21 +296,22 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             # I don't think this is possible.. but just in case.
             return
 
-        if state == NetworkSystem.NCSConnected:
+        if state == SteamNetworkSystem.NCSConnected:
             # We've successfully connected.
             self.connected = True
-            self.notify.info("Successfully connected")
+            self.notify.info("Successfully connected to %s" % self.serverAddress)
             messenger.send('connectSuccess', [self.serverAddress])
 
-        elif oldState == NetworkSystem.NCSConnecting:
+        elif oldState == SteamNetworkSystem.NCSConnecting:
             # If state was connecting and new state is not connected, we failed!
             self.connected = False
             self.stopClientLoop()
             messenger.send('connectFailure', [self.serverAddress])
+            self.notify.warning("Failed to connect to %s" % self.serverAddress)
             self.serverAddress = None
 
-        elif state == NetworkSystem.NCSClosedByPeer or \
-            state == NetworkSystem.NCSProblemDetectedLocally:
+        elif state == SteamNetworkSystem.NCSClosedByPeer or \
+            state == SteamNetworkSystem.NCSProblemDetectedLocally:
 
             # Lost connection
             self.connected = False

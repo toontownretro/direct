@@ -1,5 +1,4 @@
-from panda3d.bsp import NetworkSystem, NetworkCallbacks, NetworkConnectionInfo, NetworkMessage
-from panda3d.core import UniqueIdAllocator, HashVal
+from panda3d.core import UniqueIdAllocator, HashVal, SteamNetworkSystem, SteamNetworkMessage, SteamNetworkConnectionInfo
 from panda3d.direct import FrameSnapshot, ClientFrameManager, ClientFrame, FrameSnapshotManager, DCPacker
 
 from direct.distributed.PyDatagram import PyDatagram
@@ -79,9 +78,7 @@ class ServerRepository(BaseObjectManager):
         self.clientSender = None
 
         self.listenPort = listenPort
-        self.netSys = NetworkSystem()
-        self.netCallbacks = NetworkCallbacks()
-        self.netCallbacks.setCallback(self.__handleNetCallback)
+        self.netSys = SteamNetworkSystem()
         self.listenSocket = self.netSys.createListenSocket(listenPort)
         self.pollGroup = self.netSys.createPollGroup()
         self.clientIdAllocator = UniqueIdAllocator(0, 0xFFFF)
@@ -252,14 +249,23 @@ class ServerRepository(BaseObjectManager):
         return True
 
     def runCallbacks(self):
-        self.netSys.runCallbacks(self.netCallbacks)
+        # This will fill up a list of connection events for us to process
+        # below.
+        self.netSys.runCallbacks()
+
+        # Process the events.
+        event = self.netSys.getNextEvent()
+        while event:
+            self.__handleNetCallback(event.getConnection(),
+                event.getState(), event.getOldState())
+            event = self.netSys.getNextEvent()
 
     def readerPollUntilEmpty(self):
         while self.readerPollOnce():
             pass
 
     def readerPollOnce(self):
-        msg = NetworkMessage()
+        msg = SteamNetworkMessage()
         if self.netSys.receiveMessageOnPollGroup(self.pollGroup, msg):
             self.handleDatagram(msg)
             return True
@@ -477,7 +483,7 @@ class ServerRepository(BaseObjectManager):
         self.sendDatagram(dg, client.connection)
 
     def sendDatagram(self, dg, connection):
-        self.netSys.sendDatagram(connection, dg, NetworkSystem.NSFReliableNoNagle)
+        self.netSys.sendDatagram(connection, dg, SteamNetworkSystem.NSFReliableNoNagle)
 
     def closeClientConnection(self, client):
         if client.id != -1:
@@ -560,7 +566,7 @@ class ServerRepository(BaseObjectManager):
         self.closeClientConnection(client)
 
     def __handleNetCallback(self, connection, state, oldState):
-        if state == NetworkSystem.NCSConnecting:
+        if state == SteamNetworkSystem.NCSConnecting:
             if not self.canAcceptConnection():
                 return
             if not self.netSys.acceptConnection(connection):
@@ -570,18 +576,18 @@ class ServerRepository(BaseObjectManager):
                 self.notify.warning("Couldn't set poll group on connection %i" % connection)
                 self.netSys.closeConnection(connection)
                 return
-            info = NetworkConnectionInfo()
+            info = SteamNetworkConnectionInfo()
             self.netSys.getConnectionInfo(connection, info)
             self.handleNewConnection(connection, info)
 
-        elif state == NetworkSystem.NCSClosedByPeer or \
-            state == NetworkSystem.NCSProblemDetectedLocally:
+        elif state == SteamNetworkSystem.NCSClosedByPeer or \
+            state == SteamNetworkSystem.NCSProblemDetectedLocally:
 
             client = self.clientsByConnection[connection]
             self.notify.info("Client %i disconnected" % client.connection)
             self.handleClientDisconnect(client)
 
     def handleNewConnection(self, connection, info):
-        self.notify.info("Got client from %s (connection %i), awaiting hello" % (info.netAddress, connection))
-        client = ServerRepository.Client(connection, info.netAddress)
+        self.notify.info("Got client from %s (connection %i), awaiting hello" % (info.getNetAddress(), connection))
+        client = ServerRepository.Client(connection, info.getNetAddress())
         self.clientsByConnection[connection] = client
