@@ -42,6 +42,7 @@ class DirectButton(DirectFrame):
             # Sounds to be used for button events
             ('rolloverSound', DGG.getDefaultRolloverSound(), self.setRolloverSound),
             ('clickSound',    DGG.getDefaultClickSound(),    self.setClickSound),
+            ('releaseSound',  DGG.getDefaultReleaseSound(),  self.setReleaseSound),
             # Can only be specified at time of widget contruction
             # Do the text/graphics appear to move when the button is clicked
             ('pressEffect',     1,         DGG.INITOPT),
@@ -127,4 +128,16 @@ class DirectButton(DirectFrame):
         else:
             self.guiItem.clearSound(DGG.ENTER + self.guiId)
 
-
+    def setReleaseSound(self):
+        releaseSound = self['releaseSound']
+        # Clear out sounds
+        self.guiItem.clearSound(DGG.B1RELEASE + self.guiId)
+        self.guiItem.clearSound(DGG.B2RELEASE + self.guiId)
+        self.guiItem.clearSound(DGG.B3RELEASE + self.guiId)
+        if releaseSound:
+            if DGG.LMB in self['commandButtons']:
+                self.guiItem.setSound(DGG.B1RELEASE + self.guiId, releaseSound)
+            if DGG.MMB in self['commandButtons']:
+                self.guiItem.setSound(DGG.B2RELEASE + self.guiId, releaseSound)
+            if DGG.RMB in self['commandButtons']:
+                self.guiItem.setSound(DGG.B3RELEASE + self.guiId, releaseSound)
