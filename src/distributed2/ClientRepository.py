@@ -161,11 +161,17 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             hasState = dgi.getUint8()
             dclass = self.dclassesByNumber[classId]
             classDef = dclass.getOwnerClassDef()
+            if not classDef:
+                classDef = dclass.getClassDef()
+
+            if not classDef:
+                self.notify.error("No classDef for dclass %s" % dclass.getName())
 
             do = classDef()
             do.doId = doId
             do.zoneId = zoneId
             do.dclass = dclass
+            do.isOwner = True
             self.doId2do[do.doId] = do
 
             do.generate()

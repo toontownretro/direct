@@ -7,6 +7,7 @@ class DistributedObject(BaseDistributedObject):
 
     def __init__(self):
         BaseDistributedObject.__init__(self)
+        self.isOwner = False
 
     def preDataUpdate(self):
         """

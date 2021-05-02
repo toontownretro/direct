@@ -119,9 +119,9 @@ class ServerRepository(BaseObjectManager):
         clients = set(self.zonesToClients.get(do.zoneId, set()))
         if len(clients) > 0:
             if owner:
-                # Don't include the owner in this message, we send specific
+                # Don't include the owner in this message, we send a specific
                 # generate for the owner.
-                clients -= set(owner)
+                clients -= set([owner])
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_GenerateObject)
             self.packObjectGenerate(dg, do)
