@@ -147,10 +147,12 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
         self.notify.debug("Got tick %i and snapshot from server" % self.serverTickCount)
 
+    def sendTick(self):
         # Inform server we got the tick
         dg = PyDatagram()
         dg.addUint16(NetMessages.CL_Tick)
         dg.addUint32(self.serverTickCount)
+        dg.addFloat32(globalClock.getDt())
         self.sendDatagram(dg)
 
     def __handleGenerateOwnerObject(self, dgi):
@@ -218,18 +220,22 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.deleteObject(do)
 
     def deleteObject(self, do):
-        del self.doId2do[do.doId]
+        if do in self.doId2do.values():
+            del self.doId2do[do.doId]
+        elif do in self.doId2ownerView.values():
+            del self.doId2ownerView[do.doId]
         if do.doState > DOState.Disabled:
             do.disable()
         do.delete()
 
     def deleteAllObjects(self):
-        for do in self.doId2do.values():
+        for do in list(self.doId2do.values()) + list(self.doId2ownerView.values()):
             if do.doState > DOState.Disabled:
                 do.disable()
             do.delete()
 
         self.doId2do = {}
+        self.doId2ownerView = {}
 
     def disconnect(self):
         if not self.connected:

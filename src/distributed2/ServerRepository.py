@@ -94,6 +94,9 @@ class ServerRepository(BaseObjectManager):
         base.setTickRate(sv_tickrate.getValue())
         base.simTaskMgr.add(self.runFrame, "serverRunFrame", sort = -100)
 
+    def getMaxClients(self):
+        return sv_max_clients.getValue()
+
     def allocateObjectID(self):
         return self.objectIdAllocator.allocate()
 
@@ -494,12 +497,15 @@ class ServerRepository(BaseObjectManager):
     def closeClientConnection(self, client):
         if client.id != -1:
             self.clientIdAllocator.free(client.id)
+        if client.state == ClientState.Verified:
+            self.numClients -= 1
         self.netSys.closeConnection(client.connection)
         del self.clientsByConnection[client.connection]
 
     def handleClientTick(self, client, dgi):
         client.prevTickCount = int(client.tickCount)
         client.tickCount = dgi.getUint32()
+        client.dt = dgi.getFloat32()
         self.notify.debug("Client acknowleged tick %i" % client.tickCount)
 
     def handleClientSetCMDRate(self, client, dgi):
@@ -524,7 +530,10 @@ class ServerRepository(BaseObjectManager):
 
         valid = True
         msg = ""
-        if password != sv_password.getValue():
+        if self.isFull():
+            valid = False
+            msg = "Server is full"
+        elif password != sv_password.getValue():
             valid = False
             msg = "Incorrect password"
         elif dcHash != self.hashVal:
@@ -557,6 +566,8 @@ class ServerRepository(BaseObjectManager):
         # Tell the client their ID and our tick rate.
         dg.addUint16(client.id)
         dg.addUint8(base.ticksPerSec)
+
+        self.numClients += 1
 
         self.sendDatagram(dg, client.connection)
 
