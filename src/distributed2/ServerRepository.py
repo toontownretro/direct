@@ -332,17 +332,19 @@ class ServerRepository(BaseObjectManager):
             self.notify.warning("Failed to pack message")
             return
 
+        reliable = not field.hasKeyword("unreliable")
+
         dg = PyDatagram(packer.getBytes())
         if not client:
             if field.isBroadcast():
                 # Send to all interested clients
                 for cl in self.zonesToClients.get(do.zoneId, set()):
-                    self.sendDatagram(dg, cl.connection)
+                    self.sendDatagram(dg, cl.connection, reliable)
             else:
                 self.notify.warning("Can't send non-broadcast object message without a target client")
                 return
         else:
-            self.sendDatagram(dg, client.connection)
+            self.sendDatagram(dg, client.connection, reliable)
 
     def handleObjectMessage(self, client, dgi):
         doId = dgi.getUint32()
@@ -482,8 +484,12 @@ class ServerRepository(BaseObjectManager):
         dg.addUint8(handle)
         self.sendDatagram(dg, client.connection)
 
-    def sendDatagram(self, dg, connection):
-        self.netSys.sendDatagram(connection, dg, SteamNetworkSystem.NSFReliableNoNagle)
+    def sendDatagram(self, dg, connection, reliable = True):
+        if reliable:
+            sendType = SteamNetworkSystem.NSFReliableNoNagle
+        else:
+            sendType = SteamNetworkSystem.NSFUnreliableNoDelay
+        self.netSys.sendDatagram(connection, dg, sendType)
 
     def closeClientConnection(self, client):
         if client.id != -1:

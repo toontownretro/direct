@@ -274,10 +274,14 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             return True
         return False
 
-    def sendDatagram(self, dg):
+    def sendDatagram(self, dg, reliable = True):
         if dg.getLength() <= 0 or not self.connected:
             return
-        self.netSys.sendDatagram(self.connectionHandle, dg, SteamNetworkSystem.NSFReliableNoNagle)
+        if reliable:
+            sendType = SteamNetworkSystem.NSFReliableNoNagle
+        else:
+            sendType = SteamNetworkSystem.NSFUnreliableNoDelay
+        self.netSys.sendDatagram(self.connectionHandle, dg, sendType)
 
     def connect(self, url):
         self.notify.info("Attemping to connect to %s" % (url))
@@ -369,7 +373,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             return
 
         dg = PyDatagram(packer.getBytes())
-        self.sendDatagram(dg)
+        self.sendDatagram(dg, reliable = not field.hasKeyword("unreliable"))
 
     def __handleObjectMessage(self, dgi):
         doId = dgi.getUint32()
