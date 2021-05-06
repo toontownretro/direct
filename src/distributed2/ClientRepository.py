@@ -5,7 +5,9 @@ from direct.distributed.PyDatagram import PyDatagram
 from direct.showbase.DirectObject import DirectObject
 from direct.directnotify.DirectNotifyGlobal import directNotify
 
+from .ClockDriftManager import ClockDriftManager
 from .BaseObjectManager import BaseObjectManager
+from .DistributedObject import DistributedObject
 from .ClientConfig import *
 from .NetMessages import NetMessages
 from .DOState import DOState
@@ -18,6 +20,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         CClientRepository.__init__(self)
         self.setPythonRepository(self)
 
+        self.clockDriftMgr = ClockDriftManager()
+
         self.netSys = SteamNetworkSystem()
         self.connected = False
         self.connectionHandle = None
@@ -25,9 +29,10 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.msgType = 0
 
         self.clientId = 0
-        self.serverTickCount = 0
+        self.serverTickCount = -1
         self.serverTickRate = 0
         self.serverIntervalPerTick = 0
+        self.lastServerTickTime = 0
         self.interestHandle = 0
 
     def simObjects(self):
@@ -42,11 +47,17 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
         return task.cont
 
+    def interpolateObjects(self, task):
+        DistributedObject.interpolateObjects()
+        return task.cont
+
     def startClientLoop(self):
         base.simTaskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
+        base.taskMgr.add(self.interpolateObjects, "clientInterpolateObjects", sort = 30)
 
     def stopClientLoop(self):
         base.simTaskMgr.remove("clientRunFrame")
+        base.taskMgr.remove("clientInterpolateObjects")
 
     def getNextInterestHandle(self):
         return (self.interestHandle + 1) % 256
@@ -140,10 +151,35 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.disconnect()
 
     def __handleServerTick(self, dgi):
+        oldTick = self.serverTickCount
         self.serverTickCount = dgi.getUint32()
+
+        self.lastServerTickTime = self.serverTickCount * self.serverIntervalPerTick
+
+        self.clockDriftMgr.setServerTick(self.serverTickCount)
+
+        saveTickCount = base.tickCount
+        saveFrameTime = base.frameTime
+        saveDeltaTime = base.deltaTime
+
+        # Be on the same tick count and frame time as the snapshot.
+        base.tickCount = self.serverTickCount
+        base.frameTime = self.serverTickCount * self.serverIntervalPerTick
+        base.deltaTime = (self.serverTickCount - oldTick) * self.serverIntervalPerTick
+        globalClock.setFrameTime(base.frameTime)
+        globalClock.setFrameCount(base.tickCount)
+        globalClock.setDt(base.deltaTime)
 
         # Let the C++ repository unpack and apply the snapshot onto our objects
         self.unpackServerSnapshot(dgi)
+
+        # Restore the true client tick count and frame time.
+        base.tickCount = saveTickCount
+        base.frameTime = saveFrameTime
+        base.deltaTime = saveDeltaTime
+        globalClock.setFrameCount(base.tickCount)
+        globalClock.setFrameTime(base.frameTime)
+        globalClock.setDt(base.deltaTime)
 
         self.notify.debug("Got tick %i and snapshot from server" % self.serverTickCount)
 

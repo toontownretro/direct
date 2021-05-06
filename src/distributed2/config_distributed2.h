@@ -16,10 +16,13 @@
 
 #include "directbase.h"
 #include "notifyCategoryProxy.h"
+#include "configVariableDouble.h"
 #include "dconfig.h"
 
 NotifyCategoryDecl(distributed2, EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2);
 
-extern EXPCL_DIRECT_DISTRIBUTED void init_libdistributed2();
+extern EXPCL_DIRECT_DISTRIBUTED2 ConfigVariableDouble cl_extrapolate_amount;
+
+extern EXPCL_DIRECT_DISTRIBUTED2 void init_libdistributed2();
 
 #endif

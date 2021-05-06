@@ -11,13 +11,15 @@
   #define BUILDING_DLL BUILDING_DIRECT_DISTRIBUTED2
 
   #define SOURCES \
-    config_distributed2.h \
+    config_distributed2.h config_distributed2.N \
     changeFrameList.h changeFrameList.I \
     clientFrame.h clientFrame.I \
     clientFrameManager.h clientFrameManager.I \
     frameSnapshot.h frameSnapshot.I \
     frameSnapshotEntry.h frameSnapshotEntry.I \
     frameSnapshotManager.h frameSnapshotManager.I \
+    interpolatedVariable.h interpolatedVariable.I \
+    lerpFunctions.h \
     packedObject.h packedObject.I
 
   #define COMPOSITE_SOURCES \
@@ -28,6 +30,7 @@
     frameSnapshot.cxx \
     frameSnapshotEntry.cxx \
     frameSnapshotManager.cxx \
+    interpolatedVariable.cxx \
     packedObject.cxx
 
   #define IGATESCAN all

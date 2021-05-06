@@ -30,6 +30,10 @@ ConfigureFn(config_distributed2) {
   init_libdistributed2();
 }
 
+ConfigVariableDouble cl_extrapolate_amount
+("cl-extrapolate-amount", 0.25,
+ PRC_DESC("Set how many seconds the client will extrapolate variables for."));
+
 /**
  * Initializes the library.  This must be called at least once before any of
  * the functions or classes in this library can be used.  Normally it will be
