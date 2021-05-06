@@ -173,6 +173,7 @@ class DistributedObject(BaseDistributedObject):
         don't tear anything down, because it might come back later via
         announceGenerate(). """
 
+        self.removeFromInterpolationList()
         self.ignoreAll()
         self.removeAllTasks()
 
