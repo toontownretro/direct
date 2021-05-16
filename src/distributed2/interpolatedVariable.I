@@ -398,7 +398,7 @@ push_front(const Type &value, double timestamp, bool flush_newer) {
     // might have corrected our clock and moved us back, so our current
     // timestamp is less than a timestamp we added previously.
     while (!_sample_points.empty()) {
-      if ((_sample_points[0].timestamp + 0.0001f) > timestamp) {
+      if ((_sample_points[0].timestamp + 0.0001) > timestamp) {
         _sample_points.pop_front();
       } else {
         break;
@@ -497,7 +497,7 @@ get_interpolation_info(InterpolationInfo &info, double now, int &no_more_changes
       // If info.newer is the most recent entry we have, and all 2 or 3 other
       // entries are identical, then we're always going to return the same value
       // if now increases.
-      if (no_more_changes && !_sample_points.empty() && info.newer == 0) {
+      if (!_sample_points.empty() && info.newer == 0) {
         if (_sample_points[info.newer].value == _sample_points[info.older].value) {
           if (!info.hermite ||
               _sample_points[info.newer].value == _sample_points[info.oldest].value) {
