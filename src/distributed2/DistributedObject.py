@@ -72,7 +72,13 @@ class DistributedObject(BaseDistributedObject):
         Override this method to do stuff before a state snapshot is unpacked
         onto the object.
         """
-        pass
+
+        # Restore all of our interpolated variables to the most recently
+        # networked value.  This way if the value does not change in the new
+        # snapshot, we record the networked value, and not the most recently
+        # interpolated value.
+        for entry in self.interpVars:
+            entry.setter(entry.var.getLastNetworkedValue())
 
     def getInterpolateAmount(self):
         serverTickMultiple = 1
