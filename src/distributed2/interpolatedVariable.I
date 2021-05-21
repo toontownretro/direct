@@ -485,7 +485,7 @@ get_interpolation_info(InterpolationInfo &info, double now, int &no_more_changes
 
       int oldest_index = i + 1;
 
-      if (i >= 0 && i < (int)_sample_points.size()) {
+      if (oldest_index >= 0 && oldest_index < (int)_sample_points.size()) {
         info.oldest = oldest_index;
         double oldest_change_time = _sample_points[oldest_index].timestamp;
         double dt2 = older_change_time - oldest_change_time;
