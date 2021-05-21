@@ -98,6 +98,12 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
   PyObject *pre_data_update = PyObject_GetAttrString(dist_obj, (char *)"preDataUpdate");
   if (pre_data_update) {
     PyObject_CallObject(pre_data_update, NULL);
+    if (PyErr_Occurred()) {
+      distributed2_cat.error()
+        << "Python error occurred during preDataUpdate()\n";
+      PyErr_Print();
+    }
+
     Py_DECREF(pre_data_update);
   }
 
@@ -174,12 +180,22 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
       if (PyTuple_Check(args)) {
         // Args are already a tuple
         PyObject_CallObject(proxy, args);
+        if (PyErr_Occurred()) {
+          distributed2_cat.error()
+            << "Python error occurred during recv proxy for field" << field->get_name() << "\n";
+          PyErr_Print();
+        }
 
       } else {
         // The arguments are not already a tuple. Since we are calling a
         // method, the arguments need to be in a tuple.
         PyObject *tuple_args = PyTuple_Pack(1, args);
         PyObject_CallObject(proxy, tuple_args);
+        if (PyErr_Occurred()) {
+          distributed2_cat.error()
+            << "Python error occurred during recv proxy for field" << field->get_name() << "\n";
+          PyErr_Print();
+        }
         Py_DECREF(tuple_args);
       }
 
@@ -203,6 +219,12 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
       // Call it
       PyObject *recv_handler = PyObject_GetAttrString(dist_obj, proxy_name);
       PyObject_CallObject(recv_handler, NULL);
+      if (PyErr_Occurred()) {
+        distributed2_cat.error()
+          << "Python error occurred during recv handler for field" << field->get_name() << "\n";
+        PyErr_Print();
+      }
+
       Py_DECREF(recv_handler);
     }
 
@@ -214,6 +236,11 @@ unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj, DCClass *dclass,
   PyObject *post_data_update = PyObject_GetAttrString(dist_obj, (char *)"postDataUpdate");
   if (post_data_update) {
     PyObject_CallObject(post_data_update, NULL);
+    if (PyErr_Occurred()) {
+      distributed2_cat.error()
+        << "Python error occurred during postDataUpdate()\n";
+      PyErr_Print();
+    }
     Py_DECREF(post_data_update);
   }
 
