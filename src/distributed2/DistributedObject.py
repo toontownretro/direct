@@ -6,14 +6,19 @@ from .ClientConfig import *
 
 class InterpVarEntry:
 
-    def __init__(self, var, getter, setter):
+    def __init__(self, var, getter, setter, flags, arrayIndex):
         self.var = var
         self.getter = getter
         self.setter = setter
+        self.arrayIndex = arrayIndex
+        self.flags = flags
         self.needsInterpolation = False
 
 # Base client network object
 class DistributedObject(BaseDistributedObject):
+
+    SimulationVar = 1 << 0
+    AnimationVar = 1 << 1
 
     neverDisable = False
 
@@ -38,9 +43,15 @@ class DistributedObject(BaseDistributedObject):
             do.interpolate(globalClock.getFrameTime())
             do.postInterpolate()
 
-    def addInterpolatedVar(self, var, getter, setter):
+    def addInterpolatedVar(self, var, getter, setter,
+                           flags = SimulationVar,
+                           arrayIndex = -1):
         var.setInterpolationAmount(self.getInterpolateAmount())
-        self.interpVars.append(InterpVarEntry(var, getter, setter))
+        self.interpVars.append(InterpVarEntry(var, getter, setter, flags, arrayIndex))
+
+    def removeInterpolatedVar(self, var):
+        if var in self.interpVars:
+            self.interpVars.remove(var)
 
     def RecvProxy_simulationTime(self, addT):
         # Note, this needs to be encoded relative to the packet timestamp, not
@@ -78,17 +89,23 @@ class DistributedObject(BaseDistributedObject):
         # snapshot, we record the networked value, and not the most recently
         # interpolated value.
         for entry in self.interpVars:
-            entry.setter(entry.var.getLastNetworkedValue())
+            if entry.arrayIndex != -1:
+                entry.setter(entry.arrayIndex, entry.var.getLastNetworkedValue())
+            else:
+                entry.setter(entry.var.getLastNetworkedValue())
 
     def getInterpolateAmount(self):
         serverTickMultiple = 1
         return base.ticksToTime(base.timeToTicks(getClientInterpAmount()) + serverTickMultiple)
 
-    def getLastChangedTime(self):
-        if self.simulationTime == 0.0:
-            return base.frameTime
-        else:
-            return self.simulationTime
+    def getLastChangedTime(self, flags):
+        if flags & DistributedObject.SimulationVar:
+            if self.simulationTime == 0.0:
+                return base.frameTime
+            else:
+                return self.simulationTime
+
+        return base.frameTime
 
     def postInterpolate(self):
         """
@@ -96,7 +113,7 @@ class DistributedObject(BaseDistributedObject):
         """
         pass
 
-    def onLatchInterpolatedVars(self, changeTime):
+    def onLatchInterpolatedVars(self, changeTime, flags):
         """
         Override this method to record values of interpolated variables with
         the timestamp passed in.
@@ -105,7 +122,14 @@ class DistributedObject(BaseDistributedObject):
         #print("Simulation time", changeTime)
 
         for entry in self.interpVars:
-            if entry.var.recordValue(entry.getter(), changeTime, True):
+            if not (entry.flags & flags):
+                continue
+
+            if entry.arrayIndex != -1:
+                val = entry.getter(entry.arrayIndex)
+            else:
+                val = entry.getter()
+            if entry.var.recordValue(val, changeTime, True):
                 # Value is changed, we need to interpolate it.
                 entry.needsInterpolation = True
 
@@ -114,7 +138,11 @@ class DistributedObject(BaseDistributedObject):
 
     def onStoreLastNetworkedValue(self):
         for entry in self.interpVars:
-            entry.var.recordLastNetworkedValue(entry.getter(), base.frameTime)
+            if entry.arrayIndex != -1:
+                val = entry.getter(entry.arrayIndex)
+            else:
+                val = entry.getter()
+            entry.var.recordLastNetworkedValue(val, base.frameTime)
 
     def interpolate(self, now):
         done = True
@@ -133,7 +161,10 @@ class DistributedObject(BaseDistributedObject):
             else:
                 done = False
 
-            entry.setter(entry.var.getInterpolatedValue())
+            if entry.arrayIndex != -1:
+                entry.setter(entry.arrayIndex, entry.var.getInterpolatedValue())
+            else:
+                entry.setter(entry.var.getInterpolatedValue())
 
         if done:
             self.removeFromInterpolationList()
@@ -155,7 +186,9 @@ class DistributedObject(BaseDistributedObject):
         simChanged = self.isSimulationChanged()
         if not self.isPredictable():
             if simChanged:
-                self.onLatchInterpolatedVars(self.getLastChangedTime())
+                self.onLatchInterpolatedVars(
+                    self.getLastChangedTime(DistributedObject.SimulationVar),
+                    DistributedObject.SimulationVar)
         else:
             self.onStoreLastNetworkedValue()
         self.oldSimulationTime = self.simulationTime
