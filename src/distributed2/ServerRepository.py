@@ -93,6 +93,8 @@ class ServerRepository(BaseObjectManager):
 
         base.setTickRate(sv_tickrate.getValue())
         base.simTaskMgr.add(self.runFrame, "serverRunFrame", sort = -100)
+        base.simTaskMgr.add(self.simObjectsTask, "serverSimObjects", sort = 0)
+        base.simTaskMgr.add(self.takeSnapshotTask, "serverTakeSnapshot", sort = 100)
 
     def getMaxClients(self):
         return sv_max_clients.getValue()
@@ -176,13 +178,13 @@ class ServerRepository(BaseObjectManager):
         for do in self.doId2do.values():
             do.update()
 
+    def simObjectsTask(self, task):
+        self.simObjects()
+        return task.cont
+
     def runFrame(self, task):
         self.readerPollUntilEmpty()
         self.runCallbacks()
-
-        self.simObjects()
-
-        self.takeTickSnapshot(base.tickCount)
 
         return task.cont
 
@@ -194,6 +196,10 @@ class ServerRepository(BaseObjectManager):
     # Snapshot/object packing code
     #
     ###########################################################
+
+    def takeSnapshotTask(self, task):
+        self.takeTickSnapshot(base.tickCount)
+        return task.cont
 
     def takeTickSnapshot(self, tickCount):
         self.notify.debug("Take tick snapshot at tick %i" % tickCount)
