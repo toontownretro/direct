@@ -13,6 +13,7 @@
   #define SOURCES \
     config_distributed2.h config_distributed2.N \
     changeFrameList.h changeFrameList.I \
+    clientAnimLayer.h clientAnimLayer.I \
     clientFrame.h clientFrame.I \
     clientFrameManager.h clientFrameManager.I \
     frameSnapshot.h frameSnapshot.I \
@@ -25,6 +26,7 @@
   #define COMPOSITE_SOURCES \
     config_distributed2.cxx \
     changeFrameList.cxx \
+    clientAnimLayer.cxx \
     clientFrame.cxx \
     clientFrameManager.cxx \
     frameSnapshot.cxx \
