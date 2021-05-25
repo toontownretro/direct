@@ -3174,7 +3174,7 @@ class ShowBase(HostBase):
 
     def __tkTimerCallback(self):
         if not Thread.getCurrentThread().getCurrentTask():
-            self.taskMgr.step()
+            self.doRunFrame()
 
         self.tkRoot.after(self.tkDelay, self.__tkTimerCallback)
 
