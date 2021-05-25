@@ -10,6 +10,8 @@
 #include "mathutil_misc.h"
 #include "luse.h"
 
+BEGIN_PUBLISH
+
 template <class T>
 inline T LoopingLerp( float flPercent, T flFrom, T flTo )
 {
@@ -17,7 +19,6 @@ inline T LoopingLerp( float flPercent, T flFrom, T flTo )
 	return s;
 }
 
-template <>
 inline float LoopingLerp( float flPercent, float flFrom, float flTo )
 {
 	if ( std::fabs( flTo - flFrom ) >= 0.5f )
@@ -103,8 +104,7 @@ inline void Lerp_Clamp( const LVector2f &val )
 //	val.Clamp();
 //}
 
-template <>
-inline LVector3 Lerp_Hermite<LVector3>( float t, const LVector3& p0, const LVector3& p1, const LVector3& p2 )
+inline LVector3 Lerp_Hermite( float t, const LVector3& p0, const LVector3& p1, const LVector3& p2 )
 {
 	// Can't do hermite with QAngles, get discontinuities, just do a regular interpolation
 	return tlerp( t, p1, p2 );
@@ -116,7 +116,6 @@ inline T LoopingLerp_Hermite( float t, T p0, T p1, T p2 )
 	return Lerp_Hermite( t, p0, p1, p2 );
 }
 
-template <>
 inline float LoopingLerp_Hermite( float t, float p0, float p1, float p2 )
 {
 	if ( fabs( p1 - p0 ) > 0.5f )
@@ -160,6 +159,8 @@ inline float LoopingLerp_Hermite( float t, float p0, float p1, float p2 )
 
 	return s;
 }
+
+END_PUBLISH
 
 // NOTE: C_AnimationLayer has its own versions of these functions in animationlayer.h.
 
