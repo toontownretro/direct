@@ -386,6 +386,72 @@ get_interval() const {
 }
 
 /**
+ * Returns the value of the variable at the indicated sample index.
+ */
+template<class Type>
+INLINE Type *InterpolatedVariable<Type>::
+get_sample_value(int index) {
+  if (index >= 0 && index < (int)_sample_points.size()) {
+    SamplePoint &sample = _sample_points[index];
+    return &sample.value;
+
+  } else {
+    return nullptr;
+  }
+}
+
+/**
+ * Returns the timestamp of the sample at the indicated index.
+ */
+template<class Type>
+INLINE double InterpolatedVariable<Type>::
+get_sample_timestamp(int index) const {
+  if (index >= 0 && index < (int)_sample_points.size()) {
+    return _sample_points[index].timestamp;
+
+  } else {
+    return 0.0;
+  }
+}
+
+/**
+ * Changes the value of the variable at the indicated sample index.
+ */
+template<class Type>
+INLINE void InterpolatedVariable<Type>::
+set_sample_value(int index, const Type &value) {
+  if (index >= 0 && index < (int)_sample_points.size()) {
+    _sample_points[index].value = value;
+  }
+}
+
+/**
+ * Fills in the indices of the three sample points to interpolate based on the
+ * provided rendering time.
+ */
+template<class Type>
+INLINE bool InterpolatedVariable<Type>::
+get_interpolation_info(double now, int &newer, int &older, int &oldest) const {
+  InterpolationInfo info;
+  int no_more_changes;
+  bool result = get_interpolation_info(info, now, no_more_changes);
+  newer = info.newer;
+  older = info.older;
+  oldest = info.oldest;
+  return result;
+}
+
+/**
+ *
+ */
+template<class Type>
+INLINE bool InterpolatedVariable<Type>::
+get_interpolation_info(InterpolationInfo &info, double now) const {
+  int no_more_changes;
+  return get_interpolation_info(info, now, no_more_changes);
+}
+
+/**
  *
  */
 template<class Type>

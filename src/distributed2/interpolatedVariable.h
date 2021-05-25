@@ -65,6 +65,23 @@ private:
   static double _last_timestamp;
 };
 
+class InterpolationInfo {
+PUBLISHED:
+  INLINE InterpolationInfo() {
+    hermite = false;
+    oldest = -1;
+    older = -1;
+    newer = -1;
+    frac = 0.0;
+  }
+
+  bool hermite;
+  int oldest; // Only set if using hermite interpolation.
+  int older;
+  int newer;
+  double frac;
+};
+
 /**
  * A variable whose changes in values are buffered and interpolated.  The type
  * used needs to have vector-like math operators (/, *, etc).
@@ -107,18 +124,16 @@ PUBLISHED:
 
   INLINE double get_interval() const;
 
+  INLINE Type *get_sample_value(int index);
+  INLINE double get_sample_timestamp(int index) const;
+  INLINE void set_sample_value(int index, const Type &value);
+
+  INLINE bool get_interpolation_info(double now, int &newer, int &older, int &oldest) const;
+  INLINE bool get_interpolation_info(InterpolationInfo &info, double now) const;
+
 private:
   INLINE void push_front(const Type &value, double timestamp, bool flush_newer);
   INLINE void remove_samples_before(double timestamp);
-
-  class InterpolationInfo {
-  public:
-    bool hermite;
-    int oldest; // Only set if using hermite interpolation.
-    int older;
-    int newer;
-    double frac;
-  };
 
   INLINE bool get_interpolation_info(InterpolationInfo &info, double now,
                                      int &no_more_changes) const;
@@ -172,6 +187,9 @@ EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, Inte
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase2d>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase3d>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase4d>);
+
+typedef InterpolatedVariable<int> InterpolatedInt;
+EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<int>);
 
 #ifdef STDFLOAT_DOUBLE
 typedef InterpolatedDouble InterpolatedSTDFloat;
