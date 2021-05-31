@@ -168,3 +168,11 @@ Lerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, Client
 INLINE void
 Lerp_Clamp(ClientAnimLayer &val) {
 }
+
+/**
+ *
+ */
+INLINE std::ostream &
+operator << (std::ostream &out, const ClientAnimLayer &layer) {
+  return out;
+}

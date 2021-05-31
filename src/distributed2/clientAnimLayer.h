@@ -53,6 +53,7 @@ INLINE ClientAnimLayer tlerp(float percent, ClientAnimLayer &from, ClientAnimLay
 INLINE ClientAnimLayer LoopingLerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer Lerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE void Lerp_Clamp(ClientAnimLayer &val);
+INLINE std::ostream &operator << (std::ostream &out, const ClientAnimLayer &layer);
 
 BEGIN_PUBLISH
 typedef InterpolatedVariable<ClientAnimLayer> InterpolatedClientAnimLayer;

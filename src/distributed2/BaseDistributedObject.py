@@ -125,8 +125,12 @@ class BaseDistributedObject(DirectObject):
         """
         pass
 
+    def simulate(self):
+        """ Called once per simulation tick to simulate object. """
+        pass
+
     def update(self):
-        """ Called once per tick to simulate object. """
+        """ Called once per frame (instead of sim tick) to update object. """
         pass
 
     def generate(self):

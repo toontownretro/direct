@@ -176,7 +176,7 @@ class ServerRepository(BaseObjectManager):
 
     def simObjects(self):
         for do in self.doId2do.values():
-            do.update()
+            do.simulate()
 
     def simObjectsTask(self, task):
         self.simObjects()

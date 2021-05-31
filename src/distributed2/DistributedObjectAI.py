@@ -7,8 +7,8 @@ class DistributedObjectAI(BaseDistributedObject):
         BaseDistributedObject.__init__(self)
         self.owner = None
 
-    def update(self):
-        BaseDistributedObject.update(self)
+    def simulate(self):
+        BaseDistributedObject.simulate(self)
         self.simulationTime = globalClock.getFrameTime()
 
     def SendProxy_simulationTime(self):
