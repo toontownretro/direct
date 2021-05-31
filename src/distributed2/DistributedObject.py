@@ -50,8 +50,13 @@ class DistributedObject(BaseDistributedObject):
         self.interpVars.append(InterpVarEntry(var, getter, setter, flags, arrayIndex))
 
     def removeInterpolatedVar(self, var):
-        if var in self.interpVars:
-            self.interpVars.remove(var)
+        entry = None
+        for ent in self.interpVars:
+            if ent.var == var:
+                entry = ent
+                break
+        if entry is not None:
+            self.interpVars.remove(entry)
 
     def RecvProxy_simulationTime(self, addT):
         # Note, this needs to be encoded relative to the packet timestamp, not
@@ -118,8 +123,6 @@ class DistributedObject(BaseDistributedObject):
         Override this method to record values of interpolated variables with
         the timestamp passed in.
         """
-
-        #print("Simulation time", changeTime)
 
         for entry in self.interpVars:
             if not (entry.flags & flags):
