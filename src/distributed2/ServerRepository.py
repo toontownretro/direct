@@ -43,6 +43,8 @@ class ServerRepository(BaseObjectManager):
             self.dt = 0
             self.tickRemainder = 0
             self.tickCount = 0
+            # Delta reference tick.
+            self.deltaTick = -1
 
             self.frameMgr = ClientFrameManager()
 
@@ -238,18 +240,26 @@ class ServerRepository(BaseObjectManager):
         # Send it out to whoever needs it
         for client in clientsNeedingSnapshots:
             # Get the frame the client most recently acknowledged
-            oldFrame = client.getClientFrame(client.tickCount)
+            oldFrame = client.getClientFrame(client.deltaTick)
 
             client.lastSnapshot = snap
 
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_Tick)
+            self.addSnapshotHeaderData(dg, client)
             if oldFrame:
                 # We have an old frame to delta against
                 self.snapshotMgr.clientFormatDeltaSnapshot(dg, oldFrame.getSnapshot(), snap, list(client.currentInterestZoneIds))
             else:
                 self.snapshotMgr.clientFormatSnapshot(dg, snap, list(client.currentInterestZoneIds))
             self.sendDatagram(dg, client.connection)
+
+    def addSnapshotHeaderData(self, dg, client):
+        """
+        Appends additional show-specific data to the snapshot header for this
+        client.
+        """
+        pass
 
     def isFull(self):
         return self.numClients >= sv_max_clients.getValue()
@@ -510,9 +520,9 @@ class ServerRepository(BaseObjectManager):
 
     def handleClientTick(self, client, dgi):
         client.prevTickCount = int(client.tickCount)
-        client.tickCount = dgi.getUint32()
+        client.deltaTick = dgi.getInt32()
         client.dt = dgi.getFloat32()
-        self.notify.debug("Client acknowleged tick %i" % client.tickCount)
+        self.notify.debug("Client acknowleged tick %i" % client.deltaTick)
 
     def handleClientSetCMDRate(self, client, dgi):
         cmdRate = dgi.getUint8()

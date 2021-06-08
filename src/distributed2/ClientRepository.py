@@ -29,11 +29,18 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.msgType = 0
 
         self.clientId = 0
-        self.serverTickCount = -1
+        # Server tick count from latest received snapshot.
+        self.serverTickCount = 0
         self.serverTickRate = 0
+        # Reference server tick count for delta snapshots.  -1 means we have
+        # no delta reference and need an absolute update.
+        self.deltaTick = -1
         self.serverIntervalPerTick = 0
         self.lastServerTickTime = 0
         self.interestHandle = 0
+
+        self.predictionRandomSeed = 0
+        self.predictionPlayer = None
 
     def simObjects(self, task):
         for do in self.doId2do.values():
@@ -159,8 +166,18 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.disconnect()
 
     def __handleServerTick(self, dgi):
+        self.readSnapshotHeaderData(dgi)
+
         oldTick = self.serverTickCount
         self.serverTickCount = dgi.getUint32()
+
+        isDelta = bool(dgi.getUint8())
+
+        if isDelta and self.deltaTick < 0:
+            # We requested a full update but got a delta compressed update.
+            # Ignore it.
+            self.serverTickCount = oldTick
+            return
 
         self.lastServerTickTime = self.serverTickCount * self.serverIntervalPerTick
 
@@ -178,8 +195,24 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         globalClock.setFrameCount(base.tickCount)
         globalClock.setDt(base.deltaTime)
 
+        if hasattr(self, 'prediction') and hasattr(base, 'localAvatar') and base.localAvatar is not None:
+            if True or (base.localAvatar.lastOutgoingCommand == base.localAvatar.commandAck):
+                self.runPrediction()
+
+            numExeced = base.localAvatar.commandAck - base.localAvatar.lastCommandAck
+            # Copy last set of changes right into current frame.
+            self.prediction.preEntityPacketReceived(numExeced, 0)
+
+            if not isDelta:
+                self.prediction.onReceivedUncompressedPacket()
+
         # Let the C++ repository unpack and apply the snapshot onto our objects
-        self.unpackServerSnapshot(dgi)
+        self.unpackServerSnapshot(dgi, isDelta)
+
+        if hasattr(self, 'prediction'):
+            self.prediction.postEntityPacketReceived()
+
+        self.postSnapshot()
 
         # Restore the true client tick count and frame time.
         base.tickCount = saveTickCount
@@ -191,11 +224,21 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
         self.notify.debug("Got tick %i and snapshot from server" % self.serverTickCount)
 
+        if (self.deltaTick >= 0) or not isDelta:
+            # We have a new delta reference.
+            self.deltaTick = self.serverTickCount
+
+    def readSnapshotHeaderData(self, dgi):
+        pass
+
+    def postSnapshot(self):
+        pass
+
     def sendTick(self):
         # Inform server we got the tick
         dg = PyDatagram()
         dg.addUint16(NetMessages.CL_Tick)
-        dg.addUint32(self.serverTickCount)
+        dg.addInt32(self.deltaTick)
         dg.addFloat32(globalClock.getDt())
         self.sendDatagram(dg)
 

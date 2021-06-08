@@ -24,8 +24,7 @@
  * distributed objects.
  */
 void CClientRepository::
-unpack_server_snapshot(DatagramIterator &dgi) {
-  bool is_delta = (bool)dgi.get_uint8();
+unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
   int num_objects = dgi.get_uint16();
 
   if (distributed2_cat.is_debug()) {

@@ -155,6 +155,18 @@ class HostBase(DirectObject):
 
         self.taskMgr.finalInit()
 
+    def setFrameTime(self, time):
+        self.frameTime = time
+        self.globalClock.setFrameTime(time)
+
+    def setDeltaTime(self, dt):
+        self.deltaTime = dt
+        self.globalClock.setDt(dt)
+
+    def setFrameCount(self, count):
+        self.frameCount = count
+        self.globalClock.setFrameCount(count)
+
     def shutdown(self):
         self.eventMgr.shutdown()
 

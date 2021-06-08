@@ -94,7 +94,7 @@ class ClockDriftManager:
             print("Clock drift: adjustment (per sec): %.2fms, avg: %.3f, lo: %d, hi: %d, ex: %d"
                   % (adjustment * 1000.0, self.getCurrentClockDifference(), low, high, exactDiff))
         else:
-          print("Clock drift disabled.")
+            print("Clock drift disabled.")
 
     def adjustAverageDifferenceBy(self, amountInSeconds):
         # Don't adjust the average if it's already tiny.

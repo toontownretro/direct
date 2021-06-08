@@ -32,7 +32,7 @@ PUBLISHED:
 
   INLINE void set_python_repository(PyObject *repo);
 
-  void unpack_server_snapshot(DatagramIterator &dgi);
+  void unpack_server_snapshot(DatagramIterator &dgi, bool is_delta);
   bool unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj,
                            DCClass *dclass, DOID_TYPE do_id);
 
