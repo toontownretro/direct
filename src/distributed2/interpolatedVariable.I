@@ -361,7 +361,7 @@ get_derivative_smooth_velocity(Type *out, double now) {
     // Now ramp it to zero after cl_extrapolate_amount..
     double dest_time = now - _interpolation_amount;
     double diff = dest_time - _sample_points[info.newer].timestamp;
-    diff = clamp(diff, 0.0, cl_extrapolate_amount.get_value() * 2);
+    diff = std::clamp(diff, 0.0, cl_extrapolate_amount.get_value() * 2);
     if (diff > cl_extrapolate_amount.get_value()) {
       double scale = 1 - (diff - cl_extrapolate_amount.get_value()) / cl_extrapolate_amount.get_value();
       *out *= scale;
