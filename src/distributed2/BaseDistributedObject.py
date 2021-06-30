@@ -67,7 +67,7 @@ class BaseDistributedObject(DirectObject):
     def isDeleted(self):
         return self.doState == DOState.Deleted
 
-    def addTask(self, method, name, extraArgs = [], appendTask = False, sim = True, sort = 0):
+    def addTask(self, method, name, extraArgs = [], appendTask = False, sim = True, sort = 0, delay = 0):
         """
         Convenience method to create a task for this distributed object.
 
@@ -80,7 +80,10 @@ class BaseDistributedObject(DirectObject):
 
         mgr = base.simTaskMgr if sim else base.taskMgr
 
-        task = mgr.add(method, self.taskName(name), extraArgs = extraArgs, appendTask = appendTask, sort = sort)
+        if delay <= 0:
+            task = mgr.add(method, self.taskName(name), extraArgs = extraArgs, appendTask = appendTask, sort = sort)
+        else:
+            task = mgr.doMethodLater(delay, method, self.taskName(name), extraArgs = extraArgs, appendTask = appendTask, sort = sort)
         self._tasks[name] = (task, mgr)
         return task
 
