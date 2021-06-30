@@ -177,7 +177,8 @@ class ServerRepository(BaseObjectManager):
         do.delete()
 
     def simObjects(self):
-        for do in self.doId2do.values():
+        dos = list(self.doId2do.values())
+        for do in dos:
             do.simulate()
 
     def simObjectsTask(self, task):
@@ -326,7 +327,7 @@ class ServerRepository(BaseObjectManager):
             elif type == NetMessages.B_ObjectMessage:
                 self.handleObjectMessage(client, dgi)
 
-    def sendUpdate(self, do, name, args, client = None):
+    def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
             return
         if not do.dclass:
@@ -358,6 +359,8 @@ class ServerRepository(BaseObjectManager):
             if field.isBroadcast():
                 # Send to all interested clients
                 for cl in self.zonesToClients.get(do.zoneId, set()):
+                    if cl in excludeClients:
+                        continue
                     self.sendDatagram(dg, cl.connection, reliable)
             else:
                 self.notify.warning("Can't send non-broadcast object message without a target client")
