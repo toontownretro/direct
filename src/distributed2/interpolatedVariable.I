@@ -89,6 +89,7 @@ InterpolatedVariable() {
   _last_networked_time = -1.0;
   _interpolation_amount = 0.0;
   _looping = false;
+  _angles = false;
 }
 
 /**
@@ -173,6 +174,26 @@ template<class Type>
 INLINE bool InterpolatedVariable<Type>::
 get_looping() const {
   return _looping;
+}
+
+/**
+ * Sets whether or not the variable represents euler angles.  This makes sure
+ * angles are interpolated correctly.
+ */
+template<class Type>
+INLINE void InterpolatedVariable<Type>::
+set_angles(bool flag) {
+  _angles = flag;
+}
+
+/**
+ * Returns whether or not the variable represents euler angles.  This makes
+ * sure angles are interpolated correctly.
+ */
+template<class Type>
+INLINE bool InterpolatedVariable<Type>::
+get_angles() const {
+  return _angles;
 }
 
 /**
@@ -364,7 +385,7 @@ get_derivative_smooth_velocity(Type *out, double now) {
     diff = std::clamp(diff, 0.0, cl_extrapolate_amount.get_value() * 2);
     if (diff > cl_extrapolate_amount.get_value()) {
       double scale = 1 - (diff - cl_extrapolate_amount.get_value()) / cl_extrapolate_amount.get_value();
-      *out *= scale;
+      *out = *out * scale;
     }
 
   } else {
@@ -636,8 +657,12 @@ interpolate_hermite(Type *out, double frac, SamplePoint *prev, SamplePoint *star
 
   if (_looping) {
     *out = LoopingLerp_Hermite(frac, prev->value, start->value, end->value);
-  } else {
+  } else if (!_angles) {
     *out = Lerp_Hermite(frac, prev->value, start->value, end->value);
+  } else {
+    // Can't do hermite with angles, get discontinuities, so just linear
+    // interp.
+    *out = tlerp(frac, start->value, end->value);
   }
 
   // Clamp the output from interpolation.
@@ -656,7 +681,7 @@ derivative_hermite(Type *out, double frac, SamplePoint *prev, SamplePoint *start
   double divisor = 1.0 / (end->timestamp - start->timestamp);
   nassertv(!_looping);
   *out = Derivative_Hermite(frac, prev->value, start->value, end->value);
-  *out *= divisor;
+  *out = *out * divisor;
 }
 
 /**

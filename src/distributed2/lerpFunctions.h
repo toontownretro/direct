@@ -104,12 +104,6 @@ inline void Lerp_Clamp( const LVector2f &val )
 //	val.Clamp();
 //}
 
-inline LVector3 Lerp_Hermite( float t, const LVector3& p0, const LVector3& p1, const LVector3& p2 )
-{
-	// Can't do hermite with QAngles, get discontinuities, just do a regular interpolation
-	return tlerp( t, p1, p2 );
-}
-
 template <class T>
 inline T LoopingLerp_Hermite( float t, T p0, T p1, T p2 )
 {

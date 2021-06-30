@@ -108,6 +108,9 @@ PUBLISHED:
   INLINE void set_looping(bool loop);
   INLINE bool get_looping() const;
 
+  INLINE void set_angles(bool flag);
+  INLINE bool get_angles() const;
+
   INLINE void clear_history();
   INLINE void reset(const Type &value);
 
@@ -131,8 +134,9 @@ PUBLISHED:
   INLINE bool get_interpolation_info(double now, int &newer, int &older, int &oldest) const;
   INLINE bool get_interpolation_info(InterpolationInfo &info, double now) const;
 
-private:
   INLINE void push_front(const Type &value, double timestamp, bool flush_newer);
+
+private:
   INLINE void remove_samples_before(double timestamp);
 
   INLINE bool get_interpolation_info(InterpolationInfo &info, double now,
@@ -164,6 +168,7 @@ private:
 
   PN_stdfloat _interpolation_amount;
   bool _looping;
+  bool _angles;
 };
 
 BEGIN_PUBLISH
@@ -172,21 +177,25 @@ typedef InterpolatedVariable<float> InterpolatedFloat;
 typedef InterpolatedVariable<LVecBase2f> InterpolatedVec2f;
 typedef InterpolatedVariable<LVecBase3f> InterpolatedVec3f;
 typedef InterpolatedVariable<LVecBase4f> InterpolatedVec4f;
+typedef InterpolatedVariable<LQuaternionf> InterpolatedQuatf;
 
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<float>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase2f>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase3f>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase4f>);
+EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LQuaternionf>);
 
 typedef InterpolatedVariable<double> InterpolatedDouble;
 typedef InterpolatedVariable<LVecBase2d> InterpolatedVec2d;
 typedef InterpolatedVariable<LVecBase3d> InterpolatedVec3d;
 typedef InterpolatedVariable<LVecBase4d> InterpolatedVec4d;
+typedef InterpolatedVariable<LQuaterniond> InterpolatedQuatd;
 
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<double>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase2d>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase3d>);
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LVecBase4d>);
+EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<LQuaterniond>);
 
 typedef InterpolatedVariable<int> InterpolatedInt;
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<int>);
@@ -196,11 +205,13 @@ typedef InterpolatedDouble InterpolatedSTDFloat;
 typedef InterpolatedVec2d InterpolatedVec2;
 typedef InterpolatedVec3d InterpolatedVec3;
 typedef InterpolatedVec3d InterpolatedVec4;
+typedef InterpolatedQuatd InterpolatedQuat;
 #else
 typedef InterpolatedFloat InterpolatedSTDFloat;
 typedef InterpolatedVec2f InterpolatedVec2;
 typedef InterpolatedVec3f InterpolatedVec3;
 typedef InterpolatedVec3f InterpolatedVec4;
+typedef InterpolatedQuatf InterpolatedQuat;
 #endif
 
 END_PUBLISH
