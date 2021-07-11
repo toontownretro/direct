@@ -262,6 +262,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.dclass = dclass
             do.isOwner = True
             self.doId2do[do.doId] = do
+            self.addObject(do)
 
             do.generate()
 
@@ -269,7 +270,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
                 self.notify.debug("Unpacking baseline/initial owner object state")
                 # An initial state was supplied for the object
                 # Unpack it in the C++ repository.
-                self.unpackObjectState(dgi, do, dclass, doId)
+                self.unpackObjectState(dgi, doId)
 
             do.announceGenerate()
 
@@ -287,6 +288,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.zoneId = zoneId
             do.dclass = dclass
             self.doId2do[do.doId] = do
+            self.addObject(do)
 
             do.generate()
 
@@ -294,7 +296,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
                 self.notify.debug("Unpacking baseline/initial object state")
                 # An initial state was supplied for the object
                 # Unpack it in the C++ repository.
-                self.unpackObjectState(dgi, do, dclass, doId)
+                self.unpackObjectState(dgi, doId)
 
             do.announceGenerate()
 
@@ -307,6 +309,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.deleteObject(do)
 
     def deleteObject(self, do):
+        self.removeObject(do.doId)
         if do in self.doId2do.values():
             del self.doId2do[do.doId]
         elif do in self.doId2ownerView.values():
@@ -317,6 +320,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
     def deleteAllObjects(self):
         for do in list(self.doId2do.values()) + list(self.doId2ownerView.values()):
+            self.removeObject(do.doId)
             if do.doState > DOState.Disabled:
                 do.disable()
             do.delete()
