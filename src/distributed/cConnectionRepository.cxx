@@ -27,6 +27,8 @@
 #ifdef HAVE_PYTHON
 #include "py_panda.h"
 #include "dcClass_ext.h"
+//IMPORT_THIS struct Dtool_PyTypedObject Dtool_DatagramIterator;
+extern struct Dtool_PyTypedObject Dtool_DCClass;
 #endif
 
 using std::endl;
@@ -46,6 +48,7 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   _lock("CConnectionRepository::_lock"),
 #ifdef HAVE_PYTHON
   _python_repository(nullptr),
+  _python_ai_datagramiterator(NULL),
 #endif
 #ifdef HAVE_OPENSSL
   _http_conn(nullptr),
@@ -78,6 +81,12 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   }
 #endif
   _tcp_header_size = tcp_header_size;
+  
+#ifdef HAVE_PYTHON
+  //PyObject *PyDitterator = DTool_CreatePyInstance(&_di, Dtool_DatagramIterator, false, false);
+  //if(PyDitterator != NULL)
+      //_python_ai_datagramiterator = Py_BuildValue("(O)",PyDitterator);
+#endif
 }
 
 /**
@@ -995,3 +1004,141 @@ describe_message(std::ostream &out, const string &prefix,
     }
   }
 }
+
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+
+bool CConnectionRepository::network_based_reader_and_yielder(PyObject *PycallBackFunction,ClockObject &clock, float returnBy) {
+  ReMutexHolder holder(_lock);
+    while(is_connected())
+    {        
+        check_datagram_ai(PycallBackFunction);
+        if(is_connected())
+            _bdc.Flush();
+        float currentTime = clock.get_real_time();
+        float dif_time = returnBy - currentTime;
+        if(dif_time <= 0.001) // to avoi over runs..
+            break;
+        if(is_connected())
+            _bdc.WaitForNetworkReadEvent(dif_time);
+    }
+    return false;
+}
+
+bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
+  ReMutexHolder holder(_lock);
+  // these could be static .. not 
+  PyObject *doId2do = nullptr;
+  float startTime = 0;
+  float endTime = 0;
+  // this seems weird...here
+  _bdc.Flush();
+  while (_bdc.GetMessage(_dg)) { 
+      if (get_verbose()) 
+          describe_message(nout, "RECV", _dg);
+
+      if (_time_warning > 0) 
+        startTime = ClockObject::get_global_clock()->get_real_time();
+
+      // Start breaking apart the datagram.
+      _di.assign(_dg);
+      unsigned char  wc_cnt = _di.get_uint8();
+      _msg_channels.clear();
+      for(unsigned char lp1 = 0; lp1 < wc_cnt; lp1++)
+          _msg_channels.push_back(_di.get_uint64());
+
+      _msg_sender = _di.get_uint64();
+      _msg_type = _di.get_uint16();
+
+      if( _msg_type == STATESERVER_OBJECT_UPDATE_FIELD)
+      {
+          if (doId2do == nullptr)
+          {
+              // this is my attemp to take it out of the inner loop  RHH
+              doId2do = PyObject_GetAttrString(_python_repository, "doId2do");
+              nassertr(doId2do != nullptr, false);
+          }
+
+          if (!handle_update_field_ai(doId2do)) 
+          {
+              Py_XDECREF(doId2do);
+              if (_time_warning > 0) {
+                endTime = ClockObject::get_global_clock()->get_real_time(); 
+                if ( _time_warning < (endTime - startTime)) {
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+                  _dg.dump_hex(nout,2);
+                }
+              }
+              return false; 
+          }
+      }
+      else
+      {
+          /*
+          PyObject * result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
+          if (PyErr_Occurred()) 
+          {        
+              Py_XDECREF(doId2do);
+              if (_time_warning > 0) {
+                endTime = ClockObject::get_global_clock()->get_real_time(); 
+                if ( _time_warning < (endTime - startTime)) {
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+                  _dg.dump_hex(nout,2);                
+                }
+              }
+              return true;
+          }
+          */
+      }
+
+      if (_time_warning > 0) {
+        endTime = ClockObject::get_global_clock()->get_real_time(); 
+        if ( _time_warning < (endTime - startTime)) {
+          nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+          _dg.dump_hex(nout,2);   
+        }
+      }
+             
+  }
+
+
+  Py_XDECREF(doId2do);
+  return false;
+}
+
+#endif  // #ifdef WANT_NATIVE_NET
+#endif  // #ifdef HAVE_PYTHON
+
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+
+bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do)  {
+  PStatTimer timer(_update_pcollector);
+  unsigned int do_id = _di.get_uint32();
+ 
+  PyObject *doId = PyLong_FromUnsignedLong(do_id);
+  PyObject *distobj = PyDict_GetItem(doId2do, doId);
+  Py_DECREF(doId);
+
+  if (distobj != nullptr)
+  {
+      PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
+      nassertr(dclass_obj != nullptr, false);
+
+      Extension<DCClass> *dclass = nullptr;
+      DTOOL_Call_ExtractThisPointerForType(dclass_obj, &Dtool_DCClass, (void **) &dclass);
+      if(dclass == nullptr)
+          return false;
+
+      Py_INCREF(distobj);
+      dclass->receive_update(distobj, _di); 
+      Py_DECREF(distobj);
+
+      if (PyErr_Occurred()) 
+          return false;
+  }
+  return true;
+}
+
+#endif  // #ifdef WANT_NATIVE_NET
+#endif  // #ifdef HAVE_PYTHON
