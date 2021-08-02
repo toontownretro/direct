@@ -657,9 +657,9 @@ ai_database_generate_context(unsigned int context_id, DOID_TYPE parent_id,
   packer.raw_pack_uint32(context_id);
 
   // Specify all of the required fields.
-  int num_fields = get_num_inherited_fields();
+  int num_fields = _this->get_num_inherited_fields();
   for (int i = 0; i < num_fields; ++i) {
-    DCField *field = get_inherited_field(i);
+    DCField *field = _this->get_inherited_field(i);
     if (field->is_required() && field->as_molecular_field() == nullptr) {
       packer.begin_pack(field);
       packer.pack_default_value();
@@ -686,9 +686,9 @@ ai_database_generate_context_old(unsigned int context_id, DOID_TYPE parent_id,
   packer.raw_pack_uint32(context_id);
 
   // Specify all of the required fields.
-  int num_fields = get_num_inherited_fields();
+  int num_fields = _this->get_num_inherited_fields();
   for (int i = 0; i < num_fields; ++i) {
-    DCField *field = get_inherited_field(i);
+    DCField *field = _this->get_inherited_field(i);
     if (field->is_required() && field->as_molecular_field() == nullptr) {
       packer.begin_pack(field);
       packer.pack_default_value();
