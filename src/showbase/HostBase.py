@@ -229,7 +229,7 @@ class HostBase(DirectObject):
         #
 
         hasClockDriftMgr = False
-        if base.cr is not None:
+        if base.cr is not None and hasattr(base.cr, 'clockDriftMgr'):
             # Adjust the client clock very slightly to keep it in line with the
             # server clock.
             if base.cr.clockDriftMgr.isClockCorrectionEnabled():
