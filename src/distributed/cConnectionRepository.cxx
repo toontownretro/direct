@@ -27,7 +27,6 @@
 #ifdef HAVE_PYTHON
 #include "py_panda.h"
 #include "dcClass_ext.h"
-//IMPORT_THIS struct Dtool_PyTypedObject Dtool_DatagramIterator;
 extern struct Dtool_PyTypedObject Dtool_DCClass;
 #endif
 
@@ -48,7 +47,7 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   _lock("CConnectionRepository::_lock"),
 #ifdef HAVE_PYTHON
   _python_repository(nullptr),
-  _python_ai_datagramiterator(NULL),
+  _python_ai_datagramiterator(nullptr),
 #endif
 #ifdef HAVE_OPENSSL
   _http_conn(nullptr),
@@ -83,9 +82,21 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   _tcp_header_size = tcp_header_size;
   
 #ifdef HAVE_PYTHON
-  //PyObject *PyDitterator = DTool_CreatePyInstance(&_di, Dtool_DatagramIterator, false, false);
-  //if(PyDitterator != NULL)
-      //_python_ai_datagramiterator = Py_BuildValue("(O)",PyDitterator);
+  Dtool_TypeMap *tmap = Dtool_GetGlobalTypeMap();
+  auto tmap_search = tmap->find("DatagramIterator");
+  // Make sure we found what we were looking for.
+  nassertv(tmap_search != tmap->end());
+  Dtool_PyTypedObject *Dtool_DatagramIterator = tmap_search->second;
+  // If this is a nullptr. We can't go further.
+  nassertv(Dtool_DatagramIterator != nullptr);
+  PyObject *PyDitterator = DTool_CreatePyInstance(&_di, *Dtool_DatagramIterator, false, false);
+  if(PyDitterator != nullptr) {
+      _python_ai_datagramiterator = Py_BuildValue("(O)", PyDitterator);
+      if (PyErr_Occurred()) {
+          PyErr_Print();
+      }
+  }
+  Py_XDECREF(PyDitterator);
 #endif
 }
 
@@ -1009,9 +1020,9 @@ describe_message(std::ostream &out, const string &prefix,
 #ifdef WANT_NATIVE_NET
 
 bool CConnectionRepository::network_based_reader_and_yielder(PyObject *PycallBackFunction,ClockObject &clock, float returnBy) {
-  ReMutexHolder holder(_lock);
-    while(is_connected())
-    {        
+    ReMutexHolder holder(_lock);
+    distributed_cat.debug() << "Doing Network Based Read.\n";
+    while(is_connected()) {
         check_datagram_ai(PycallBackFunction);
         if(is_connected())
             _bdc.Flush();
@@ -1033,34 +1044,32 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
   float endTime = 0;
   // this seems weird...here
   _bdc.Flush();
-  while (_bdc.GetMessage(_dg)) { 
+  while (_bdc.GetMessage(_dg)) {
       if (get_verbose()) 
           describe_message(nout, "RECV", _dg);
 
-      if (_time_warning > 0) 
+      if (_time_warning > 0)
         startTime = ClockObject::get_global_clock()->get_real_time();
 
       // Start breaking apart the datagram.
       _di.assign(_dg);
       unsigned char  wc_cnt = _di.get_uint8();
       _msg_channels.clear();
-      for(unsigned char lp1 = 0; lp1 < wc_cnt; lp1++)
+      for (unsigned char lp1 = 0; lp1 < wc_cnt; lp1++) {
           _msg_channels.push_back(_di.get_uint64());
+      }
 
       _msg_sender = _di.get_uint64();
       _msg_type = _di.get_uint16();
 
-      if( _msg_type == STATESERVER_OBJECT_UPDATE_FIELD)
-      {
-          if (doId2do == nullptr)
-          {
+      if (_msg_type == STATESERVER_OBJECT_UPDATE_FIELD) {
+          if (doId2do == nullptr) {
               // this is my attemp to take it out of the inner loop  RHH
               doId2do = PyObject_GetAttrString(_python_repository, "doId2do");
               nassertr(doId2do != nullptr, false);
           }
 
-          if (!handle_update_field_ai(doId2do)) 
-          {
+          if (!handle_update_field_ai(doId2do)) {
               Py_XDECREF(doId2do);
               if (_time_warning > 0) {
                 endTime = ClockObject::get_global_clock()->get_real_time(); 
@@ -1071,13 +1080,17 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
               }
               return false; 
           }
-      }
-      else
-      {
-          /*
-          PyObject * result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
-          if (PyErr_Occurred()) 
-          {        
+      } else {
+          distributed_cat.debug() << "Calling function callback in check_datagram_ai()!\n";
+          nassertr(_python_ai_datagramiterator != nullptr, false);
+
+          // We need to assure the gil state so we don't get a tstate error.
+          PyGILState_STATE gstate = PyGILState_Ensure();
+          PyObject *result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
+          PyGILState_Release(gstate);
+
+          Py_XDECREF(result);
+          if (PyErr_Occurred()) {
               Py_XDECREF(doId2do);
               if (_time_warning > 0) {
                 endTime = ClockObject::get_global_clock()->get_real_time(); 
@@ -1088,7 +1101,6 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
               }
               return true;
           }
-          */
       }
 
       if (_time_warning > 0) {
@@ -1098,9 +1110,8 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
           _dg.dump_hex(nout,2);   
         }
       }
-             
-  }
 
+  }
 
   Py_XDECREF(doId2do);
   return false;
@@ -1115,13 +1126,18 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
 bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do)  {
   PStatTimer timer(_update_pcollector);
   unsigned int do_id = _di.get_uint32();
+  
+  nassertr(doId2do != nullptr, false);
  
+#ifdef USE_PYTHON_2_2_OR_EARLIER
+  PyObject *doId = PyInt_FromLong(do_id);
+#else
   PyObject *doId = PyLong_FromUnsignedLong(do_id);
+#endif
   PyObject *distobj = PyDict_GetItem(doId2do, doId);
   Py_DECREF(doId);
 
-  if (distobj != nullptr)
-  {
+  if (distobj != nullptr) {
       PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
       nassertr(dclass_obj != nullptr, false);
 

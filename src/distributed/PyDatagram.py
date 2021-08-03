@@ -44,10 +44,14 @@ class PyDatagram(Datagram):
         self.addChannel('A')
         self.addUint16(code)
 
-    def addServerControlHeader(self, code):
-        self.addInt8(1)
-        self.addChannel(CONTROL_CHANNEL)
-        self.addUint16(code)
+#    def addServerControlHeader(self, code):
+#        self.addInt8(1)
+#        self.addChannel(CONTROL_MESSAGE)
+#        self.addUint16(code)
+#
+#    def addOldServerControlHeader(self, code):
+#        self.addChannel(CONTROL_MESSAGE)
+#        self.addUint16(code)
 
     def putArg(self, arg, subatomicType, divisor=1):
         if (divisor == 1):
