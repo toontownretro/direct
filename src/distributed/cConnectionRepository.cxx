@@ -1038,6 +1038,10 @@ bool CConnectionRepository::network_based_reader_and_yielder(PyObject *PycallBac
 
 bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
   ReMutexHolder holder(_lock);
+#if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
+  PyGILState_STATE gstate;
+  gstate = PyGILState_Ensure();
+#endif
   // these could be static .. not 
   PyObject *doId2do = nullptr;
   float startTime = 0;
@@ -1066,10 +1070,11 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
           if (doId2do == nullptr) {
               // this is my attemp to take it out of the inner loop  RHH
               doId2do = PyObject_GetAttrString(_python_repository, "doId2do");
-              nassertr(doId2do != nullptr, false);
           }
 
-          if (!handle_update_field_ai(doId2do)) {
+          bool success = handle_update_field_ai(doId2do);
+
+          if (!success) {
               Py_XDECREF(doId2do);
               if (_time_warning > 0) {
                 endTime = ClockObject::get_global_clock()->get_real_time(); 
@@ -1078,16 +1083,16 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
                   _dg.dump_hex(nout,2);
                 }
               }
+#if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
+              PyGILState_Release(gstate);
+#endif
               return false; 
           }
       } else {
           distributed_cat.debug() << "Calling function callback in check_datagram_ai()!\n";
           nassertr(_python_ai_datagramiterator != nullptr, false);
 
-          // We need to assure the gil state so we don't get a tstate error.
-          PyGILState_STATE gstate = PyGILState_Ensure();
           PyObject *result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
-          PyGILState_Release(gstate);
 
           Py_XDECREF(result);
           if (PyErr_Occurred()) {
@@ -1099,6 +1104,9 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
                   _dg.dump_hex(nout,2);                
                 }
               }
+#if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
+              PyGILState_Release(gstate);
+#endif
               return true;
           }
       }
@@ -1114,6 +1122,10 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
   }
 
   Py_XDECREF(doId2do);
+
+#if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
+  PyGILState_Release(gstate);
+#endif
   return false;
 }
 
@@ -1126,8 +1138,6 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
 bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do)  {
   PStatTimer timer(_update_pcollector);
   unsigned int do_id = _di.get_uint32();
-  
-  nassertr(doId2do != nullptr, false);
  
 #ifdef USE_PYTHON_2_2_OR_EARLIER
   PyObject *doId = PyInt_FromLong(do_id);
@@ -1135,23 +1145,27 @@ bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do)  {
   PyObject *doId = PyLong_FromUnsignedLong(do_id);
 #endif
   PyObject *distobj = PyDict_GetItem(doId2do, doId);
-  Py_DECREF(doId);
+  Py_XDECREF(doId);
 
   if (distobj != nullptr) {
       PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
       nassertr(dclass_obj != nullptr, false);
 
-      Extension<DCClass> *dclass = nullptr;
-      DTOOL_Call_ExtractThisPointerForType(dclass_obj, &Dtool_DCClass, (void **) &dclass);
-      if(dclass == nullptr)
-          return false;
+      PyObject *dclass_obj_this = PyObject_GetAttrString(dclass_obj, "this");
+      Py_XDECREF(dclass_obj);
+      nassertr(dclass_obj_this != nullptr, false);
 
-      Py_INCREF(distobj);
-      dclass->receive_update(distobj, _di); 
-      Py_DECREF(distobj);
+      DCClass *dclass = (DCClass *)PyLong_AsVoidPtr(dclass_obj_this);
+      Py_XDECREF(dclass_obj_this);
+      nassertr(dclass != nullptr, false);
 
-      if (PyErr_Occurred()) 
+      Py_XINCREF(distobj);
+      invoke_extension(dclass).receive_update(distobj, _di);
+      Py_XDECREF(distobj);
+
+      if (PyErr_Occurred()) {
           return false;
+      }
   }
   return true;
 }
