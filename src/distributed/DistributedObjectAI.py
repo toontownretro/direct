@@ -288,6 +288,7 @@ class DistributedObjectAI(DistributedObjectBase):
         # arguments are newZoneId, oldZoneId
         # includes the quiet zone.
         return DistributedObjectAI.staticGetZoneChangeEvent(self.doId)
+        
     def getLogicalZoneChangeEvent(self):
         # this event is generated whenever this object changes to a
         # non-quiet-zone zone.
@@ -298,6 +299,7 @@ class DistributedObjectAI(DistributedObjectBase):
     @staticmethod
     def staticGetZoneChangeEvent(doId):
         return 'DOChangeZone-%s' % doId
+        
     @staticmethod
     def staticGetLogicalZoneChangeEvent(doId):
         return 'DOLogicalChangeZone-%s' % doId
@@ -306,8 +308,7 @@ class DistributedObjectAI(DistributedObjectBase):
         """this function gets called as if we never go through the
         quiet zone. Note that it is called once you reach the newZone,
         and not at the time that you leave the oldZone."""
-        messenger.send(self.getLogicalZoneChangeEvent(),
-                       [newZoneId, oldZoneId])
+        messenger.send(self.getLogicalZoneChangeEvent(), [newZoneId, oldZoneId])
 
     def getZoneData(self):
         # Call this to get an AIZoneData object for the current zone.
