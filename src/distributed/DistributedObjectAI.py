@@ -479,9 +479,7 @@ class DistributedObjectAI(DistributedObjectBase):
             doId = "none"
             if hasattr(self, "doId"):
                 doId = self.doId
-            self.notify.warning(
-                "Tried to delete a %s (doId %s) that is already deleted" %
-                (self.__class__, doId))
+            self.notify.warning("Tried to delete a %s (doId %s) that is already deleted" % (self.__class__, doId))
             return
         self.air.requestDelete(self)
         self._DOAI_requestedDelete = True
