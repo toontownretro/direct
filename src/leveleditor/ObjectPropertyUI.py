@@ -141,7 +141,7 @@ class ObjectPropUIEntry(ObjectPropUI):
     """ UI for string value properties """
     def __init__(self, parent, label):
         ObjectPropUI.__init__(self, parent, label)
-        self.ui = wx.TextCtrl(self.uiPane, -1)
+        self.ui = wx.TextCtrl(self.uiPane, -1, style = wx.TE_PROCESS_ENTER)
         self.eventType = wx.EVT_TEXT_ENTER
         self.Layout()
 
@@ -328,7 +328,7 @@ class ObjectPropertyUI(ScrolledPanel):
         sizer = self.GetSizer()
         if sizer is not None:
             self.lastPropTab = self.nb.GetCurrentPage().GetName()
-            sizer.Remove(self.propPane)
+            #sizer.Remove(self.propPane)
             self.propPane.Destroy()
             self.SetSizer(None)
         self.Layout()
