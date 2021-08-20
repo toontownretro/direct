@@ -544,7 +544,8 @@ class DirectSession(DirectObject):
                     base.mouseWatcherNode = winCtrl.mouseWatcher.node()
                     base.direct.dr.mouseUpdate()
                     LE_showInOneCam(self.selectedNPReadout, self.camera.getName())
-                    base.direct.widget = base.direct.manipulationControl.widgetList[base.camList.index(NodePath(winCtrl.camNode))]
+                    if base.camList.index(NodePath(winCtrl.camNode)) in base.direct.manipulationControl.widgetList:
+                        base.direct.widget = base.direct.manipulationControl.widgetList[base.camList.index(NodePath(winCtrl.camNode))]
 
                 input = input[8:] # get rid of camera prefix
                 if self.fAlt and 'alt' not in input and not input.endswith('-up'):

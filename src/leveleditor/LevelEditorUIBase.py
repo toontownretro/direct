@@ -342,7 +342,7 @@ class LevelEditorUIBase(WxPandaShell):
                 menuItem = self.menuBar.FindItemById(id)
                 hotKey = hotKeyDict.get(desc[1])
                 if hotKey:
-                    menuItem.SetText(desc[0] + "\t%s"%hotKey)
+                    menuItem.SetItemLabel(desc[0] + "\t%s"%hotKey)
 
     def createInterface(self):
         WxPandaShell.createInterface(self)

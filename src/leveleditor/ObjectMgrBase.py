@@ -187,10 +187,12 @@ class ObjectMgrBase:
                     if type(funcName) == str:
                         if funcName.startswith('.'):
                             # when it's using default objectHandler
-                            if self.editor:
-                                func = Functor(getattr(self.editor, "objectHandler%s"%funcName))
-                            else: # when loaded outside of LE
-                                func = Functor(getattr(base, "objectHandler%s"%funcName))
+                            if self.editor and hasattr(self.editor, "objectHandler"):
+                                handler = self.editor.objectHandler
+                                func = Functor(getattr(handler, "%s" % funcName[1:]))
+                            elif hasattr(base, "objectHandler"): # when loaded outside of LE
+                                handler = base.objectHandler
+                                func = Functor(getattr(base, "%s" % funcName[1:]))
                         else:
                             # when it's not using default objectHandler, whole name of the handling obj
                             # should be included in function name
