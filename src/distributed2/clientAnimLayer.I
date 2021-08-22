@@ -16,6 +16,9 @@
  */
 INLINE ClientAnimLayer::
 ClientAnimLayer(const AnimLayer &copy) :
+  play_mode(copy._play_mode),
+  start_cycle(copy._start_cycle),
+  play_cycles(copy._play_cycles),
   cycle(copy._cycle),
   prev_cycle(copy._prev_cycle),
   weight(copy._weight),
@@ -35,7 +38,10 @@ operator == (const ClientAnimLayer &other) const {
          weight == other.weight &&
          order == other.order &&
          sequence == other.sequence &&
-         sequence_parity == other.sequence_parity;
+         sequence_parity == other.sequence_parity &&
+         play_mode == other.play_mode &&
+         start_cycle == other.start_cycle &&
+         play_cycles == other.play_cycles;
 }
 
 /**
@@ -69,6 +75,9 @@ operator / (const PN_stdfloat value) const {
   result.prev_cycle = prev_cycle;
   result.sequence = sequence;
   result.sequence_parity = sequence_parity;
+  result.play_mode = play_mode;
+  result.start_cycle = start_cycle;
+  result.play_cycles = play_cycles;
   return result;
 }
 
@@ -84,6 +93,9 @@ operator * (PN_stdfloat value) const {
   result.prev_cycle = prev_cycle;
   result.sequence = sequence;
   result.sequence_parity = sequence_parity;
+  result.play_mode = play_mode;
+  result.start_cycle = start_cycle;
+  result.play_cycles = play_cycles;
   return result;
 }
 
@@ -98,7 +110,10 @@ operator - (const ClientAnimLayer &other) const {
   result.order = other.order;
   result.prev_cycle = other.prev_cycle;
   result.sequence = other.sequence;
-  result.sequence_parity = sequence_parity;
+  result.sequence_parity = other.sequence_parity;
+  result.play_mode = other.play_mode;
+  result.start_cycle = other.start_cycle;
+  result.play_cycles = other.play_cycles;
   return result;
 }
 
@@ -114,6 +129,10 @@ LoopingLerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to) {
   output.weight = tlerp(percent, (float)from.weight, (float)to.weight);
   output.order = to.order;
   output.sequence_parity = to.sequence_parity;
+  output.play_mode = to.play_mode;
+  output.start_cycle = to.start_cycle;
+  output.play_cycles = to.play_cycles;
+
   return output;
 }
 
@@ -129,6 +148,9 @@ tlerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to) {
   output.weight = tlerp(percent, from.weight, to.weight);
   output.order = to.order;
   output.sequence_parity = to.sequence_parity;
+  output.play_mode = to.play_mode;
+  output.start_cycle = to.start_cycle;
+  output.play_cycles = to.play_cycles;
   return output;
 }
 
@@ -144,6 +166,9 @@ LoopingLerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from,
   output.weight = tlerp(percent, from.weight, to.weight);
   output.order = to.order;
   output.sequence_parity = to.sequence_parity;
+  output.play_mode = to.play_mode;
+  output.start_cycle = to.start_cycle;
+  output.play_cycles = to.play_cycles;
   return output;
 }
 
@@ -159,6 +184,9 @@ Lerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, Client
   output.weight = tlerp(percent, from.weight, to.weight);
   output.order = to.order;
   output.sequence_parity = to.sequence_parity;
+  output.play_mode = to.play_mode;
+  output.start_cycle = to.start_cycle;
+  output.play_cycles = to.play_cycles;
   return output;
 }
 

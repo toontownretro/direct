@@ -35,6 +35,9 @@ PUBLISHED:
   INLINE ClientAnimLayer operator * (PN_stdfloat value) const;
   INLINE ClientAnimLayer operator - (const ClientAnimLayer &other) const;
 
+  int play_mode;
+  PN_stdfloat start_cycle;
+  PN_stdfloat play_cycles;
   PN_stdfloat cycle;
   PN_stdfloat prev_cycle;
   PN_stdfloat weight;

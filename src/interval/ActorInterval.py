@@ -45,15 +45,19 @@ class ActorInterval(Interval.Interval):
                  duration=None, startTime=None, endTime=None,
                  startFrame=None, endFrame=None,
                  playRate=1.0, name=None, forceUpdate=0,
-                 partName=None, lodName=None):
+                 partName=None, lodName=None, blendIn=0.0,
+                 blendOut=0.0, layer=0):
         # Generate unique id
         id = 'Actor-%s-%d' % (animName, ActorInterval.animNum)
         ActorInterval.animNum += 1
+
         # Record class specific variables
         self.actor = actor
         self.animName = animName
-        self.controls = self.actor.getAnimControls(
-            self.animName, partName = partName, lodName = lodName)
+        self.layer = layer
+        self.blendIn = blendIn
+        self.blendOut = blendOut
+        self.resetControls(partName, lodName)
         self.loopAnim = loop
         self.constrainedLoop = constrainedLoop
         self.forceUpdate = forceUpdate
@@ -63,14 +67,14 @@ class ActorInterval(Interval.Interval):
         if (name == None):
             name = id
 
-        if len(self.controls) == 0:
+        if len(self.channels) == 0:
             self.notify.warning("Unknown animation for actor: %s" % (self.animName))
             self.frameRate = 1.0
             self.startFrame = 0
             self.endFrame = 0
         else:
 
-            self.frameRate = self.controls[0].getFrameRate() * abs(playRate)
+            self.frameRate = self.channels[0][2].getFrameRate() * abs(playRate)
             # Compute start and end frames.
             if startFrame != None:
                 self.startFrame = startFrame
@@ -91,10 +95,10 @@ class ActorInterval(Interval.Interval):
             else:
                 # No end frame specified.  Choose the maximum of all
                 # of the controls' numbers of frames.
-                maxFrames = self.controls[0].getNumFrames()
+                maxFrames = self.channels[0][2].getNumFrames()
                 warned = 0
-                for i in range(1, len(self.controls)):
-                    numFrames = self.controls[i].getNumFrames()
+                for i in range(1, len(self.channels)):
+                    numFrames = self.channels[i][2].getNumFrames()
                     if numFrames != maxFrames and numFrames != 1 and not warned:
                         self.notify.warning("Animations '%s' on %s have an inconsistent number of frames." % (animName, actor.getName()))
                         warned = 1
@@ -152,15 +156,17 @@ class ActorInterval(Interval.Interval):
         # We use our pre-computed list of animControls for
         # efficiency's sake, rather than going through the relatively
         # expensive Actor interface every frame.
-        for control in self.controls:
+        for char, index, chan in self.channels:
             # Each animControl might have a different number of frames.
-            numFrames = control.getNumFrames()
+            numFrames = chan.getNumFrames()
             if self.loopAnim:
                 frame = (intFrame % numFrames) + (absFrame - intFrame)
             else:
                 frame = max(min(absFrame, numFrames - 1), 0)
 
-            control.pose(frame)
+            #print("pose frame", frame, "channel", index, "layer", self.layer)
+
+            char.pose(index, frame, self.layer, self.blendIn, self.blendOut)
 
         if self.forceUpdate:
             self.actor.update()
@@ -178,11 +184,11 @@ class ActorInterval(Interval.Interval):
             # a hitch in the animation when it plays back-to-back with
             # the next cycle.
             if self.reverse:
-                for control in self.controls:
-                    control.pose(self.startFrame)
+                for char, index, chan in self.channels:
+                    char.pose(index, self.startFrame, self.layer, self.blendIn, self.blendOut)
             else:
-                for control in self.controls:
-                    control.pose(self.endFrame)
+                for char, index, chan in self.channels:
+                    char.pose(index, self.endFrame, self.layer, self.blendIn, self.blendOut)
             if self.forceUpdate:
                 self.actor.update()
 
@@ -198,8 +204,12 @@ class ActorInterval(Interval.Interval):
     # the interval has been created, call resetControls and pass in a partName
     # and optional lod param
     def resetControls(self, partName, lodName=None):
-        self.controls = self.actor.getAnimControls(
-            self.animName, partName = partName, lodName = lodName)
+        self.channels = []
+        # Collect character and channel indices.
+        for partDef in self.actor.getPartDefs(partName, lodName):
+            channelIndex = partDef.channelIndices.get(self.animName)
+            if channelIndex is not None:
+                self.channels.append((partDef.char, channelIndex, partDef.char.getChannel(channelIndex)))
 """
 class LerpAnimInterval(CLerpAnimEffectInterval):
     # Blends between two anims.  Start both anims first (or use
