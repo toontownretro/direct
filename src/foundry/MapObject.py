@@ -1,5 +1,5 @@
 from panda3d.core import NodePath, CollisionBox, CollisionNode, Vec4, ModelNode, BoundingBox, Vec3
-from panda3d.core import Point3, CKeyValues, BitMask32, RenderState, ColorAttrib, CullBinAttrib
+from panda3d.core import Point3, KeyValues, BitMask32, RenderState, ColorAttrib, CullBinAttrib
 from panda3d.core import PStatCollector
 
 from .MapWritable import MapWritable
@@ -544,12 +544,12 @@ class MapObject(MapWritable):
     def writeEditorValues(self, parent):
         values = self.getEditorValues()
         if len(values) > 0:
-            kv = CKeyValues("editor", parent)
+            kv = KeyValues("editor", parent)
             for key, value in values.items:
                 kv.setKeyValue(key, value)
 
     def doWriteKeyValues(self, parent):
-        kv = CKeyValues(self.ObjectName, parent)
+        kv = KeyValues(self.ObjectName, parent)
         self.writeKeyValues(kv)
         for child in self.children.values():
             child.doWriteKeyValues(kv)

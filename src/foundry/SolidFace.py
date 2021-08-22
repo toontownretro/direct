@@ -2,7 +2,7 @@ from panda3d.core import GeomVertexData, GeomEnums, NodePath, GeomVertexArrayFor
 from panda3d.core import GeomNode, GeomTriangles, GeomLinestrips, GeomVertexFormat
 from panda3d.core import GeomVertexWriter, InternalName, Vec4, Geom
 from panda3d.core import ColorAttrib, Vec3, Vec2, deg2Rad, Quat, Point3
-from panda3d.core import CullFaceAttrib, AntialiasAttrib, CKeyValues, LVector2i
+from panda3d.core import CullFaceAttrib, AntialiasAttrib, KeyValues, LVector2i
 from panda3d.core import RenderState, TransparencyAttrib, ColorScaleAttrib, DepthTestAttrib, DepthWriteAttrib, CullBinAttrib
 from panda3d.core import TextureAttrib
 #from panda3d.bsp import PlaneCulledGeomNode, BSPMaterialAttrib

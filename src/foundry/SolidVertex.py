@@ -1,4 +1,4 @@
-from panda3d.core import LTexCoord, Point3, CKeyValues, NodePath, LVector3
+from panda3d.core import LTexCoord, Point3, KeyValues, NodePath, LVector3
 
 from .MapWritable import MapWritable
 
@@ -31,12 +31,12 @@ class SolidVertex(MapWritable):
         self.binormal = None
 
     def readKeyValues(self, kv):
-        self.pos = CKeyValues.to3f(kv.getValue("origin"))
-        self.uv = LTexCoord(CKeyValues.to2f(kv.getValue("texcoord")))
+        self.pos = KeyValues.to3f(kv.getValue("origin"))
+        self.uv = LTexCoord(KeyValues.to2f(kv.getValue("texcoord")))
 
     def writeKeyValues(self, kv):
-        kv.setKeyValue("origin", CKeyValues.toString(self.pos))
-        kv.setKeyValue("texcoord", CKeyValues.toString(self.uv))
+        kv.setKeyValue("origin", KeyValues.toString(self.pos))
+        kv.setKeyValue("texcoord", KeyValues.toString(self.uv))
 
     def clone(self):
         vtx = SolidVertex(Point3(self.pos), self.face)

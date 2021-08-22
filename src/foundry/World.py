@@ -1,4 +1,4 @@
-from panda3d.core import CKeyValues
+from panda3d.core import KeyValues
 
 from .Entity import Entity
 
@@ -13,7 +13,7 @@ class World(Entity):
         self.np.node().setFinal(False)
 
     def doWriteKeyValues(self, parent):
-        kv = CKeyValues(self.ObjectName, parent)
+        kv = KeyValues(self.ObjectName, parent)
         self.writeKeyValues(kv)
         for child in self.children.values():
             if isinstance(child, Entity):

@@ -1,4 +1,4 @@
-from panda3d.core import Spotlight, Vec4, Vec3, CKeyValues, LineSegs, NodePath, deg2Rad, AntialiasAttrib, ShaderParamAttrib
+from panda3d.core import Spotlight, Vec4, Vec3, KeyValues, LineSegs, NodePath, deg2Rad, AntialiasAttrib
 
 from .MapHelper import MapHelper
 
@@ -126,7 +126,7 @@ class SpotlightHelper(MapHelper):
         #self.spotlightMdl.setState("materials/spotlight-editor.mat")
         #state = self.spotlightMdl.getState()
         #params = state.getAttrib(ShaderParamAttrib)
-        #params = params.setParam("selfillumtint", CKeyValues.toString(color.getXyz()))
+        #params = params.setParam("selfillumtint", KeyValues.toString(color.getXyz()))
         #print(params)
         #self.spotlightMdl.setState(state.setAttrib(params))
         self.spotlightMdl.reparentTo(self.light)

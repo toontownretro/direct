@@ -1,4 +1,4 @@
-from panda3d.core import CKeyValues
+from panda3d.core import KeyValues
 
 from .MapObject import MapObject
 
@@ -19,7 +19,7 @@ class Root(MapObject):
             base.document.deleteObject(child)
 
     def doWriteKeyValues(self):
-        kv = CKeyValues()
+        kv = KeyValues()
         for child in self.children.values():
             child.doWriteKeyValues(kv)
         return kv
