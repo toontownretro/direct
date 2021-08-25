@@ -1078,7 +1078,7 @@ class Actor(DirectObject, NodePath):
             if layer is None:
                 # Stopping all layers
                 partDef.char.stop(-1, kill)
-            else:
+            elif layer < partDef.char.getNumAnimLayers():
                 partDef.char.stop(layer, kill)
 
     def play(self, animName=None, partName=None, fromFrame=None, toFrame=None, layer=0,
@@ -1341,6 +1341,8 @@ class Actor(DirectObject, NodePath):
         lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
         partDef = partBundleDict.get(partName)
         if not partDef:
+            return False
+        if layer < 0 or layer >= partDef.char.getNumAnimLayers():
             return False
         animLayer = partDef.char.getAnimLayer(layer)
         if not animLayer:
