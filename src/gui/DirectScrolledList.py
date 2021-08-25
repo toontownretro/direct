@@ -36,6 +36,8 @@ class DirectScrolledListItem(DirectButton):
             ('parent', self._parent,    None),
             ('command', self.select, None),
             )
+        self.incButtonCallback = None
+        self.decButtonCallback = None
         # Merge keyword options with default options
         self.defineoptions(kw, optiondefs)
         DirectButton.__init__(self)
@@ -148,10 +150,10 @@ class DirectScrolledList(DirectFrame):
         taskMgr.remove(self.taskName("scroll"))
         if hasattr(self, "currentSelected"):
             del self.currentSelected
-        if self.__incButtonCallback:
-            self.__incButtonCallback = None
-        if self.__decButtonCallback:
-            self.__decButtonCallback = None
+        if self.incButtonCallback:
+            self.incButtonCallback = None
+        if self.decButtonCallback:
+            self.decButtonCallback = None
         self.incButton.destroy()
         self.decButton.destroy()
         DirectFrame.destroy(self)
@@ -321,8 +323,8 @@ class DirectScrolledList(DirectFrame):
         taskMgr.add(task, taskName)
         self.scrollBy(task.delta)
         messenger.send('wakeup')
-        if self.__incButtonCallback:
-            self.__incButtonCallback()
+        if self.incButtonCallback:
+            self.incButtonCallback()
 
     def __decButtonDown(self, event):
         assert self.notify.debugStateCall(self)
@@ -335,8 +337,8 @@ class DirectScrolledList(DirectFrame):
         taskMgr.add(task, taskName)
         self.scrollBy(task.delta)
         messenger.send('wakeup')
-        if self.__decButtonCallback:
-            self.__decButtonCallback()
+        if self.decButtonCallback:
+            self.decButtonCallback()
 
     def __buttonUp(self, event):
         assert self.notify.debugStateCall(self)
@@ -469,11 +471,11 @@ class DirectScrolledList(DirectFrame):
 
     def setIncButtonCallback(self):
         assert self.notify.debugStateCall(self)
-        self.__incButtonCallback = self["incButtonCallback"]
+        self.incButtonCallback = self["incButtonCallback"]
 
     def setDecButtonCallback(self):
         assert self.notify.debugStateCall(self)
-        self.__decButtonCallback = self["decButtonCallback"]
+        self.decButtonCallback = self["decButtonCallback"]
 
 
 """

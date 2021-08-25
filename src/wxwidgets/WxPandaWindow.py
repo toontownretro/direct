@@ -7,6 +7,7 @@ wx.Frame of your choosing, using sizers or whatever you like. """
 
 import wx
 import platform
+import traceback
 
 try:
     import wx.glcanvas as wxgl
@@ -39,9 +40,10 @@ class EmbeddedPandaWindow(wx.Window):
                 # Sheesh, a negative value from GetHandle().  This can
                 # only happen on 32-bit Windows.
                 wp.setParentWindow(self.GetHandle() & 0xffffffff)
+            except:
+                traceback.print_exc()
 
-        self.win = base.openWindow(props = wp, gsg = gsg, type = 'onscreen',
-                                   unexposedDraw = False)
+        self.win = base.openWindow(props = wp, gsg = gsg, type = 'onscreen', unexposedDraw = False)
         self.Bind(wx.EVT_SIZE, self.onSize)
 
         # This doesn't actually do anything, since wx won't call

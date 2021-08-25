@@ -572,7 +572,7 @@ class LevelEditorUIBase(WxPandaShell):
 
     def buildContextMenu(self, nodePath):
         for menuItem in self.contextMenu.GetMenuItems():
-            self.contextMenu.RemoveItem(menuItem)
+            self.contextMenu.Remove(menuItem)
 
         self.contextMenu.addItem('Replace This', call=lambda\
                                  p0=None, p1=False:self.replaceObject(p0, p1))
@@ -646,7 +646,7 @@ class ViewportMenu(wx.Menu):
         if id == None: id = wx.NewId()
         if parent == None: parent = self
         item = wx.MenuItem(parent, id, name)
-        parent.AppendItem(item)
+        parent.Append(item)
         if call != None:
             self.Bind(wx.EVT_MENU, call, item)
 
@@ -654,7 +654,7 @@ class ViewportMenu(wx.Menu):
         if id == None: id = wx.NewId()
         subMenu = wx.Menu()
         if parent == None: parent = self
-        parent.AppendMenu(id, name, subMenu)
+        parent.Append(id, name, subMenu)
         return subMenu
 
 class CurveDegreeUI(wx.Dialog):

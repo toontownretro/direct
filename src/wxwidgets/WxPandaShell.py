@@ -84,7 +84,7 @@ class WxPandaShell(WxAppShell):
 
         self.leftView = Viewport.makeLeft(self.viewFrame)
         self.viewFrame.AppendWindow(self.leftView)
-
+        
         self.perspView = Viewport.makePerspective(self.viewFrame)
         self.viewFrame.AppendWindow(self.perspView)
 
@@ -216,8 +216,7 @@ class WxPandaShell(WxAppShell):
 
     def onViewChange(self, evt, viewIdx):
         for i in range(4):
-            if viewIdx >=0 and\
-               i != viewIdx:
+            if viewIdx >= 0 and i != viewIdx:
                 base.winList[i].setActive(0)
             else:
                 base.winList[i].setActive(1)

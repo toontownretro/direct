@@ -54,6 +54,7 @@ class Viewport(WxPandaWindow, DirectObject):
   VPFRONT    = VPFRONT
   VPTOP      = VPTOP
   VPPERSPECTIVE = VPPERSPECTIVE
+  
   def __init__(self, name, *args, **kwargs):
     self.name = name
     DirectObject.__init__(self)
@@ -167,79 +168,85 @@ class Viewport(WxPandaWindow, DirectObject):
     if vpType == None or vpType == CREATENEW:
       return Viewport(parent)
     if isinstance(vpType, Viewport): return vpType
-    if vpType == VPLEFT:  return Viewport.makeLeft(parent)
-    if vpType == VPFRONT: return Viewport.makeFront(parent)
-    if vpType == VPTOP:   return Viewport.makeTop(parent)
-    if vpType == VPPERSPECTIVE:  return Viewport.makePerspective(parent)
+    if vpType == VPLEFT:  
+        return Viewport.makeLeft(parent)
+    if vpType == VPFRONT: 
+        return Viewport.makeFront(parent)
+    if vpType == VPTOP:   
+        return Viewport.makeTop(parent)
+    if vpType == VPPERSPECTIVE:  
+        return Viewport.makePerspective(parent)
     raise TypeError("Unknown viewport type: %s" % vpType)
 
   @staticmethod
   def makeOrthographic(parent, name, campos):
     v = Viewport(name, parent)
-    v.lens = OrthographicLens()
-    v.lens.setFilmSize(30)
+    if name != 'persp':
+        v.lens = OrthographicLens()
+        v.lens.setFilmSize(30)
     v.camPos = campos
     v.camLookAt = Point3(0, 0, 0)
     v.grid = DirectGrid(parent=render)
     if name == 'left':
-      v.grid.setHpr(0, 0, 90)
-      collPlane = CollisionNode('LeftGridCol')
-      collPlane.addSolid(CollisionPlane(Plane(1, 0, 0, 0)))
-      collPlane.setIntoCollideMask(BitMask32.bit(21))
-      v.collPlane = NodePath(collPlane)
-      v.collPlane.wrtReparentTo(v.grid)
-      #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_leftViewGridBack")
-      LE_showInOneCam(v.grid, name)
+        v.grid.setHpr(0, 0, 90)
+        collPlane = CollisionNode('LeftGridCol')
+        collPlane.addSolid(CollisionPlane(Plane(1, 0, 0, 0)))
+        collPlane.setIntoCollideMask(BitMask32.bit(21))
+        v.collPlane = NodePath(collPlane)
+        v.collPlane.wrtReparentTo(v.grid)
+        #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_leftViewGridBack")
+        LE_showInOneCam(v.grid, name)
     elif name == 'front':
-      v.grid.setHpr(90, 0, 90)
-      collPlane = CollisionNode('FrontGridCol')
-      collPlane.addSolid(CollisionPlane(Plane(0, -1, 0, 0)))
-      collPlane.setIntoCollideMask(BitMask32.bit(21))
-      v.collPlane = NodePath(collPlane)
-      v.collPlane.wrtReparentTo(v.grid)
-      #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_frontViewGridBack")
-      LE_showInOneCam(v.grid, name)
+        v.grid.setHpr(90, 0, 90)
+        collPlane = CollisionNode('FrontGridCol')
+        collPlane.addSolid(CollisionPlane(Plane(0, -1, 0, 0)))
+        collPlane.setIntoCollideMask(BitMask32.bit(21))
+        v.collPlane = NodePath(collPlane)
+        v.collPlane.wrtReparentTo(v.grid)
+        #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_frontViewGridBack")
+        LE_showInOneCam(v.grid, name)
+    elif name == "top":
+        collPlane = CollisionNode('TopGridCol')
+        collPlane.addSolid(CollisionPlane(Plane(0, 0, 1, 0)))
+        collPlane.setIntoCollideMask(BitMask32.bit(21))
+        v.collPlane = NodePath(collPlane)
+        v.collPlane.reparentTo(v.grid)
+        #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_topViewGridBack")
+        LE_showInOneCam(v.grid, name)
     else:
-      collPlane = CollisionNode('TopGridCol')
-      collPlane.addSolid(CollisionPlane(Plane(0, 0, 1, 0)))
-      collPlane.setIntoCollideMask(BitMask32.bit(21))
-      v.collPlane = NodePath(collPlane)
-      v.collPlane.reparentTo(v.grid)
-      #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_topViewGridBack")
-      LE_showInOneCam(v.grid, name)
+        collPlane = CollisionNode('PerspGridCol')
+        collPlane.addSolid(CollisionPlane(Plane(0, 0, 1, 0)))
+        #oldBitmask = collPlane.getIntoCollideMask()
+        #collPlane.setIntoCollideMask(BitMask32.bit(21)|oldBitmask)
+        collPlane.setIntoCollideMask(BitMask32.bit(21))
+        v.collPlane = NodePath(collPlane)
+        v.collPlane.reparentTo(v.grid)
+
+        collPlane2 = CollisionNode('PerspGridCol2')
+        collPlane2.addSolid(CollisionPlane(Plane(0, 0, -1, 0)))
+        #oldBitmask = collPlane2.getIntoCollideMask()
+        #collPlane2.setIntoCollideMask(BitMask32.bit(21)|oldBitmask)
+        collPlane2.setIntoCollideMask(BitMask32.bit(21))
+        v.collPlane2 = NodePath(collPlane2)
+        v.collPlane2.reparentTo(v.grid)
+
+        #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_perspViewGridBack")
+        LE_showInOneCam(v.grid, name)
     return v
 
   @staticmethod
   def makePerspective(parent):
-    v = Viewport('persp', parent)
-    v.camPos = Point3(-19, -19, 19)
-    v.camLookAt = Point3(0, 0, 0)
-
-    v.grid = DirectGrid(parent=render)
-    collPlane = CollisionNode('PerspGridCol')
-    collPlane.addSolid(CollisionPlane(Plane(0, 0, 1, 0)))
-    #oldBitmask = collPlane.getIntoCollideMask()
-    #collPlane.setIntoCollideMask(BitMask32.bit(21)|oldBitmask)
-    collPlane.setIntoCollideMask(BitMask32.bit(21))
-    v.collPlane = NodePath(collPlane)
-    v.collPlane.reparentTo(v.grid)
-
-    collPlane2 = CollisionNode('PerspGridCol2')
-    collPlane2.addSolid(CollisionPlane(Plane(0, 0, -1, 0)))
-    #oldBitmask = collPlane2.getIntoCollideMask()
-    #collPlane2.setIntoCollideMask(BitMask32.bit(21)|oldBitmask)
-    collPlane2.setIntoCollideMask(BitMask32.bit(21))
-    v.collPlane2 = NodePath(collPlane2)
-    v.collPlane2.reparentTo(v.grid)
-
-    #v.grid.gridBack.findAllMatches("**/+GeomNode")[0].setName("_perspViewGridBack")
-    LE_showInOneCam(v.grid, 'persp')
-    return v
+    return Viewport.makeOrthographic(parent, 'persp', Point3(-19, -19, 19))
 
   @staticmethod
-  def makeLeft(parent): return Viewport.makeOrthographic(parent, 'left', Point3(600, 0, 0))
+  def makeLeft(parent): 
+    return Viewport.makeOrthographic(parent, 'left', Point3(600, 0, 0))
+    
   @staticmethod
-  def makeFront(parent): return Viewport.makeOrthographic(parent, 'front', Point3(0, -600, 0))
+  def makeFront(parent): 
+    return Viewport.makeOrthographic(parent, 'front', Point3(0, -600, 0))
+    
   @staticmethod
-  def makeTop(parent): return Viewport.makeOrthographic(parent, 'top', Point3(0, 0, 600))
+  def makeTop(parent): 
+    return Viewport.makeOrthographic(parent, 'top', Point3(0, 0, 600))
 
