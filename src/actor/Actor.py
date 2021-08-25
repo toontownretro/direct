@@ -1517,3 +1517,25 @@ class Actor(DirectObject, NodePath):
                     Actor.notify.warning("Couldn't find part: %s" % (partName))
 
         return bundles
+
+    def listJoints(self, partName="modelRoot", lodName="lodRoot"):
+        """Handy utility function to list the joint hierarchy of the
+        actor. """
+
+        partBundleDict = self.__partBundleDict.get(lodName)
+        if not partBundleDict:
+            Actor.notify.error("no lod named: %s" % (lodName))
+
+        partDef = partBundleDict.get(partName)
+        if partDef is None:
+            Actor.notify.error("no part named: %s" % (partName))
+
+        self.__doListJoints(0, partDef.char, 0)
+
+    def __doListJoints(self, indentLevel, char, joint):
+        name = char.getJointName(joint)
+        val = char.getJointValue(joint)
+        print(' '.join((' ' * indentLevel, name, str(TransformState.makeMat(val)))))
+
+        for i in range(char.getJointNumChildren(joint)):
+            self.__doListJoints(indentLevel + 2, char, char.getJointChild(joint, i))
