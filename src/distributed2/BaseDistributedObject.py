@@ -129,7 +129,8 @@ class BaseDistributedObject(DirectObject):
         pass
 
     def simulate(self):
-        """ Called once per simulation tick to simulate object. """
+        """ Called once per simulation tick to simulate object.  On the client,
+        this is only called on predicted objects. """
         pass
 
     def update(self):

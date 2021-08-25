@@ -42,10 +42,11 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.predictionRandomSeed = 0
         self.predictionPlayer = None
 
-    def simObjects(self, task):
-        for do in self.doId2do.values():
-            do.simulate()
-        return task.cont
+    #def simObjects(self, task):
+    #    for do in self.doId2do.values():
+    #        if not do.predictable:
+    #            do.simulate()
+    #    return task.cont
 
     def updateObjects(self, task):
         for do in self.doId2do.values():
@@ -64,7 +65,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
     def startClientLoop(self):
         base.simTaskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
-        base.simTaskMgr.add(self.simObjects, "clientSimObjects", sort = 0)
+        #base.simTaskMgr.add(self.simObjects, "clientSimObjects", sort = 0)
         base.taskMgr.add(self.interpolateObjects, "clientInterpolateObjects", sort = 30)
         base.taskMgr.add(self.updateObjects, "clientUpdateObjects", sort = 31)
 
