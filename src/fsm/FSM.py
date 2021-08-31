@@ -388,7 +388,7 @@ class FSM(DirectObject):
                 # accept it.
                 return (request,) + args
 
-            elif FSM.EnumStates.ANY in self.defaultTransitions.get(self.state, []):
+            elif FSM.EnumStates.ANY in self.defaultTransitions.get(self._state, []):
                 # Whenever we have a '*' as our to transition, we allow
                 # to transit to any other state
                 return (request,) + args
