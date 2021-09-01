@@ -403,7 +403,7 @@ priv_step(double t) {
         // Get the previous color.
         color.set(1.0f, 1.0f, 1.0f, 1.0f);
         const RenderAttrib *attrib =
-          state->get_attrib(ColorAttrib::get_class_type());
+          state->get_attrib(ColorAttrib::get_class_slot());
         if (attrib != nullptr) {
           const ColorAttrib *ca = DCAST(ColorAttrib, attrib);
           if (ca->get_color_type() == ColorAttrib::T_flat) {
@@ -427,7 +427,7 @@ priv_step(double t) {
         // Get the previous color scale.
         color_scale.set(1.0f, 1.0f, 1.0f, 1.0f);
         const RenderAttrib *attrib =
-          state->get_attrib(ColorScaleAttrib::get_class_type());
+          state->get_attrib(ColorScaleAttrib::get_class_slot());
         if (attrib != nullptr) {
           const ColorScaleAttrib *csa = DCAST(ColorScaleAttrib, attrib);
           color_scale = csa->get_scale();
@@ -444,7 +444,7 @@ priv_step(double t) {
       CPT(TransformState) transform = TransformState::make_identity();
 
       const RenderAttrib *attrib =
-        state->get_attrib(TexMatrixAttrib::get_class_type());
+        state->get_attrib(TexMatrixAttrib::get_class_slot());
       CPT(TexMatrixAttrib) tma;
       if (attrib != nullptr) {
         tma = DCAST(TexMatrixAttrib, attrib);
