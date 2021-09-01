@@ -1315,6 +1315,21 @@ class Actor(DirectObject, NodePath):
             currChannel = animLayer._sequence
         return partDef.char.getChannelForActivity(activity, currChannel, seed)
 
+    def getCurrentActivity(self, partName="modelRoot", layer=0):
+        """
+        Returns the current activity number of the indicated layer.
+        """
+
+        if not self.__partBundleDict:
+            return -1
+        lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
+        partDef = partBundleDict.get(partName)
+        if not partDef:
+            return -1
+        if layer < 0 or layer >= partDef.char.getNumAnimLayers():
+            return -1
+        return partDef.char.getAnimLayer(layer)._activity
+
     def isCurrentChannelFinished(self, partName="modelRoot", layer=0):
         """
         Returns true if the channel playing on the indicated layer of the
