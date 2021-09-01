@@ -38,7 +38,7 @@
 #if $[DIRECT_INSTALL]
   #define DIRECT_INSTALL $[unixfilename $[DIRECT_INSTALL]]
 #elif $[CTPROJS]
-  #set DIRECT $[unixfilename $[DIRECT]]
+  #define DIRECT $[unixfilename $[DIRECT]]
   #define DIRECT_INSTALL $[DIRECT]/built
   #if $[eq $[DIRECT],]
     #error You seem to be attached to some trees, but not DIRECT!
