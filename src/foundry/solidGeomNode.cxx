@@ -56,8 +56,7 @@ add_for_draw(CullTraverser *trav, CullTraverserData &data) {
       continue;
     }
 
-    CullableObject *object =
-      new CullableObject(std::move(geom), std::move(state), internal_transform);
+    CullableObject object(std::move(geom), std::move(state), internal_transform);
     trav->get_cull_handler()->record_object(object, trav);
   }
 }
