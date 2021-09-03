@@ -1216,8 +1216,15 @@ class Actor(DirectObject, NodePath):
                 for partDef in lod.values():
                     partDefs.append(partDef)
             else:
-                partDef = lod[partName]
-                partDefs.append(partDef)
+                # A subset of parts.
+                if isinstance(partName, str):
+                    partsToGet = [partName]
+                else:
+                    partsToGet = partName
+
+                for partToGet in partsToGet:
+                    partDef = lod[partToGet]
+                    partDefs.append(partDef)
 
         return partDefs
 
@@ -1534,6 +1541,9 @@ class Actor(DirectObject, NodePath):
                     Actor.notify.warning("Couldn't find part: %s" % (partName))
 
         return bundles
+
+    def getPartBundleDict(self):
+        return self.__partBundleDict
 
     def listJoints(self, partName="modelRoot", lodName="lodRoot"):
         """Handy utility function to list the joint hierarchy of the
