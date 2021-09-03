@@ -2052,8 +2052,16 @@ class ShowBase(HostBase):
         garbage collection.  """
 
         TransformState.garbageCollect()
+        #TransformState.clearCache()
         RenderState.garbageCollect()
+        #RenderState.clearCache()
         return Task.cont
+
+    def __clearCache(self, task):
+        TransformState.clearCache()
+        RenderState.clearCache()
+        task.delayTime = 2.0
+        return task.again
 
     def __igLoop(self, state):
         if __debug__:
@@ -2167,6 +2175,7 @@ class ShowBase(HostBase):
 
         if ConfigVariableBool('garbage-collect-states').getValue():
             self.taskMgr.add(self.__garbageCollectStates, 'garbageCollectStates', sort = 46)
+        self.taskMgr.add(self.__clearCache, 'clearCache', sort = 47)
         # give the igLoop task a reasonably "late" sort,
         # so that it will get run after most tasks
         self.cluster = cluster
@@ -2188,6 +2197,7 @@ class ShowBase(HostBase):
         self.taskMgr.remove('resetPrevTransform')
         self.taskMgr.remove('ivalLoop')
         self.taskMgr.remove('garbageCollectStates')
+        self.taskMgr.remove('clearCache')
         HostBase.shutdown(self)
 
     def getBackgroundColor(self, win = None):
