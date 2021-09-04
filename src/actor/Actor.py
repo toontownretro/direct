@@ -1204,8 +1204,15 @@ class Actor(DirectObject, NodePath):
                     for partDef in lod.values():
                         partDefs.append(partDef)
                 else:
-                    partDef = lod[partName]
-                    partDefs.append(partDef)
+                    # A subset of parts.
+                    if isinstance(partName, str):
+                        partsToGet = [partName]
+                    else:
+                        partsToGet = partName
+
+                    for partToGet in partsToGet:
+                        partDef = lod[partToGet]
+                        partDefs.append(partDef)
         else:
             if not self.__partBundleDict:
                 return []
