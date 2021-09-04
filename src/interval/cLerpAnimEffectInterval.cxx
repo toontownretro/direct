@@ -33,7 +33,7 @@ priv_step(double t) {
     ControlDef &def = (*ci);
     float effect;
     lerp_value(effect, d, def._begin_effect, def._end_effect);
-    def._control->get_part()->set_control_effect(def._control, effect);
+    def._control->set_weight(effect);
   }
 
   _curr_t = t;

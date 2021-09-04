@@ -2,7 +2,7 @@
 # Author:  Brian Lach (July 10, 2020)
 # Purpose: Provides info about entity metadata types and how to serialize/unserialize them.
 
-from panda3d.core import LVecBase3f, LVecBase2f, LVecBase4f, CKeyValues
+from panda3d.core import LVecBase3f, LVecBase2f, LVecBase4f, KeyValues
 
 from direct.fgd import FgdEntityProperty
 from direct.foundry import LEUtils
@@ -19,10 +19,10 @@ MetaDataType = {
     'decal': (str, str, str, ""),
     'sound': (str, str, str, ""),
     'float': (float, float, str, 0.0),
-    'color255': (LVecBase4f, CKeyValues.to4f, CKeyValues.toString, LVecBase4f(255, 255, 255, 255)),
-    'vec3': (LVecBase3f, CKeyValues.to3f, CKeyValues.toString, LVecBase3f(0, 0, 0)),
-    'vec4': (LVecBase4f, CKeyValues.to4f, CKeyValues.toString, LVecBase4f(0, 0, 0, 0)),
-    'vec2': (LVecBase2f, CKeyValues.to2f, CKeyValues.toString, LVecBase2f(0, 0)),
+    'color255': (LVecBase4f, KeyValues.to4f, KeyValues.toString, LVecBase4f(255, 255, 255, 255)),
+    'vec3': (LVecBase3f, KeyValues.to3f, KeyValues.toString, LVecBase3f(0, 0, 0)),
+    'vec4': (LVecBase4f, KeyValues.to4f, KeyValues.toString, LVecBase4f(0, 0, 0, 0)),
+    'vec2': (LVecBase2f, KeyValues.to2f, KeyValues.toString, LVecBase2f(0, 0)),
     'integer': (int, int, str, 0),
     'choices': (int, int, str, 0),
     'flags': (int, int, str, 0),

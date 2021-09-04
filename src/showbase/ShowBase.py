@@ -1107,7 +1107,7 @@ class ShowBase(HostBase):
 
         self.render2d.setDepthTest(0)
         self.render2d.setDepthWrite(0)
-        self.render2d.setMaterialOff(1)
+        #self.render2d.setMaterialOff(1)
         self.render2d.setTwoSided(1)
 
         ## The normal 2-d DisplayRegion has an aspect ratio that
@@ -1198,7 +1198,7 @@ class ShowBase(HostBase):
         self.render2dp.setDepthTest(0)
         self.render2dp.setDepthWrite(0)
 
-        self.render2dp.setMaterialOff(1)
+        #self.render2dp.setMaterialOff(1)
         self.render2dp.setTwoSided(1)
 
         ## The normal 2-d DisplayRegion has an aspect ratio that
@@ -2052,8 +2052,16 @@ class ShowBase(HostBase):
         garbage collection.  """
 
         TransformState.garbageCollect()
+        #TransformState.clearCache()
         RenderState.garbageCollect()
+        #RenderState.clearCache()
         return Task.cont
+
+    def __clearCache(self, task):
+        TransformState.clearCache()
+        RenderState.clearCache()
+        task.delayTime = 2.0
+        return task.again
 
     def __igLoop(self, state):
         if __debug__:
@@ -2167,6 +2175,7 @@ class ShowBase(HostBase):
 
         if ConfigVariableBool('garbage-collect-states').getValue():
             self.taskMgr.add(self.__garbageCollectStates, 'garbageCollectStates', sort = 46)
+        self.taskMgr.add(self.__clearCache, 'clearCache', sort = 47)
         # give the igLoop task a reasonably "late" sort,
         # so that it will get run after most tasks
         self.cluster = cluster
@@ -2188,6 +2197,7 @@ class ShowBase(HostBase):
         self.taskMgr.remove('resetPrevTransform')
         self.taskMgr.remove('ivalLoop')
         self.taskMgr.remove('garbageCollectStates')
+        self.taskMgr.remove('clearCache')
         HostBase.shutdown(self)
 
     def getBackgroundColor(self, win = None):
@@ -3174,7 +3184,7 @@ class ShowBase(HostBase):
 
     def __tkTimerCallback(self):
         if not Thread.getCurrentThread().getCurrentTask():
-            self.taskMgr.step()
+            self.doRunFrame()
 
         self.tkRoot.after(self.tkDelay, self.__tkTimerCallback)
 

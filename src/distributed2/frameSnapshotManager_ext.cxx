@@ -58,6 +58,12 @@ encode_object_state(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
       PyObject *proxy = PyObject_GetAttrString(dist_obj, (char *)proxy_name);
       // If we have a proxy, pack the return value.
       args = PyObject_CallObject(proxy, NULL);
+      if (PyErr_Occurred()) {
+        distributed2_cat.error()
+          << "Python error occurred during send proxy for field " << field->get_name() << "\n";
+        PyErr_Print();
+      }
+
       Py_DECREF(proxy);
     } else {
       // If no proxy, pack the physical attribute on the object with the same

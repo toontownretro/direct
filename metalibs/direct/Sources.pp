@@ -21,7 +21,7 @@
   express:c pstatclient:c prc pandabase:c linmath:c \
   putil:c display:c event:c pgraph:c pgraphnodes:c \
   gsgbase:c gobj:c mathutil:c \
-  downloader:c pnmimage:c chan:c \
+  downloader:c pnmimage:c anim:c \
   pipeline:c cull:c \
   $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c]
 

@@ -1,4 +1,4 @@
-from panda3d.core import NodePath, ModelNode, CardMaker, CKeyValues, Vec4
+from panda3d.core import NodePath, ModelNode, CardMaker, KeyValues, Vec4
 #from panda3d.bsp import BSPMaterial
 
 from direct.foundry import LEGlobals

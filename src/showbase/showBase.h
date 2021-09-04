@@ -19,7 +19,7 @@
 #include "eventHandler.h"
 #include "graphicsWindow.h"
 #include "graphicsPipe.h"
-#include "animControl.h"
+//#include "animControl.h"
 #include "pointerTo.h"
 #include "dconfig.h"
 #include "dSearchPath.h"

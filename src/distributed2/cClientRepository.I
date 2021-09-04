@@ -26,5 +26,7 @@ CClientRepository() {
  */
 INLINE void CClientRepository::
 set_python_repository(PyObject *repo) {
+  Py_XDECREF(_py_repo);
   _py_repo = repo;
+  Py_XINCREF(_py_repo);
 }

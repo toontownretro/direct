@@ -1,4 +1,4 @@
-from panda3d.core import Point3, Vec3, NodePath, CKeyValues, CollisionNode, CollisionPolygon, CollisionSegment, Vec4, Mat4
+from panda3d.core import Point3, Vec3, NodePath, KeyValues, CollisionNode, CollisionPolygon, CollisionSegment, Vec4, Mat4
 from panda3d.direct import SolidGeomNode
 
 from direct.foundry.Winding import Winding
@@ -115,7 +115,7 @@ class Solid(MapObject):
 
         # Write or faces or "sides"
         for face in self.faces:
-            faceKv = CKeyValues("side", keyvalues)
+            faceKv = KeyValues("side", keyvalues)
             face.writeKeyValues(faceKv)
 
     def readKeyValues(self, kv):

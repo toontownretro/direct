@@ -1,5 +1,4 @@
-from panda3d.bsp import NetworkSystem, NetworkCallbacks, NetworkConnectionInfo, NetworkMessage
-from panda3d.core import UniqueIdAllocator, HashVal
+from panda3d.core import UniqueIdAllocator, HashVal, SteamNetworkSystem, SteamNetworkMessage, SteamNetworkConnectionInfo
 from panda3d.direct import FrameSnapshot, ClientFrameManager, ClientFrame, FrameSnapshotManager, DCPacker
 
 from direct.distributed.PyDatagram import PyDatagram
@@ -44,6 +43,8 @@ class ServerRepository(BaseObjectManager):
             self.dt = 0
             self.tickRemainder = 0
             self.tickCount = 0
+            # Delta reference tick.
+            self.deltaTick = -1
 
             self.frameMgr = ClientFrameManager()
 
@@ -79,9 +80,7 @@ class ServerRepository(BaseObjectManager):
         self.clientSender = None
 
         self.listenPort = listenPort
-        self.netSys = NetworkSystem()
-        self.netCallbacks = NetworkCallbacks()
-        self.netCallbacks.setCallback(self.__handleNetCallback)
+        self.netSys = SteamNetworkSystem()
         self.listenSocket = self.netSys.createListenSocket(listenPort)
         self.pollGroup = self.netSys.createPollGroup()
         self.clientIdAllocator = UniqueIdAllocator(0, 0xFFFF)
@@ -96,6 +95,11 @@ class ServerRepository(BaseObjectManager):
 
         base.setTickRate(sv_tickrate.getValue())
         base.simTaskMgr.add(self.runFrame, "serverRunFrame", sort = -100)
+        base.simTaskMgr.add(self.simObjectsTask, "serverSimObjects", sort = 0)
+        base.simTaskMgr.add(self.takeSnapshotTask, "serverTakeSnapshot", sort = 100)
+
+    def getMaxClients(self):
+        return sv_max_clients.getValue()
 
     def allocateObjectID(self):
         return self.objectIdAllocator.allocate()
@@ -122,9 +126,9 @@ class ServerRepository(BaseObjectManager):
         clients = set(self.zonesToClients.get(do.zoneId, set()))
         if len(clients) > 0:
             if owner:
-                # Don't include the owner in this message, we send specific
+                # Don't include the owner in this message, we send a specific
                 # generate for the owner.
-                clients -= set(owner)
+                clients -= set([owner])
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_GenerateObject)
             self.packObjectGenerate(dg, do)
@@ -173,16 +177,17 @@ class ServerRepository(BaseObjectManager):
         do.delete()
 
     def simObjects(self):
-        for do in self.doId2do.values():
-            do.update()
+        dos = list(self.doId2do.values())
+        for do in dos:
+            do.simulate()
+
+    def simObjectsTask(self, task):
+        self.simObjects()
+        return task.cont
 
     def runFrame(self, task):
         self.readerPollUntilEmpty()
         self.runCallbacks()
-
-        self.simObjects()
-
-        self.takeTickSnapshot(base.tickCount)
 
         return task.cont
 
@@ -194,6 +199,10 @@ class ServerRepository(BaseObjectManager):
     # Snapshot/object packing code
     #
     ###########################################################
+
+    def takeSnapshotTask(self, task):
+        self.takeTickSnapshot(base.tickCount)
+        return task.cont
 
     def takeTickSnapshot(self, tickCount):
         self.notify.debug("Take tick snapshot at tick %i" % tickCount)
@@ -232,18 +241,26 @@ class ServerRepository(BaseObjectManager):
         # Send it out to whoever needs it
         for client in clientsNeedingSnapshots:
             # Get the frame the client most recently acknowledged
-            oldFrame = client.getClientFrame(client.tickCount)
+            oldFrame = client.getClientFrame(client.deltaTick)
 
             client.lastSnapshot = snap
 
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_Tick)
+            self.addSnapshotHeaderData(dg, client)
             if oldFrame:
                 # We have an old frame to delta against
                 self.snapshotMgr.clientFormatDeltaSnapshot(dg, oldFrame.getSnapshot(), snap, list(client.currentInterestZoneIds))
             else:
                 self.snapshotMgr.clientFormatSnapshot(dg, snap, list(client.currentInterestZoneIds))
             self.sendDatagram(dg, client.connection)
+
+    def addSnapshotHeaderData(self, dg, client):
+        """
+        Appends additional show-specific data to the snapshot header for this
+        client.
+        """
+        pass
 
     def isFull(self):
         return self.numClients >= sv_max_clients.getValue()
@@ -252,14 +269,23 @@ class ServerRepository(BaseObjectManager):
         return True
 
     def runCallbacks(self):
-        self.netSys.runCallbacks(self.netCallbacks)
+        # This will fill up a list of connection events for us to process
+        # below.
+        self.netSys.runCallbacks()
+
+        # Process the events.
+        event = self.netSys.getNextEvent()
+        while event:
+            self.__handleNetCallback(event.getConnection(),
+                event.getState(), event.getOldState())
+            event = self.netSys.getNextEvent()
 
     def readerPollUntilEmpty(self):
         while self.readerPollOnce():
             pass
 
     def readerPollOnce(self):
-        msg = NetworkMessage()
+        msg = SteamNetworkMessage()
         if self.netSys.receiveMessageOnPollGroup(self.pollGroup, msg):
             self.handleDatagram(msg)
             return True
@@ -301,7 +327,7 @@ class ServerRepository(BaseObjectManager):
             elif type == NetMessages.B_ObjectMessage:
                 self.handleObjectMessage(client, dgi)
 
-    def sendUpdate(self, do, name, args, client = None):
+    def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
             return
         if not do.dclass:
@@ -326,17 +352,21 @@ class ServerRepository(BaseObjectManager):
             self.notify.warning("Failed to pack message")
             return
 
+        reliable = not field.hasKeyword("unreliable")
+
         dg = PyDatagram(packer.getBytes())
         if not client:
             if field.isBroadcast():
                 # Send to all interested clients
                 for cl in self.zonesToClients.get(do.zoneId, set()):
-                    self.sendDatagram(dg, cl.connection)
+                    if cl in excludeClients:
+                        continue
+                    self.sendDatagram(dg, cl.connection, reliable)
             else:
                 self.notify.warning("Can't send non-broadcast object message without a target client")
                 return
         else:
-            self.sendDatagram(dg, client.connection)
+            self.sendDatagram(dg, client.connection, reliable)
 
     def handleObjectMessage(self, client, dgi):
         doId = dgi.getUint32()
@@ -476,19 +506,26 @@ class ServerRepository(BaseObjectManager):
         dg.addUint8(handle)
         self.sendDatagram(dg, client.connection)
 
-    def sendDatagram(self, dg, connection):
-        self.netSys.sendDatagram(connection, dg, NetworkSystem.NSFReliableNoNagle)
+    def sendDatagram(self, dg, connection, reliable = True):
+        if reliable:
+            sendType = SteamNetworkSystem.NSFReliableNoNagle
+        else:
+            sendType = SteamNetworkSystem.NSFUnreliableNoDelay
+        self.netSys.sendDatagram(connection, dg, sendType)
 
     def closeClientConnection(self, client):
         if client.id != -1:
             self.clientIdAllocator.free(client.id)
+        if client.state == ClientState.Verified:
+            self.numClients -= 1
         self.netSys.closeConnection(client.connection)
         del self.clientsByConnection[client.connection]
 
     def handleClientTick(self, client, dgi):
         client.prevTickCount = int(client.tickCount)
-        client.tickCount = dgi.getUint32()
-        self.notify.debug("Client acknowleged tick %i" % client.tickCount)
+        client.deltaTick = dgi.getInt32()
+        client.dt = dgi.getFloat32()
+        self.notify.debug("Client acknowleged tick %i" % client.deltaTick)
 
     def handleClientSetCMDRate(self, client, dgi):
         cmdRate = dgi.getUint8()
@@ -512,7 +549,10 @@ class ServerRepository(BaseObjectManager):
 
         valid = True
         msg = ""
-        if password != sv_password.getValue():
+        if self.isFull():
+            valid = False
+            msg = "Server is full"
+        elif password != sv_password.getValue():
             valid = False
             msg = "Incorrect password"
         elif dcHash != self.hashVal:
@@ -546,6 +586,8 @@ class ServerRepository(BaseObjectManager):
         dg.addUint16(client.id)
         dg.addUint8(base.ticksPerSec)
 
+        self.numClients += 1
+
         self.sendDatagram(dg, client.connection)
 
         messenger.send('clientConnected', [client])
@@ -560,7 +602,7 @@ class ServerRepository(BaseObjectManager):
         self.closeClientConnection(client)
 
     def __handleNetCallback(self, connection, state, oldState):
-        if state == NetworkSystem.NCSConnecting:
+        if state == SteamNetworkSystem.NCSConnecting:
             if not self.canAcceptConnection():
                 return
             if not self.netSys.acceptConnection(connection):
@@ -570,18 +612,18 @@ class ServerRepository(BaseObjectManager):
                 self.notify.warning("Couldn't set poll group on connection %i" % connection)
                 self.netSys.closeConnection(connection)
                 return
-            info = NetworkConnectionInfo()
+            info = SteamNetworkConnectionInfo()
             self.netSys.getConnectionInfo(connection, info)
             self.handleNewConnection(connection, info)
 
-        elif state == NetworkSystem.NCSClosedByPeer or \
-            state == NetworkSystem.NCSProblemDetectedLocally:
+        elif state == SteamNetworkSystem.NCSClosedByPeer or \
+            state == SteamNetworkSystem.NCSProblemDetectedLocally:
 
             client = self.clientsByConnection[connection]
             self.notify.info("Client %i disconnected" % client.connection)
             self.handleClientDisconnect(client)
 
     def handleNewConnection(self, connection, info):
-        self.notify.info("Got client from %s (connection %i), awaiting hello" % (info.netAddress, connection))
-        client = ServerRepository.Client(connection, info.netAddress)
+        self.notify.info("Got client from %s (connection %i), awaiting hello" % (info.getNetAddress(), connection))
+        client = ServerRepository.Client(connection, info.getNetAddress())
         self.clientsByConnection[connection] = client

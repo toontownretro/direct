@@ -1,4 +1,4 @@
-from panda3d.core import ModelNode, NodePath, Vec4, CKeyValues, Vec3
+from panda3d.core import ModelNode, NodePath, Vec4, KeyValues, Vec3
 #from panda3d.bsp import BSPMaterialAttrib
 
 from .MapHelper import MapHelper

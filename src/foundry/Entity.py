@@ -1,4 +1,4 @@
-from panda3d.core import CKeyValues, Vec3, Vec4, Vec2, NodePath
+from panda3d.core import KeyValues, Vec3, Vec4, Vec2, NodePath
 
 from .MapObject import MapObject
 from direct.foundry import HelperFactory

@@ -1,12 +1,13 @@
-from panda3d.bsp import NetworkSystem, NetworkCallbacks, NetworkMessage, NetworkConnectionInfo
-from panda3d.core import URLSpec, NetAddress
+from panda3d.core import URLSpec, NetAddress, SteamNetworkSystem, SteamNetworkMessage
 from panda3d.direct import CClientRepository, DCPacker
 
 from direct.distributed.PyDatagram import PyDatagram
 from direct.showbase.DirectObject import DirectObject
 from direct.directnotify.DirectNotifyGlobal import directNotify
 
+from .ClockDriftManager import ClockDriftManager
 from .BaseObjectManager import BaseObjectManager
+from .DistributedObject import DistributedObject
 from .ClientConfig import *
 from .NetMessages import NetMessages
 from .DOState import DOState
@@ -19,37 +20,60 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         CClientRepository.__init__(self)
         self.setPythonRepository(self)
 
-        self.netSys = NetworkSystem()
-        self.netCallbacks = NetworkCallbacks()
-        self.netCallbacks.setCallback(self.__handleNetCallback)
+        self.clockDriftMgr = ClockDriftManager()
+
+        self.netSys = SteamNetworkSystem()
         self.connected = False
         self.connectionHandle = None
         self.serverAddress = None
         self.msgType = 0
 
         self.clientId = 0
+        # Server tick count from latest received snapshot.
         self.serverTickCount = 0
         self.serverTickRate = 0
+        # Reference server tick count for delta snapshots.  -1 means we have
+        # no delta reference and need an absolute update.
+        self.deltaTick = -1
         self.serverIntervalPerTick = 0
+        self.lastServerTickTime = 0
         self.interestHandle = 0
 
-    def simObjects(self):
+        self.predictionRandomSeed = 0
+        self.predictionPlayer = None
+
+    #def simObjects(self, task):
+    #    for do in self.doId2do.values():
+    #        if not do.predictable:
+    #            do.simulate()
+    #    return task.cont
+
+    def updateObjects(self, task):
         for do in self.doId2do.values():
             do.update()
+        return task.cont
 
     def runFrame(self, task):
         self.readerPollUntilEmpty()
         self.runCallbacks()
 
-        self.simObjects()
+        return task.cont
 
+    def interpolateObjects(self, task):
+        DistributedObject.interpolateObjects()
         return task.cont
 
     def startClientLoop(self):
         base.simTaskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
+        #base.simTaskMgr.add(self.simObjects, "clientSimObjects", sort = 0)
+        base.taskMgr.add(self.interpolateObjects, "clientInterpolateObjects", sort = 30)
+        base.taskMgr.add(self.updateObjects, "clientUpdateObjects", sort = 31)
 
     def stopClientLoop(self):
         base.simTaskMgr.remove("clientRunFrame")
+        base.simTaskMgr.remove("clientSimObjects")
+        base.taskMgr.remove("clientInterpolateObjects")
+        base.taskMgr.remove("clientUpdateObjects")
 
     def getNextInterestHandle(self):
         return (self.interestHandle + 1) % 256
@@ -143,17 +167,80 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.disconnect()
 
     def __handleServerTick(self, dgi):
+        self.readSnapshotHeaderData(dgi)
+
+        oldTick = self.serverTickCount
         self.serverTickCount = dgi.getUint32()
 
+        isDelta = bool(dgi.getUint8())
+
+        if isDelta and self.deltaTick < 0:
+            # We requested a full update but got a delta compressed update.
+            # Ignore it.
+            self.serverTickCount = oldTick
+            return
+
+        self.lastServerTickTime = self.serverTickCount * self.serverIntervalPerTick
+
+        self.clockDriftMgr.setServerTick(self.serverTickCount)
+
+        saveTickCount = base.tickCount
+        saveFrameTime = base.frameTime
+        saveDeltaTime = base.deltaTime
+
+        # Be on the same tick count and frame time as the snapshot.
+        base.tickCount = self.serverTickCount
+        base.frameTime = self.serverTickCount * self.serverIntervalPerTick
+        base.deltaTime = (self.serverTickCount - oldTick) * self.serverIntervalPerTick
+        globalClock.setFrameTime(base.frameTime)
+        globalClock.setFrameCount(base.tickCount)
+        globalClock.setDt(base.deltaTime)
+
+        if hasattr(self, 'prediction') and hasattr(base, 'localAvatar') and base.localAvatar is not None:
+            if True or (base.localAvatar.lastOutgoingCommand == base.localAvatar.commandAck):
+                self.runPrediction()
+
+            numExeced = base.localAvatar.commandAck - base.localAvatar.lastCommandAck
+            # Copy last set of changes right into current frame.
+            self.prediction.preEntityPacketReceived(numExeced, 0)
+
+            if not isDelta:
+                self.prediction.onReceivedUncompressedPacket()
+
         # Let the C++ repository unpack and apply the snapshot onto our objects
-        self.unpackServerSnapshot(dgi)
+        self.unpackServerSnapshot(dgi, isDelta)
+
+        if hasattr(self, 'prediction'):
+            self.prediction.postEntityPacketReceived()
+
+        self.postSnapshot()
+
+        # Restore the true client tick count and frame time.
+        base.tickCount = saveTickCount
+        base.frameTime = saveFrameTime
+        base.deltaTime = saveDeltaTime
+        globalClock.setFrameCount(base.tickCount)
+        globalClock.setFrameTime(base.frameTime)
+        globalClock.setDt(base.deltaTime)
 
         self.notify.debug("Got tick %i and snapshot from server" % self.serverTickCount)
 
+        if (self.deltaTick >= 0) or not isDelta:
+            # We have a new delta reference.
+            self.deltaTick = self.serverTickCount
+
+    def readSnapshotHeaderData(self, dgi):
+        pass
+
+    def postSnapshot(self):
+        pass
+
+    def sendTick(self):
         # Inform server we got the tick
         dg = PyDatagram()
         dg.addUint16(NetMessages.CL_Tick)
-        dg.addUint32(self.serverTickCount)
+        dg.addInt32(self.deltaTick)
+        dg.addFloat32(globalClock.getDt())
         self.sendDatagram(dg)
 
     def __handleGenerateOwnerObject(self, dgi):
@@ -164,12 +251,19 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             hasState = dgi.getUint8()
             dclass = self.dclassesByNumber[classId]
             classDef = dclass.getOwnerClassDef()
+            if not classDef:
+                classDef = dclass.getClassDef()
+
+            if not classDef:
+                self.notify.error("No classDef for dclass %s" % dclass.getName())
 
             do = classDef()
             do.doId = doId
             do.zoneId = zoneId
             do.dclass = dclass
+            do.isOwner = True
             self.doId2do[do.doId] = do
+            self.addObject(do)
 
             do.generate()
 
@@ -177,7 +271,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
                 self.notify.debug("Unpacking baseline/initial owner object state")
                 # An initial state was supplied for the object
                 # Unpack it in the C++ repository.
-                self.unpackObjectState(dgi, do, dclass, doId)
+                self.unpackObjectState(dgi, doId)
 
             do.announceGenerate()
 
@@ -195,6 +289,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.zoneId = zoneId
             do.dclass = dclass
             self.doId2do[do.doId] = do
+            self.addObject(do)
 
             do.generate()
 
@@ -202,7 +297,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
                 self.notify.debug("Unpacking baseline/initial object state")
                 # An initial state was supplied for the object
                 # Unpack it in the C++ repository.
-                self.unpackObjectState(dgi, do, dclass, doId)
+                self.unpackObjectState(dgi, doId)
 
             do.announceGenerate()
 
@@ -215,18 +310,24 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.deleteObject(do)
 
     def deleteObject(self, do):
-        del self.doId2do[do.doId]
+        self.removeObject(do.doId)
+        if do in self.doId2do.values():
+            del self.doId2do[do.doId]
+        elif do in self.doId2ownerView.values():
+            del self.doId2ownerView[do.doId]
         if do.doState > DOState.Disabled:
             do.disable()
         do.delete()
 
     def deleteAllObjects(self):
-        for do in self.doId2do.values():
+        for do in list(self.doId2do.values()) + list(self.doId2ownerView.values()):
+            self.removeObject(do.doId)
             if do.doState > DOState.Disabled:
                 do.disable()
             do.delete()
 
         self.doId2do = {}
+        self.doId2ownerView = {}
 
     def disconnect(self):
         if not self.connected:
@@ -252,20 +353,33 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             pass
 
     def runCallbacks(self):
-        self.netSys.runCallbacks(self.netCallbacks)
+        # This will fill up a list of connection events for us to process
+        # below.
+        self.netSys.runCallbacks()
+
+        # Process the events.
+        event = self.netSys.getNextEvent()
+        while event:
+            self.__handleNetCallback(event.getConnection(),
+                event.getState(), event.getOldState())
+            event = self.netSys.getNextEvent()
 
     def readerPollOnce(self):
-        msg = NetworkMessage()
+        msg = SteamNetworkMessage()
         if self.netSys.receiveMessageOnConnection(self.connectionHandle, msg):
             self.msgType = msg.getDatagramIterator().getUint16()
             self.handleDatagram(msg.getDatagramIterator())
             return True
         return False
 
-    def sendDatagram(self, dg):
+    def sendDatagram(self, dg, reliable = True):
         if dg.getLength() <= 0 or not self.connected:
             return
-        self.netSys.sendDatagram(self.connectionHandle, dg, NetworkSystem.NSFReliableNoNagle)
+        if reliable:
+            sendType = SteamNetworkSystem.NSFReliableNoNagle
+        else:
+            sendType = SteamNetworkSystem.NSFUnreliableNoDelay
+        self.netSys.sendDatagram(self.connectionHandle, dg, sendType)
 
     def connect(self, url):
         self.notify.info("Attemping to connect to %s" % (url))
@@ -290,21 +404,22 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             # I don't think this is possible.. but just in case.
             return
 
-        if state == NetworkSystem.NCSConnected:
+        if state == SteamNetworkSystem.NCSConnected:
             # We've successfully connected.
             self.connected = True
-            self.notify.info("Successfully connected")
+            self.notify.info("Successfully connected to %s" % self.serverAddress)
             messenger.send('connectSuccess', [self.serverAddress])
 
-        elif oldState == NetworkSystem.NCSConnecting:
+        elif oldState == SteamNetworkSystem.NCSConnecting:
             # If state was connecting and new state is not connected, we failed!
             self.connected = False
             self.stopClientLoop()
             messenger.send('connectFailure', [self.serverAddress])
+            self.notify.warning("Failed to connect to %s" % self.serverAddress)
             self.serverAddress = None
 
-        elif state == NetworkSystem.NCSClosedByPeer or \
-            state == NetworkSystem.NCSProblemDetectedLocally:
+        elif state == SteamNetworkSystem.NCSClosedByPeer or \
+            state == SteamNetworkSystem.NCSProblemDetectedLocally:
 
             # Lost connection
             self.connected = False
@@ -356,7 +471,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             return
 
         dg = PyDatagram(packer.getBytes())
-        self.sendDatagram(dg)
+        self.sendDatagram(dg, reliable = not field.hasKeyword("unreliable"))
 
     def __handleObjectMessage(self, dgi):
         doId = dgi.getUint32()

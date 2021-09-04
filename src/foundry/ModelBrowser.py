@@ -43,7 +43,7 @@ class ModelBrowser(AssetBrowser):
         self.displayRegion = self.buffer.makeDisplayRegion()
 
         self.render = core.NodePath("modelBrowserRoot")
-        self.render.setShaderAuto()
+        #self.render.setShaderAuto()
 
         camNode = core.Camera("modelBrowserRenderCam")
         lens = core.PerspectiveLens()

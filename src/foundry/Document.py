@@ -1,4 +1,4 @@
-from panda3d.core import UniqueIdAllocator, CKeyValues, NodePath, LightRampAttrib, AsyncTaskManager, EventQueue
+from panda3d.core import UniqueIdAllocator, KeyValues, NodePath, LightRampAttrib, AsyncTaskManager, EventQueue
 #from panda3d.bsp import BSPShaderGenerator
 
 import builtins
@@ -217,7 +217,7 @@ class Document(DirectObject):
         if not filename:
             filename = self.filename
 
-        kv = CKeyValues()
+        kv = KeyValues()
         self.writeDocBlocks(kv)
         self.world.doWriteKeyValues(kv)
         kv.write(filename, 4)
@@ -330,7 +330,7 @@ class Document(DirectObject):
         # opening a map from disk, read through the keyvalues and
         # generate the objects
         self.idGenerator.reset()
-        root = CKeyValues.load(filename)
+        root = KeyValues.load(filename)
         for i in range(root.getNumChildren()):
             self.r_open(root.getChild(i))
         self.unsaved = False

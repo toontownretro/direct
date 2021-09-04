@@ -1,4 +1,4 @@
-from panda3d.core import CascadeLight, Vec4, Vec3, CKeyValues, LineSegs, Quat, NodePath, AntialiasAttrib
+from panda3d.core import CascadeLight, Vec4, Vec3, KeyValues, LineSegs, Quat, NodePath, AntialiasAttrib
 
 from .MapHelper import MapHelper
 

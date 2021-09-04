@@ -1,4 +1,4 @@
-from panda3d.core import Point3, Vec3, Quat, LineSegs, CKeyValues, ButtonRegistry
+from panda3d.core import Point3, Vec3, Quat, LineSegs, KeyValues, ButtonRegistry
 from panda3d.core import LPlane, Vec4, Filename, VirtualFileSystem, getModelPath
 
 from direct.showbase.PythonUtil import invertDict
@@ -81,7 +81,7 @@ def qtKeyFromKeyboardButton(name):
         return KeyboardButtonToQtKey.get(name)
 
 def strToQColor(colorStr, alpha = False):
-    pcolor = CKeyValues.to4f(colorStr)
+    pcolor = KeyValues.to4f(colorStr)
     return QtGui.QColor(int(pcolor.x), int(pcolor.y), int(pcolor.z), 255 if not alpha else int(pcolor.w))
 
 def qColorToStr(qcolor):

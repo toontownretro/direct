@@ -383,7 +383,7 @@ class Viewport(QtWidgets.QWidget, DirectObject):
 
         self.render2d.setDepthTest(0)
         self.render2d.setDepthWrite(0)
-        self.render2d.setMaterialOff(1)
+        #self.render2d.setMaterialOff(1)
         self.render2d.setTwoSided(1)
 
         self.aspect2d = self.render2d.attachNewNode("viewport-aspect2d")

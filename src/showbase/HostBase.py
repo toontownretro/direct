@@ -41,6 +41,12 @@ class HostBase(DirectObject):
 
         self.wantStats = self.config.GetBool('want-pstats', 0)
 
+        # Client repository.
+        self.cr = None
+
+        self.timestampRandomizeWindow = 32
+        self.timestampNetworkingBase = 100
+
         # Do you want to enable a fixed simulation timestep?  Setting this true
         # only means that the builtin resetPrevTransform and collisionLoop
         # tasks are added onto the simTaskMgr instead of taskMgr, which runs at
@@ -134,6 +140,7 @@ class HostBase(DirectObject):
         self.remainder = 0
         # What is the current overall simulation tick?
         self.tickCount = 0
+        self.oldTickCount = 0
         # How many ticks are we going to run this frame?
         self.totalTicksThisFrame = 0
         # How many ticks have we run so far this frame?
@@ -143,8 +150,22 @@ class HostBase(DirectObject):
         # How many simulations ticks are we running per-second?
         self.ticksPerSec = 60
         self.intervalPerTick = 1.0 / self.ticksPerSec
+        self.realFrameTime = 0.0
+        self.realDeltaTime = 0.0
 
         self.taskMgr.finalInit()
+
+    def setFrameTime(self, time):
+        self.frameTime = time
+        self.globalClock.setFrameTime(time)
+
+    def setDeltaTime(self, dt):
+        self.deltaTime = dt
+        self.globalClock.setDt(dt)
+
+    def setFrameCount(self, count):
+        self.frameCount = count
+        self.globalClock.setFrameCount(count)
 
     def shutdown(self):
         self.eventMgr.shutdown()
@@ -176,6 +197,9 @@ class HostBase(DirectObject):
             self.loader.destroy()
             self.loader = None
 
+    def setTickCount(self, tick):
+        base.tickCount = tick
+
     def setTickRate(self, rate):
         """Sets the number of simulation steps that should run each second."""
         self.ticksPerSec = rate
@@ -204,6 +228,15 @@ class HostBase(DirectObject):
         # First determine how many simulation ticks we should run.
         #
 
+        hasClockDriftMgr = False
+        if base.cr is not None and hasattr(base.cr, 'clockDriftMgr'):
+            # Adjust the client clock very slightly to keep it in line with the
+            # server clock.
+            if base.cr.clockDriftMgr.isClockCorrectionEnabled():
+                hasClockDriftMgr = True
+            adj = base.cr.clockDriftMgr.adjustFrameTime(self.deltaTime) - self.deltaTime
+            self.deltaTime += adj
+
         self.prevRemainder = self.remainder
         if self.prevRemainder < 0.0:
             self.prevRemainder = 0.0
@@ -219,40 +252,47 @@ class HostBase(DirectObject):
         self.currentFrameTick = 0
         self.currentTicksThisFrame = 1
 
-        realDeltaTime = self.deltaTime
-
         #
         # Now run any simulation ticks.
         #
 
+        hostDeltaTime = self.deltaTime
+        hostFrameTime = self.frameTime
+
         for _ in range(numTicks):
             # Determine delta and frame time of this sim tick
-            frameTime = self.intervalPerTick * self.tickCount
-            deltaTime = self.intervalPerTick
-            self.deltaTime = deltaTime
-            self.frameTime = frameTime
+            self.frameTime = self.intervalPerTick * self.tickCount
+            if hasClockDriftMgr:
+                self.deltaTime = hostDeltaTime
+            else:
+                elapsedTicks = (self.tickCount - self.oldTickCount)
+                self.deltaTime = elapsedTicks * self.intervalPerTick
             # Set it on the global clock for anything that uses it
-            self.globalClock.setFrameTime(frameTime)
-            self.globalClock.setDt(deltaTime)
-            self.globalClock.setFrameCount(self.tickCount)
+            self.globalClock.setFrameTime(self.frameTime)
+            self.globalClock.setDt(self.deltaTime)
 
             # Step all simulation-bound tasks
             self.simTaskMgr.step()
+
+            self.oldTickCount = self.tickCount
 
             self.tickCount += 1
             self.currentFrameTick += 1
             self.currentTicksThisFrame += 1
 
         # Restore the true time for rendering and frame-bound stuff
-        frameTime = self.tickCount * self.intervalPerTick + self.remainder
-        self.globalClock.setFrameTime(frameTime)
-        self.globalClock.setDt(realDeltaTime)
-        self.globalClock.setFrameCount(self.frameCount)
-        self.deltaTime = realDeltaTime
-        self.frameTime = frameTime
+        self.frameTime = (self.tickCount * self.intervalPerTick) + self.remainder
+        self.deltaTime = self.realDeltaTime
+        self.globalClock.setFrameTime(self.frameTime)
+        self.globalClock.setDt(self.realDeltaTime)
 
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
+
+    def getNetworkBase(self, tick, doId):
+        doMod = doId % self.timestampRandomizeWindow
+        baseTick = self.timestampNetworkingBase * int((tick - doMod) / self.timestampNetworkingBase)
+        return baseTick
 
     def postRunFrame(self):
         pass
@@ -260,11 +300,13 @@ class HostBase(DirectObject):
     def doRunFrame(self):
         # Manually advance the clock
         now = self.globalClock.getRealTime()
-        self.deltaTime = now - self.frameTime
-        self.frameTime = now
+        self.realDeltaTime = now - self.realFrameTime
+        self.realFrameTime += self.realDeltaTime
 
-        self.globalClock.setFrameTime(self.frameTime)
-        self.globalClock.setDt(self.deltaTime)
+        self.deltaTime = self.realDeltaTime
+        self.frameTime = self.realFrameTime
+        self.globalClock.setDt(self.realDeltaTime)
+        self.globalClock.setFrameTime(self.realFrameTime)
         self.globalClock.setFrameCount(self.frameCount)
 
         self.preRunFrame()

@@ -11,6 +11,7 @@ defaultFont = None
 defaultFontFunc = TextNode.getDefaultFont
 defaultClickSound = None
 defaultRolloverSound = None
+defaultReleaseSound = None
 defaultDialogGeom = None
 defaultDialogRelief = PGFrameStyle.TBevelOut
 drawOrder = 100
@@ -120,6 +121,13 @@ def getDefaultClickSound():
 def setDefaultClickSound(newSound):
     global defaultClickSound
     defaultClickSound = newSound
+
+def setDefaultReleaseSound(newSound):
+    global defaultReleaseSound
+    defaultReleaseSound = newSound
+
+def getDefaultReleaseSound():
+    return defaultReleaseSound
 
 def getDefaultFont():
     global defaultFont

@@ -1,4 +1,4 @@
-from panda3d.core import ConfigVariableBool, ConfigVariableString, ConfigVariableInt
+from panda3d.core import ConfigVariableBool, ConfigVariableString, ConfigVariableInt, ConfigVariableDouble
 
 # Server related config variables
 sv_max_clients = ConfigVariableInt("sv_max_clients", 24)
@@ -10,3 +10,4 @@ sv_tickrate = ConfigVariableInt("sv_tickrate", 66)
 sv_snapshot_history = ConfigVariableInt("sv_snapshot_history", 50)
 sv_port = ConfigVariableInt("sv_port", 27015)
 sv_alternateticks = ConfigVariableBool("sv_alternateticks", False)
+sv_clockcorrection_msecs = ConfigVariableDouble("sv_clockcorrection_msecs", 60)

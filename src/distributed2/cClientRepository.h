@@ -17,6 +17,7 @@
 #include "config_distributed2.h"
 #include "datagramIterator.h"
 #include "dcbase.h"
+#include "pmap.h"
 #include "py_panda.h"
 
 class DCClass;
@@ -28,16 +29,42 @@ class DCClass;
  */
 class CClientRepository {
 PUBLISHED:
+  /**
+   * Caches the existence of RecvProxy/PostDataUpdate methods on a
+   * DistributedObject, so we don't have to call PyObject_GetAttrString
+   * each time we unpack an object state.
+   */
+  class DOFieldData {
+  public:
+    DOFieldData() { _recv_proxy = nullptr; _on_recv = nullptr; }
+    PyObject *_recv_proxy;
+    PyObject *_on_recv;
+  };
+  class DOData : public ReferenceCount {
+  public:
+    DOID_TYPE _do_id;
+    DCClass *_dclass;
+    PyObject *_dist_obj;
+    PyObject *_pre_data_update;
+    PyObject *_post_data_update;
+    PyObject *_on_data_changed;
+    pvector<DOFieldData> _field_data;
+  };
+
   INLINE CClientRepository();
 
   INLINE void set_python_repository(PyObject *repo);
 
-  void unpack_server_snapshot(DatagramIterator &dgi);
-  bool unpack_object_state(DatagramIterator &dgi, PyObject *dist_obj,
-                           DCClass *dclass, DOID_TYPE do_id);
+  void unpack_server_snapshot(DatagramIterator &dgi, bool is_delta);
+  bool unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id);
+
+  void add_object(PyObject *dist_obj);
+  void remove_object(DOID_TYPE do_id);
 
 private:
   PyObject *_py_repo;
+  typedef pmap<DOID_TYPE, PT(DOData)> DODataMap;
+  DODataMap _do_data;
 };
 
 #include "cClientRepository.I"

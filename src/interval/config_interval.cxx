@@ -20,7 +20,7 @@
 #include "cConstrainPosHprInterval.h"
 #include "cLerpInterval.h"
 #include "cLerpNodePathInterval.h"
-#include "cLerpAnimEffectInterval.h"
+//#include "cLerpAnimEffectInterval.h"
 #include "cMetaInterval.h"
 #include "showInterval.h"
 #include "hideInterval.h"
@@ -73,7 +73,7 @@ init_libinterval() {
   CConstrainPosHprInterval::init_type();
   CLerpInterval::init_type();
   CLerpNodePathInterval::init_type();
-  CLerpAnimEffectInterval::init_type();
+  //CLerpAnimEffectInterval::init_type();
   CMetaInterval::init_type();
   ShowInterval::init_type();
   HideInterval::init_type();
