@@ -1190,6 +1190,20 @@ class Actor(DirectObject, NodePath):
                 channel = animName
             partDef.char.pose(channel, frame, layer, blendIn, blendOut)
 
+    def setTransition(self, animName, flag, partName=None, lodName=None):
+        """
+        Enables or disables transitions into the indicated animation.
+        """
+        for partDef in self.getPartDefs(partName, lodName):
+            channelIndex = partDef.channelIndices.get(animName)
+            if channelIndex is None:
+                continue
+            chan = partDef.char.getChannel(channelIndex)
+            if flag:
+                chan.clearFlags(AnimChannel.FSnap)
+            else:
+                chan.setFlags(AnimChannel.FSnap)
+
     def getPartDefs(self, partName=None, lodName=None):
         """
         Returns a list of PartDefs for each part and lod combination.
