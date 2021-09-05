@@ -65,6 +65,7 @@ class Actor(DirectObject, NodePath):
             self.animsByName = {}
             # Mapping of channel index to AnimDef
             self.animsByIndex = {}
+            self.weightLists = {}
 
         def getChannelIndex(self, animName):
             animDef = self.animsByName.get(animName)
@@ -225,6 +226,36 @@ class Actor(DirectObject, NodePath):
             # someone's hands disappear; better to cull the whole
             # object or none of it.
             self.__geomNode.node().setFinal(1)
+
+    def makeWeightList(self, name, weights, partName='modelRoot', lodName=None):
+        """
+        Constructs a weight list that can be applied to channels to control
+        which joints are influenced by a channel and how much.  This can be
+        used to achieve partial-body animation.
+        """
+        desc = WeightListDesc(name)
+        for jointName, weight in weights.items():
+            desc.setWeight(jointName, weight)
+
+        for partDef in self.getPartDefs(partName, lodName):
+            partDef.weightLists[name] = WeightList(partDef.char, desc)
+
+    def setAnimWeightList(self, animName, weightListName, partName='modelRoot', lodName=None):
+        """
+        Applies a previously created weight list to the animation channel with
+        the indicated name.  The channel will use the indicated weight list to
+        control the influence of the channel on a per-joint basis.
+        """
+        for partDef in self.getPartDefs(partName, lodName):
+            weightList = partDef.weightLists.get(weightListName)
+            if not weightList:
+                continue
+            animDef = partDef.getAnimDef(animName)
+            if not animDef:
+                continue
+            if not animDef.isBound() and not self.loadAndBindAnim(partDef, animDef):
+                continue
+            animDef.channel.setWeightList(weightList)
 
     def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot", loadNow = False):
         """loadAnims(self, string:string{}, string='modelRoot',
@@ -1168,6 +1199,7 @@ class Actor(DirectObject, NodePath):
                     self.__prepareBundle(bundleNP, partDef.partModel,
                                          partName, lodName)
                     thisPartDef = self.__partBundleDict[lodName][partName]
+                    thisPartDef.weightLists = dict(partDef.weightLists)
                     for animDef in partDef.animsByName.values():
                         animDef.makeCopy(thisPartDef)
                 else:
