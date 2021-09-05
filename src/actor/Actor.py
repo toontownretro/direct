@@ -1818,3 +1818,49 @@ class Actor(DirectObject, NodePath):
         No-op.
         """
         pass
+
+    def controlJoint(self, node, partName, jointName, lodName="lodRoot"):
+        """The converse of exposeJoint: this associates the joint with
+        the indicated node, so that the joint transform will be copied
+        from the node to the joint each frame.  This can be used for
+        programmer animation of a particular joint at runtime.
+
+        The parameter node should be the NodePath for the node whose
+        transform will animate the joint.  If node is None, a new node
+        will automatically be created and loaded with the joint's
+        initial transform.  In either case, the node used will be
+        returned.
+
+        It used to be necessary to call this before any animations
+        have been loaded and bound, but that is no longer so.
+        """
+        anyGood = False
+        for bundleDict in self.__partBundleDict.values():
+            char = bundleDict[partName].char
+            joint = char.findJoint(jointName)
+            if joint == -1:
+                continue
+
+            if node is None:
+                node = self.attachNewNode(ModelNode(jointName))
+                node.setMat(char.getJointDefaultValue(joint))
+
+            char.setJointControllerNode(joint, node.node())
+
+            anyGood = True
+
+        if not anyGood:
+            self.notify.warning("Cannot control joint %s" % (jointName))
+
+        return node
+
+    def releaseJoint(self, partName, jointName):
+        """Undoes a previous call to controlJoint() or freezeJoint()
+        and restores the named joint to its normal animation. """
+
+        for bundleDict in self.__partBundleDict.values():
+            char = bundleDict[partName].char
+            joint = char.findJoint(jointName)
+            if joint == -1:
+                continue
+            char.clearJointControllerNode(joint)
