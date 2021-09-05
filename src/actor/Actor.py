@@ -1761,3 +1761,28 @@ class Actor(DirectObject, NodePath):
 
         for i in range(char.getJointNumChildren(joint)):
             self.__doListJoints(indentLevel + 2, char, char.getJointChild(joint, i))
+
+    def getAnimFilename(self, animName, partName='modelRoot'):
+        """
+        Returns the filename that the channel with the indicated name was
+        loaded from.  This returns None for channels that were embedded in
+        the model.
+
+        Returns the filename for an arbitrary LOD.
+        """
+
+        if not self.__partBundleDict:
+            return None
+
+        lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
+        partDef = partBundleDict[partName]
+        animDef = partDef.getAnimDef(animName)
+        if not animDef:
+            return None
+        return animDef.filename
+
+    def postFlatten(self):
+        """
+        No-op.
+        """
+        pass
