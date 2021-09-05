@@ -20,6 +20,40 @@ class Actor(DirectObject, NodePath):
                                        LoaderOptions.LFReportErrors |
                                        LoaderOptions.LFConvertAnim)
 
+    class AnimDef:
+        """Information about a single animation of a part."""
+
+        def __init__(self, filename = None, channel = None, char = None):
+            self.filename = filename
+            self.name = ""
+            self.channel = channel
+            # Associated character.
+            self.char = char
+            # Index of the channel on the associated part character.
+            self.index = -1
+            # Have to store play rate here because the character does not
+            # remember play rates of channels as they are set on layers.
+            self.playRate = 1.0
+
+        def isBound(self):
+            return self.index >= 0
+
+        def makeCopy(self, partDef):
+            """
+            Returns a copy of the AnimDef for use with the indicated PartDef.
+            """
+            animDef = Actor.AnimDef()
+            if self.filename is not None:
+                animDef.filename = Filename(self.filename)
+            animDef.name = str(self.name)
+            animDef.channel = self.channel
+            animDef.char = partDef.char
+            animDef.index = self.index
+            animDef.playRate = self.playRate
+            partDef.animsByName[animDef.name] = animDef
+            if animDef.isBound():
+                partDef.animsByIndex[animDef.index] = animDef
+
     class PartDef:
         """Maintains the objects for a particular "part" of the actor."""
 
@@ -27,15 +61,22 @@ class Actor(DirectObject, NodePath):
             self.charNP = charNP
             self.char = char
             self.partModel = partModel
-            # Contains a mapping of animation name to channel index on the
-            # character.
-            self.channelIndices = {}
-            # Anim names by channel index.
-            self.channelNames = {}
-            self.channelPlayRates = {}
+            # Mapping of anim name to AnimDef
+            self.animsByName = {}
+            # Mapping of channel index to AnimDef
+            self.animsByIndex = {}
 
         def getChannelIndex(self, animName):
-            return self.channelIndices.get(animName, None)
+            animDef = self.animsByName.get(animName)
+            if not animDef:
+                return -1
+            return animDef.index
+
+        def getAnimDef(self, animName):
+            if isinstance(animName, str):
+                return self.animsByName.get(animName)
+            else:
+                return self.animsByIndex.get(animName)
 
     def __init__(self, models=None, anims=None, other=None, copy=True,
                  lodNode=None, flattenable=True, setFinal=False,
@@ -185,13 +226,17 @@ class Actor(DirectObject, NodePath):
             # object or none of it.
             self.__geomNode.node().setFinal(1)
 
-    def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot"):
+    def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot", loadNow = False):
         """loadAnims(self, string:string{}, string='modelRoot',
         string='lodRoot')
         Actor anim loader. Takes an optional partName (defaults to
         'modelRoot' for non-multipart actors) and lodName (defaults
         to 'lodRoot' for non-LOD actors) and dict of corresponding
         anims in the form animName:animPath{}
+
+        If loadNow is True, the Actor will immediately load up all animations
+        from disk into memory.  Otherwise, animations will only be loaded the
+        first time they are accessed through the Actor.
         """
         reload = True
         if lodName == 'all':
@@ -207,31 +252,93 @@ class Actor(DirectObject, NodePath):
                                   (anims, partName, lodNames[0]))
 
         for animName, filename in anims.items():
-            # make sure this lod is in anim control dict
-            animModel = self.loader.loadSync(Filename(filename), LoaderOptions())
-            if not animModel:
-                Actor.notify.warning("Failed to load animation file " + filename)
-                continue
-            animModelNP = NodePath(animModel)
-            animBundleNP = animModelNP.find("**/+AnimChannelBundle")
-            if animBundleNP.isEmpty():
-                Actor.notify.warning("Model " + filename + " does not contain an animation!")
-                continue
-            animBundleNode = animBundleNP.node()
-            # Add all the channels within the bundle.
-            for i in range(animBundleNode.getNumChannels()):
-                animBundle = animBundleNode.getChannel(i)
-                isTable = isinstance(animBundle, AnimChannelTable)
+            if not loadNow:
+                # Just create an AnimDef that references no channel.
+                # When we try to access the AnimDef it will load the channel
+                # then and bind it.
                 for lName in lodNames:
                     partDef = self.__partBundleDict[lName][partName]
                     char = partDef.char
-                    if isTable:
-                        if not char.bindAnim(animBundle):
-                            Actor.notify.warning("Failed to bind anim " + animName + " to LOD " + lName + ", part " + partName)
-                            continue
-                    channelIndex = char.addChannel(animBundle)
-                    partDef.channelIndices[animName] = channelIndex
-                    partDef.channelNames[channelIndex] = animName
+                    animDef = Actor.AnimDef(filename, char=char)
+                    animDef.name = animName
+                    partDef.animsByName[animName] = animDef
+            else:
+                # Load the channel into memory immediately and bind it.
+                channel = self.loadAnim(filename)
+                if not channel:
+                    continue
+                for lName in lodNames:
+                    partDef = self.__partBundleDict[lName][partName]
+                    animDef = Actor.AnimDef(filename, channel, partDef.char)
+                    animDef.name = animName
+                    partDef.animsByName[animName] = animDef
+                    if not self.bindAnim(partDef, animDef, channel):
+                        Actor.notify.warning("Failed to bind anim (" + animName + ", " + filename + ") to part " + partName + ", lod " + lName)
+
+    def loadAnim(self, filename):
+        """
+        Loads a single animation from the indicated filename and returns the
+        AnimChannel contained within it.  Returns None if an error occurred.
+        If the file contains multiple channels, it only returns the first one.
+        """
+
+        animModel = self.loader.loadSync(filename, LoaderOptions())
+        if not animModel:
+            Actor.notify.warning("Failed to load animation file " + filename)
+            return None
+
+        animModelNP = NodePath(animModel)
+        animBundleNP = animModelNP.find("**/+AnimChannelBundle")
+        if animBundleNP.isEmpty():
+            Actor.notify.warning("Model " + filename + " does not contain an animation!")
+            return None
+        animBundleNode = animBundleNP.node()
+        # Add just the first channel within the bundle.
+        # TODO: This will leave out other animations if there are multiple
+        #       channels in the bundle.
+        if animBundleNode.getNumChannels() > 1:
+            Actor.notify.warning("Channel bundle " + filename + " contains multiple channels, using only the first one")
+        elif animBundleNode.getNumChannels() == 0:
+            Actor.notify.warning("Channel bundle " + filename + " contains no channels!")
+            return None
+
+        return animBundleNode.getChannel(0)
+
+    def bindAnim(self, partDef, animDef, channel):
+        """
+        Given an already loaded channel, binds the channel to the character
+        of the indicated part and stores the channel index on the indicated
+        AnimDef.  Returns True if the channel was successfully bound and
+        added to the part character, or False if there was an error.
+        """
+
+        if not partDef.char.bindAnim(channel):
+            del partDef.animsByName[animDef.name]
+            return False
+
+        channelIndex = partDef.char.addChannel(channel)
+        if channelIndex < 0:
+            del partDef.animsByName[animDef.name]
+            return False
+
+        animDef.index = channelIndex
+        animDef.channel = channel
+        partDef.animsByIndex[channelIndex] = animDef
+
+        return True
+
+    def loadAndBindAnim(self, partDef, animDef):
+        """
+        Loads up the AnimChannel at the filename specified by the AnimDef and
+        bind it to the Character of the PartDef.  Returns True on success, or
+        False if the animation could not be loaded or bound.
+        """
+
+        channel = self.loadAnim(animDef.filename)
+        if not channel:
+            return False
+
+        return self.bindAnim(partDef, animDef, channel)
 
     def loadModel(self, modelPath, partName="modelRoot", lodName="lodRoot",
                   copy = True, okMissing = None, autoBindAnims = True,
@@ -307,12 +414,16 @@ class Actor(DirectObject, NodePath):
 
             # Check for channels embedded in the model.  If there are any, add
             # them to the PartDefs dictionary of channels so they are visible
-            # to the Actor.
+            # to the Actor.  Channels embedded in the Character are assumed to
+            # be already bound.
             partDef = self.__partBundleDict[lodName][partName]
             for i in range(partDef.char.getNumChannels()):
                 chan = partDef.char.getChannel(i)
-                partDef.channelIndices[chan.getName()] = i
-                partDef.channelNames[i] = chan.getName()
+                animDef = Actor.AnimDef(channel=chan, char=partDef.char)
+                animDef.name = chan.getName()
+                animDef.index = i
+                partDef.animsByName[animDef.name] = animDef
+                partDef.animsByIndex[i] = animDef
 
     def __prepareBundle(self, bundleNP, partModel,
                         partName="modelRoot", lodName="lodRoot"):
@@ -348,29 +459,23 @@ class Actor(DirectObject, NodePath):
         on this parameter.
         NOTE: sets play rate on all LODs"""
 
-        for partDef in self.getPartDefs(partName):
-            if isinstance(anim, str):
-                channelIndex = partDef.channelIndices.get(anim)
-                if channelIndex is None:
-                    continue
-            else:
-                channelIndex = anim
-
-            if channelIndex is not None:
-                # Setting play rate for a specific channel.
-                partDef.channelPlayRates[channelIndex] = rate
-
-                for i in range(partDef.char.getNumAnimLayers()):
-                    animLayer = partDef.char.getAnimLayer(i)
-                    if animLayer._sequence == channelIndex:
-                        animLayer._play_rate = rate
-            else:
-                # Setting play rate for layer, only lasts until another
-                # channel is played.
+        if anim is None:
+            # Set play rate of layer for duration of currently playing channel.
+            for partDef in self.getPartDefs(partName):
                 animLayer = partDef.char.getAnimLayer(layer)
                 if not animLayer:
                     continue
                 animLayer._play_rate = rate
+        else:
+            # Store permanent play rate on channel.
+            for animDef in self.getAnimDefs(anim, partName):
+                animDef.playRate = rate
+
+                # If it's playing adjust the layer play rate.
+                for i in range(animDef.char.getNumAnimLayers()):
+                    animLayer = animDef.char.getAnimLayer(i)
+                    if animLayer._sequence == animDef.index:
+                        animLayer._play_rate = rate
 
     def getPlayRate(self, animName=None, partName=None, layer=0):
         """
@@ -380,27 +485,26 @@ class Actor(DirectObject, NodePath):
         NOTE: Returns info only for an arbitrary LOD
         """
 
-        if not self.__partBundleDict:
-            return 1.0
-
-        lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
-        if partName:
-            partDef = partBundleDict.get(partName)
-            if not partDef:
+        if animName is not None:
+            # Return stored play rate of a channel.
+            animDefs = self.getAnimDefs(animName, partName)
+            if not animDefs:
                 return 1.0
-        else:
-            partName, partDef = next(iter(partBundleDict.items()))
+            return animDefs[0].playRate
 
-        if isinstance(animName, str):
-            channelIndex = partDef.channelIndices.get(animName)
         else:
-            channelIndex = animName
+            if not self.__partBundleDict:
+                return 1.0
 
-        if channelIndex is not None:
-            # Return play rate of a specific channel.
-            return partDef.channelPlayRates.get(channelIndex, 1.0)
-        else:
-            # Return current play rate of a layer.
+            lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
+            if partName:
+                partDef = partBundleDict.get(partName)
+                if not partDef:
+                    return 1.0
+            else:
+                partName, partDef = next(iter(partBundleDict.items()))
+
+            # Return play rate of layer.
             animLayer = partDef.char.getAnimLayer(layer)
             if not animLayer:
                 return 1.0
@@ -415,47 +519,63 @@ class Actor(DirectObject, NodePath):
         NOTE: returns info for arbitrary LOD
         """
 
-        if not self.__partBundleDict:
-            return 0.1
+        if animName is not None:
+            # Return duration of a specific named channel.
+            animDefs = self.getAnimDefs(animName, partName)
+            if not animDefs:
+                return 0.1
+            animDef = animDefs[0]
+            chan = animDef.channel
+            playRate = animDef.playRate
 
-        for partDef in self.getPartDefs(partName):
-            if animName is not None:
-                # Return duration of specific channel.
-                channelIndex = partDef.channelIndices.get(animName)
-                if channelIndex is None:
-                    continue
-                playRate = partDef.channelPlayRates.get(channelIndex, 1.0)
+        else:
+            # Return duration of current channel playing on a layer.
+            if not self.__partBundleDict:
+                return 0.1
+
+            lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
+            if partName:
+                partDef = partBundleDict.get(partName)
+                if not partDef:
+                    return 0.1
             else:
-                # Return duration of current channel on a layer.
-                animLayer = partDef.char.getAnimLayer(layer)
-                channelIndex = animLayer._sequence
-                playRate = animLayer._play_rate
+                partName, partDef = next(iter(partBundleDict.items()))
 
-            chan = partDef.char.getChannel(channelIndex)
-            if fromFrame is None:
-                fromFrame = 0
-            if toFrame is None:
-                toFrame = chan.getNumFrames()-1
+            animLayer = partDef.char.getAnimLayer(layer)
+            if not animLayer:
+                return 0.1
+            if animLayer._sequence == -1:
+                return 0.1
+            chan = partDef.char.getChannel(animLayer._sequence)
+            playRate = animLayer._play_rate
 
-            return abs((((toFrame+1)-fromFrame) / chan.getFrameRate()) / playRate)
+        if fromFrame is None:
+            fromFrame = 0
+        if toFrame is None:
+            toFrame = chan.getNumFrames() - 1
 
-        return 0.1
+        return abs((((toFrame+1)-fromFrame) / chan.getFrameRate()) / playRate)
 
     def getNumFrames(self, animName=None, partName=None, layer=0):
-        for partDef in self.getPartDefs(partName):
-            if animName is None:
+        if animName is not None:
+            # Return num frames of a specific channel.
+            animDefs = self.getAnimDefs(animName, partName)
+            if not animDefs:
+                return 1
+            animDef = animDefs[0]
+            return animDef.channel.getNumFrames()
+
+        else:
+            # Return num frames of a layer.
+            for partDef in self.getPartDefs(partName):
                 # Return num frames of a layer.
                 animLayer = partDef.char.getAnimLayer(layer)
                 if not animLayer:
                     return 1
+                if animLayer._sequence == -1:
+                    return 1
                 return partDef.char.getChannel(animLayer._sequence).getNumFrames()
-            else:
-                # Return num frames of a channel.
-                channel = partDef.channelIndices.get(animName)
-                if channel is None:
-                    continue
-                chan = partDef.char.getChannel(channel)
-                return chan.getNumFrames()
+
         return 1
 
     def getFrameRate(self, animName=None, partName=None, layer=0):
@@ -465,20 +585,21 @@ class Actor(DirectObject, NodePath):
         If no part specified, return anim durations of first part.
         NOTE: returns info only for an arbitrary LOD
         """
-        for partDef in self.getPartDefs(partName):
-            if animName is None:
-                # Return frame rate of a layer.
+        if animName is not None:
+            animDefs = self.getAnimDefs(animName, partName)
+            if not animDefs:
+                return 1
+            animDef = animDefs[0]
+            return animDef.channel.getFrameRate() * animDef.playRate
+
+        else:
+            # Return frame rate of a layer.
+            for partDef in self.getPartDefs(partName):
                 animLayer = partDef.char.getAnimLayer(layer)
-                if not animLayer:
+                if not animLayer or animLayer._sequence == -1:
                     return 1
                 return partDef.char.getChannel(animLayer._sequence).getFrameRate() * animLayer._play_rate
-            else:
-                # Return frame rate of a channel.
-                channel = partDef.channelIndices.get(animName)
-                if channel is None:
-                    continue
-                chan = partDef.char.getChannel(channel)
-                return chan.getFrameRate() * partDef.channelPlayRates.get(channel, 1.0)
+
         return 1
 
     def getBaseFrameRate(self, animName=None, partName=None, layer=0):
@@ -486,23 +607,19 @@ class Actor(DirectObject, NodePath):
         Return frame rate of given anim name and given part, unmodified
         by any play rate in effect.
         """
-        for partDef in self.getPartDefs(partName):
-            if animName is None:
-                # Return frame rate of channel playing on a layer.
-                animLayer = partDef.char.getAnimLayer(layer)
-                if not animLayer:
-                    return 1
-                chan = partDef.char.getChannel(animLayer._sequence)
-            else:
-                # Return frame rate of a channel.
-                channel = partDef.channelIndices.get(animName)
-                if channel is None:
-                    continue
-                chan = partDef.char.getChannel(channel)
-
-            if not chan:
+        if animName is None:
+            animDefs = self.getAnimDefs(animName, partName)
+            if not animDefs:
                 return 1
-            return chan.getFrameRate()
+            return animDefs[0].channel.getFrameRate()
+        else:
+            # Return frame rate of channel playing on a layer.
+            for partDef in self.getPartDefs(partName):
+                animLayer = partDef.char.getAnimLayer(layer)
+                if not animLayer or animLayer._sequence == -1:
+                    return 1
+                return partDef.char.getChannel(animLayer._sequence).getFrameRate()
+
         return 1
 
     def getFrameTime(self, anim, frame, partName=None):
@@ -1051,9 +1168,8 @@ class Actor(DirectObject, NodePath):
                     self.__prepareBundle(bundleNP, partDef.partModel,
                                          partName, lodName)
                     thisPartDef = self.__partBundleDict[lodName][partName]
-                    thisPartDef.channelIndices = dict(partDef.channelIndices)
-                    thisPartDef.channelNames = dict(partDef.channelNames)
-                    thisPartDef.channelPlayRates = dict(partDef.channelPlayRates)
+                    for animDef in partDef.animsByName.values():
+                        animDef.makeCopy(thisPartDef)
                 else:
                     Actor.notify.error("lod: %s has no matching part: %s" %
                                        (lodName, partName))
@@ -1064,22 +1180,24 @@ class Actor(DirectObject, NodePath):
         If no name specified then stop all animations on the actor.
         NOTE: stops all LODs"""
 
-        for partDef in self.getPartDefs(partName):
-            if animName is not None:
-                channelIndex = partDef.channelIndices.get(animName, None)
-                if channelIndex is None:
+        if animName is not None:
+            for partDef in self.getPartDefs(partName):
+                channelIndex = partDef.getChannelIndex(animName)
+                if channelIndex == -1:
                     continue
                 for i in range(partDef.char.getNumAnimLayers()):
                     animLayer = partDef.char.getAnimLayer(i)
                     if animLayer._sequence == channelIndex:
                         # This layer is playing the channel we want to stop.
                         partDef.char.stop(i, kill)
-
-            if layer is None:
-                # Stopping all layers
-                partDef.char.stop(-1, kill)
-            elif layer < partDef.char.getNumAnimLayers():
-                partDef.char.stop(layer, kill)
+        else:
+            # Stopping all layers or a specific layer
+            for partDef in self.getPartDefs(partName):
+                if layer is None:
+                    # Stopping all layers.
+                    partDef.char.stop(-1, kill)
+                elif layer < partDef.char.getNumAnimLayers():
+                    partDef.char.stop(layer, kill)
 
     def play(self, animName=None, partName=None, fromFrame=None, toFrame=None, layer=0,
              playRate=1.0, autoKill=False, blendIn=0.0, blendOut=0.0, channel=None):
@@ -1094,21 +1212,18 @@ class Actor(DirectObject, NodePath):
         if fromFrame is None:
             fromFrame = 0
 
-        for partDef in self.getPartDefs(partName):
-            if channel is None:
-                channelIndex = partDef.channelIndices.get(animName)
-                if channelIndex is None:
-                    continue
-            else:
-                channelIndex = channel
-            chanRate = playRate * partDef.channelPlayRates.get(channelIndex, 1.0)
+        if animName is not None:
+            lookup = animName
+        else:
+            lookup = channel
+
+        for animDef in self.getAnimDefs(lookup, partName):
             if toFrame is None:
-                chan = partDef.char.getChannel(channelIndex)
-                partDef.char.play(channelIndex, fromFrame, chan.getNumFrames() - 1, layer,
-                                  chanRate, autoKill, blendIn, blendOut)
+                animDef.char.play(animDef.index, fromFrame, animDef.channel.getNumFrames() - 1,
+                                  layer, animDef.playRate * playRate, autoKill, blendIn, blendOut)
             else:
-                partDef.char.play(channelIndex, fromFrame, toFrame, layer, chanRate,
-                                  autoKill, blendIn, blendOut)
+                animDef.char.play(animDef.index, fromFrame, toFrame, layer,
+                                  animDef.playRate * playRate, autoKill, blendIn, blendOut)
 
     def loop(self, animName=None, restart=1, partName=None,
              fromFrame=None, toFrame=None, layer=0,
@@ -1126,21 +1241,18 @@ class Actor(DirectObject, NodePath):
         if fromFrame is None:
             fromFrame = 0
 
-        for partDef in self.getPartDefs(partName):
-            if channel is None:
-                channelIndex = partDef.channelIndices.get(animName)
-                if channelIndex is None:
-                    continue
-            else:
-                channelIndex = channel
-            chanRate = playRate * partDef.channelPlayRates.get(channelIndex, 1.0)
+        if animName is not None:
+            lookup = animName
+        else:
+            lookup = channel
+
+        for animDef in self.getAnimDefs(lookup, partName):
             if toFrame is None:
-                chan = partDef.char.getChannel(channelIndex)
-                partDef.char.loop(channelIndex, restart, fromFrame, chan.getNumFrames() - 1,
-                                  layer, chanRate, blendIn)
+                animDef.char.loop(animDef.index, restart, fromFrame, animDef.channel.getNumFrames() - 1,
+                                  layer, animDef.playRate * playRate, blendIn)
             else:
-                partDef.char.loop(channelIndex, restart, fromFrame, toFrame,
-                                  layer, chanRate, blendIn)
+                animDef.char.loop(animDef.index, restart, fromFrame, toFrame, layer,
+                                  animDef.playRate * playRate, blendIn)
 
     def pingpong(self, animName=None, restart=1, partName=None,
                  fromFrame=None, toFrame=None, layer=0,
@@ -1156,21 +1268,19 @@ class Actor(DirectObject, NodePath):
         if fromFrame is None:
             fromFrame = 0
 
-        for partDef in self.getPartDefs(partName):
-            if channel is None:
-                channelIndex = partDef.channelIndices.get(animName)
-                if channelIndex is None:
-                    continue
-            else:
-                channelIndex = channel
-            chanRate = playRate * partDef.channelPlayRates.get(channelIndex, 1.0)
+        if animName is not None:
+            lookup = animName
+        else:
+            lookup = channel
+
+        for animDef in self.getAnimDefs(lookup, partName):
             if toFrame is None:
-                partDef.char.pingpong(channelIndex, restart, fromFrame,
-                                      partDef.char.getChannel(channelIndex).getNumFrames() - 1,
-                                      layer, chanRate, blendIn)
+                animDef.char.pingpong(animDef.index, restart, fromFrame,
+                                      animDef.channel.getNumFrames() - 1,
+                                      layer, animDef.playRate * playRate, blendIn)
             else:
-                partDef.char.pingpong(channelIndex, restart, fromFrame, toFrame,
-                                      layer, chanRate, blendIn)
+                animDef.char.pingpong(animDef.index, restart, fromFrame, toFrame,
+                                      layer, animDef.playRate * playRate, blendIn)
 
     def pose(self, animName, frame, partName=None, lodName=None,
              layer=0, blendIn=0.0, blendOut=0.0):
@@ -1179,30 +1289,84 @@ class Actor(DirectObject, NodePath):
         animation for the specified part. If no part is specified attempt
         to apply pose to all parts."""
 
-        isChannel = isinstance(animName, int)
-
-        for partDef in self.getPartDefs(partName, lodName):
-            if not isChannel:
-                channel = partDef.channelIndices.get(animName)
-                if channel is None:
-                    continue
-            else:
-                channel = animName
-            partDef.char.pose(channel, frame, layer, blendIn, blendOut)
+        for animDef in self.getAnimDefs(animName, partName, lodName):
+            animDef.char.pose(animDef.index, frame, layer, blendIn, blendOut)
 
     def setTransition(self, animName, flag, partName=None, lodName=None):
         """
         Enables or disables transitions into the indicated animation.
         """
-        for partDef in self.getPartDefs(partName, lodName):
-            channelIndex = partDef.channelIndices.get(animName)
-            if channelIndex is None:
-                continue
-            chan = partDef.char.getChannel(channelIndex)
+        for animDef in self.getAnimDefs(animName, partName, lodName):
             if flag:
-                chan.clearFlags(AnimChannel.FSnap)
+                animDef.channel.clearFlags(AnimChannel.FSnap)
             else:
-                chan.setFlags(AnimChannel.FSnap)
+                animDef.channel.setFlags(AnimChannel.FSnap)
+
+    def getAnimDefs(self, animName, partName=None, lodName=None):
+        """
+        Returns a list of AnimDefs for each part and lod combination for
+        the indicated animName (may also be a channel index).
+        """
+
+        animDefs = []
+        if lodName is None:
+            # All LODs.
+            for lod in self.__partBundleDict.values():
+                if partName is None:
+                    # All parts.
+                    for partDef in lod.values():
+                        animDef = partDef.getAnimDef(animName)
+                        if animDef:
+                            if animDef.isBound():
+                                animDefs.append(animDef)
+                            elif self.loadAndBindAnim(partDef, animDef):
+                                animDefs.append(animDef)
+                else:
+                    # A subset of parts.
+                    if isinstance(partName, str):
+                        partsToGet = [partName]
+                    else:
+                        partsToGet = partName
+
+                    for partToGet in partsToGet:
+                        partDef = lod[partToGet]
+                        animDef = partDef.getAnimDef(animName)
+                        if animDef:
+                            if animDef.isBound():
+                                animDefs.append(animDef)
+                            elif self.loadAndBindAnim(partDef, animDef):
+                                animDefs.append(animDef)
+        else:
+            if not self.__partBundleDict:
+                return []
+
+            lod = self.__partBundleDict[lodName]
+            if partName is None:
+                # All parts.
+                for partDef in lod.values():
+                    animDef = partDef.getAnimDef(animName)
+                    if animDef:
+                        if animDef.isBound():
+                            animDefs.append(animDef)
+                        elif self.loadAndBindAnim(partDef, animDef):
+                            animDefs.append(animDef)
+            else:
+                # A subset of parts.
+                if isinstance(partName, str):
+                    partsToGet = [partName]
+                else:
+                    partsToGet = partName
+
+                for partToGet in partsToGet:
+                    partDef = lod[partToGet]
+                    animDef = partDef.getAnimDef(animName)
+                    if animDef:
+                        if animDef.isBound():
+                            animDefs.append(animDef)
+                        elif self.loadAndBindAnim(partDef, animDef):
+                            animDefs.append(animDef)
+
+        return animDefs
 
     def getPartDefs(self, partName=None, lodName=None):
         """
@@ -1270,16 +1434,20 @@ class Actor(DirectObject, NodePath):
                 return None
 
         # Return the animation playing on the indicated layer of the part.
-        layer = partDef.char.getAnimLayer(layer)
-        if not layer:
+        animLayer = partDef.char.getAnimLayer(layer)
+        if not animLayer:
             return None
 
-        if not layer.isPlaying():
+        if not animLayer.isPlaying():
             return None
 
         # Return the name associated with the channel index the layer is
         # playing.
-        return partDef.channelNames.get(layer._sequence)
+        animDef = partDef.animsByIndex.get(animLayer._sequence)
+        if animDef:
+            return animDef.name
+        else:
+            return None
 
     def getCurrentChannel(self, partName="modelRoot", layer=0):
         """
@@ -1419,36 +1587,42 @@ class Actor(DirectObject, NodePath):
         if not self.__partBundleDict:
             return 0
 
-        lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
-        if partName is None:
-            partName, partDef = next(iter(partBundleDict.items()))
-        else:
-            partDef = partBundleDict.get(partName)
-            if not partDef:
-                # Part was not present.
-                Actor.notify.warning("couldn't find part: %s" % (partName))
-                return 0
-
-        # Return the animation playing on the indicated layer of the part.
-        layer = partDef.char.getAnimLayer(layer)
-        if not layer:
-            return 0
-
-        if not layer.isPlaying():
-            return 0
-
-        if animName is not None:
-            channelIndex = partDef.channelIndices.get(animName)
-            if channelIndex is None:
-                return 0
-            chan = partDef.char.getChannel(channelIndex)
-            if layer._sequence == channelIndex:
-                return int(layer._cycle * (chan.getNumFrames() - 1))
+        if animName is None:
+            # Return current frame of layer.
+            lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
+            if partName is None:
+                partName, partDef = next(iter(partBundleDict.items()))
             else:
+                partDef = partBundleDict.get(partName)
+                if not partDef:
+                    # Part was not present.
+                    Actor.notify.warning("couldn't find part: %s" % (partName))
+                    return 0
+
+            # Return the animation playing on the indicated layer of the part.
+            animLayer = partDef.char.getAnimLayer(layer)
+            if not animLayer:
                 return 0
+
+            if not animLayer.isPlaying():
+                return 0
+
+            chan = partDef.char.getChannel(animLayer._sequence)
+            return int(animLayer._cycle * (chan.getNumFrames() - 1))
         else:
-            chan = partDef.char.getChannel(layer._sequence)
-            return int(layer._cycle * (chan.getNumFrames() - 1))
+            # Return current frame of the named animation if it is currently
+            # playing on any layer.
+            animDefs = self.getAnimDefs(animName, partName)
+            if not animDefs:
+                return 0
+            animDef = animDefs[0]
+            # Find the layer playing the channel.
+            for i in range(animDef.char.getNumAnimLayers()):
+                animLayer = animDef.char.getAnimLayer(i)
+                if animLayer._sequence == animDef.index and animLayer.isPlaying():
+                    return int(animLayer._cycle * (animDef.channel.getNumFrames() - 1))
+
+        return 0
 
     # these functions compensate for actors that are modeled facing the viewer but need
     # to face away from the camera in the game
