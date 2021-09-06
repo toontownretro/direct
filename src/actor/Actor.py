@@ -1837,17 +1837,17 @@ class Actor(DirectObject, NodePath):
         anyGood = False
         for bundleDict in self.__partBundleDict.values():
             char = bundleDict[partName].char
+
             joint = char.findJoint(jointName)
-            if joint == -1:
-                continue
 
             if node is None:
                 node = self.attachNewNode(ModelNode(jointName))
-                node.setMat(char.getJointDefaultValue(joint))
+                if joint != -1:
+                    node.setMat(char.getJointDefaultValue(joint))
 
-            char.setJointControllerNode(joint, node.node())
-
-            anyGood = True
+            if joint != -1:
+                char.setJointControllerNode(joint, node.node())
+                anyGood = True
 
         if not anyGood:
             self.notify.warning("Cannot control joint %s" % (jointName))
