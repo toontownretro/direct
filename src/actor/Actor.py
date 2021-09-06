@@ -1839,7 +1839,6 @@ class Actor(DirectObject, NodePath):
             char = bundleDict[partName].char
 
             joint = char.findJoint(jointName)
-            print("Joint", jointName, "on character", char, "is at index", joint)
 
             if node is None:
                 node = self.attachNewNode(ModelNode(jointName))
@@ -1847,15 +1846,11 @@ class Actor(DirectObject, NodePath):
                     node.setMat(char.getJointDefaultValue(joint))
 
             if joint != -1:
-                print("found it")
                 char.setJointControllerNode(joint, node.node())
                 anyGood = True
-            else:
-                print("didn't find it")
 
         if not anyGood:
             self.notify.warning("Cannot control joint %s" % (jointName))
-            self.listJoints()
 
         return node
 
