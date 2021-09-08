@@ -1864,3 +1864,53 @@ class Actor(DirectObject, NodePath):
             if joint == -1:
                 continue
             char.clearJointControllerNode(joint)
+
+    def getActorInfo(self):
+        """
+        Utility function to create a list of information about an actor.
+        Useful for iterating over details of an actor.
+        """
+
+        lodInfo = []
+        for lodName, partDict in self.__partBundleDict.items():
+            partInfo = []
+            for partName, partDef in partDict.items():
+                char = partDef.char
+                animDict = partDef.animsByName
+                animInfo = []
+                for animName, animDef in animDict.items():
+                    file = animDef.filename
+                    index = animDef.index
+                    animInfo.append([animName, file, index, animDef])
+                partInfo.append([partName, char, animInfo])
+            lodInfo.append([lodName, partInfo])
+        return lodInfo
+
+    def getAnimNames(self):
+        animNames = []
+        for lodName, lodInfo in self.getActorInfo():
+            for partName, char, animInfo in lodInfo:
+                for animName, file, index, animDef in animInfo:
+                    if animName not in animNames:
+                        animNames.append(animName)
+        return animNames
+
+    def pprint(self):
+        """
+        Pretty print actor's details.
+        """
+        for lodName, lodInfo in self.getActorInfo():
+            print('LOD: %s' % lodName)
+            for partName, char, animInfo in lodInfo:
+                print('  Part: %s' % partName)
+                print('  Char: %r' % char)
+                for animName, file, index, animDef in animInfo:
+                    print('    Anim: %s' % animName)
+                    print('      File: %s' % file)
+                    if index < 0 or animDef.channel is None:
+                        print(' (not loaded)')
+                    else:
+                        channel = animDef.channel
+                        print('      Index: %i NumFrames: %d PlayRate: %0.2f' %
+                              (index, channel.getNumFrames(), animDef.playRate))
+
