@@ -243,7 +243,7 @@ class LevelEditorUIBase(WxPandaShell):
         WxPandaShell.createMenu(self)
 
     def onGraphEditor(self,e):
-        if base.direct.selected.last == None:
+        if base.direct.selected.last is None:
             dlg = wx.MessageDialog(None, 'Please select a object first.', 'NOTICE', wx.OK )
             dlg.ShowModal()
             dlg.Destroy()
@@ -280,7 +280,7 @@ class LevelEditorUIBase(WxPandaShell):
                 self.onCreateCurve(None)
             else:
                 self.currentView = self.getCurrentView()
-                if self.currentView == None:
+                if self.currentView is None:
                     dlg = wx.MessageDialog(None, 'Please select a viewport first.Do not support curve creation under four viewports.', 'NOTICE', wx.OK )
                     dlg.ShowModal()
                     dlg.Destroy()
@@ -306,12 +306,12 @@ class LevelEditorUIBase(WxPandaShell):
                 self.createCurveMenuItem.Check(False)
                 self.onEditCurve(None)
             else:
-                if base.direct.selected.last == None:
+                if base.direct.selected.last is None:
                     dlg = wx.MessageDialog(None, 'Please select a curve first.', 'NOTICE', wx.OK )
                     dlg.ShowModal()
                     dlg.Destroy()
                     self.editCurveMenuItem.Check(False)
-                if base.direct.selected.last != None :
+                if base.direct.selected.last is not None :
                     base.direct.manipulationControl.enableManipulation()
                     self.createCurveMenuItem.Check(False)
                     self.curveObj = self.editor.objectMgr.findObjectByNodePath(base.direct.selected.last)
@@ -342,7 +342,7 @@ class LevelEditorUIBase(WxPandaShell):
                 menuItem = self.menuBar.FindItemById(id)
                 hotKey = hotKeyDict.get(desc[1])
                 if hotKey:
-                    menuItem.SetItemLabel(desc[0] + "\t%s"%hotKey)
+                    menuItem.SetText(desc[0] + "\t%s"%hotKey)
 
     def createInterface(self):
         WxPandaShell.createInterface(self)
@@ -388,7 +388,7 @@ class LevelEditorUIBase(WxPandaShell):
 
     def onRightDown(self, evt=None):
         """Invoked when the viewport is right-clicked."""
-        if evt == None:
+        if evt is None:
             mpos = wx.GetMouseState()
             mpos = self.ScreenToClient((mpos.x, mpos.y))
         else:
@@ -572,7 +572,7 @@ class LevelEditorUIBase(WxPandaShell):
 
     def buildContextMenu(self, nodePath):
         for menuItem in self.contextMenu.GetMenuItems():
-            self.contextMenu.Remove(menuItem)
+            self.contextMenu.RemoveItem(menuItem)
 
         self.contextMenu.addItem('Replace This', call=lambda\
                                  p0=None, p1=False:self.replaceObject(p0, p1))
@@ -643,18 +643,18 @@ class ViewportMenu(wx.Menu):
         wx.Menu.__init__(self)
 
     def addItem(self, name, parent = None, call = None, id = None):
-        if id == None: id = wx.NewId()
-        if parent == None: parent = self
+        if id is None: id = wx.NewId()
+        if parent is None: parent = self
         item = wx.MenuItem(parent, id, name)
-        parent.Append(item)
-        if call != None:
+        parent.AppendItem(item)
+        if call is not None:
             self.Bind(wx.EVT_MENU, call, item)
 
     def addMenu(self, name, parent = None, id = None):
-        if id == None: id = wx.NewId()
+        if id is None: id = wx.NewId()
         subMenu = wx.Menu()
-        if parent == None: parent = self
-        parent.Append(id, name, subMenu)
+        if parent is None: parent = self
+        parent.AppendMenu(id, name, subMenu)
         return subMenu
 
 class CurveDegreeUI(wx.Dialog):
@@ -679,11 +679,10 @@ class CurveDegreeUI(wx.Dialog):
         self.SetSizer(degreeBox)
 
     def onApply(self, evt):
-        if(str(self.degree.GetSelection())=='0'):
+        if str(self.degree.GetSelection()) == '0':
             self.parent.editor.curveEditor.degree = 2
-        if(str(self.degree.GetSelection())=='1'):
+        if str(self.degree.GetSelection()) == '1':
             self.parent.editor.curveEditor.degree = 3
-        if(str(self.degree.GetSelection())=='2'):
+        if str(self.degree.GetSelection()) == '2':
             self.parent.editor.curveEditor.degree = 4
         self.Destroy()
-

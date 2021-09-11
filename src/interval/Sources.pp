@@ -53,4 +53,7 @@
     lerp_helpers.h
 
   #define IGATESCAN all
+  #define IGATEEXT \
+    cInterval_ext.h cInterval_ext.cxx
+
 #end lib_target

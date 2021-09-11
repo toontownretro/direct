@@ -10,6 +10,7 @@ from direct.task import TaskManagerGlobal
 from panda3d.core import PStatCollector, EventQueue, EventHandler
 from panda3d.core import ConfigVariableBool, EventStorePandaNode
 
+
 class EventManager:
 
     notify = None
@@ -62,17 +63,17 @@ class EventManager:
         """
         Extract the actual data from the eventParameter
         """
-        if (eventParameter.isInt()):
+        if eventParameter.isInt():
             return eventParameter.getIntValue()
-        elif (eventParameter.isDouble()):
+        elif eventParameter.isDouble():
             return eventParameter.getDoubleValue()
-        elif (eventParameter.isString()):
+        elif eventParameter.isString():
             return eventParameter.getStringValue()
-        elif (eventParameter.isWstring()):
+        elif eventParameter.isWstring():
             return eventParameter.getWstringValue()
-        elif (eventParameter.isTypedRefCount()):
+        elif eventParameter.isTypedRefCount():
             return eventParameter.getTypedRefCountValue()
-        elif (eventParameter.isEmpty()):
+        elif eventParameter.isEmpty():
             return None
         else:
             # Must be some user defined type, return the ptr
@@ -103,7 +104,7 @@ class EventManager:
                 paramList.append(eventParameterData)
 
             # Do not print the new frame debug, it is too noisy!
-            if (EventManager.notify.getDebug() and eventName != 'NewFrame'):
+            if EventManager.notify.getDebug() and eventName != 'NewFrame':
                 EventManager.notify.debug('received C++ event named: ' + eventName +
                                           ' parameters: ' + repr(paramList))
             # **************************************************************
@@ -141,7 +142,7 @@ class EventManager:
                 paramList.append(eventParameterData)
 
             # Do not print the new frame debug, it is too noisy!
-            if (EventManager.notify.getDebug() and eventName != 'NewFrame'):
+            if EventManager.notify.getDebug() and eventName != 'NewFrame':
                 EventManager.notify.debug('received C++ event named: ' + eventName +
                                           ' parameters: ' + repr(paramList))
             # Send the event, we used to send it with the event
