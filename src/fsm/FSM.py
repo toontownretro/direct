@@ -121,12 +121,12 @@ class FSM(DirectObject):
     (this assumes that an uppercase name is a request to go directly
     to a particular state by name).
 
-    self.state may be queried at any time other than during the
+    self._state may be queried at any time other than during the
     handling of the enter() and exit() functions.  During these
-    functions, self.state contains the value None (you are not really
+    functions, self._state contains the value None (you are not really
     in any state during the transition).  However, during a transition
     you *can* query the outgoing and incoming states, respectively,
-    via self.oldState and self.newState.  At other times, self.state
+    via self.oldState and self.newState.  At other times, self._state
     contains the name of the current state.
 
     Initially, the FSM is in state 'Off'.  It does not call enterOff()
@@ -186,7 +186,7 @@ class FSM(DirectObject):
         FSM.SerialNum += 1
         self._broadcastStateChanges = False
         # Initially, we are in the Off state by convention.
-        self.state = 'Off'
+        self._state = 'Off'
 
         # This member records transition requests made by demand() or
         # forceTransition() while the FSM is in transition between
@@ -203,8 +203,8 @@ class FSM(DirectObject):
         # by transitioning to the "Off" state.
         self.fsmLock.acquire()
         try:
-            assert self.state
-            if self.state != 'Off':
+            assert self._state
+            if self._state != 'Off':
                 self.__setState('Off')
         finally:
             self.fsmLock.release()
@@ -219,11 +219,11 @@ class FSM(DirectObject):
         return 'FSM-%s-%s-stateChange' % (self._serialNum, self._name)
 
     def getCurrentFilter(self):
-        if not self.state:
+        if not self._state:
             error = "FSM cannot determine current filter while in transition (%s -> %s)." % (self.oldState, self.newState)
             raise AlreadyInTransition(error)
 
-        filter = getattr(self, "filter" + self.state, None)
+        filter = getattr(self, "filter" + self._state, None)
         if not filter:
             # If there's no matching filterState() function, call
             # defaultFilter() instead.
@@ -237,8 +237,8 @@ class FSM(DirectObject):
         # the enter or exit function for a state.
         self.fsmLock.acquire()
         try:
-            if self.state:
-                return self.state
+            if self._state:
+                return self._state
             return self.newState
         finally:
             self.fsmLock.release()
@@ -249,8 +249,8 @@ class FSM(DirectObject):
         # the enter or exit function for a state.
         self.fsmLock.acquire()
         try:
-            if self.state:
-                return self.state
+            if self._state:
+                return self._state
             return '%s -> %s' % (self.oldState, self.newState)
         finally:
             self.fsmLock.release()
@@ -258,7 +258,7 @@ class FSM(DirectObject):
     def isInTransition(self):
         self.fsmLock.acquire()
         try:
-            return self.state is None
+            return self._state is None
         finally:
             self.fsmLock.release()
 
@@ -279,7 +279,7 @@ class FSM(DirectObject):
             self.notify.debug("%s.forceTransition(%s, %s" % (
                 self._name, request, str(args)[1:]))
 
-            if not self.state:
+            if not self._state:
                 # Queue up the request.
                 fut = AsyncFuture()
                 self.__requestQueue.append((PythonUtil.Functor(
@@ -312,7 +312,7 @@ class FSM(DirectObject):
             assert isinstance(request, str)
             self.notify.debug("%s.demand(%s, %s" % (
                 self._name, request, str(args)[1:]))
-            if not self.state:
+            if not self._state:
                 # Queue up the request.
                 fut = AsyncFuture()
                 self.__requestQueue.append((PythonUtil.Functor(
@@ -321,7 +321,7 @@ class FSM(DirectObject):
 
             result = self.request(request, *args)
             if not result:
-                raise RequestDenied("%s (from state: %s)" % (request, self.state))
+                raise RequestDenied("%s (from state: %s)" % (request, self._state))
             return result._future or self.__doneFuture
         finally:
             self.fsmLock.release()
@@ -420,12 +420,12 @@ class FSM(DirectObject):
             # of the map is the current state name; for that key, the
             # value is a list of allowed transitions from the
             # indicated state.
-            if request in self.defaultTransitions.get(self.state, []):
+            if request in self.defaultTransitions.get(self._state, []):
                 # This transition is listed in the defaultTransitions map;
                 # accept it.
                 return (request,) + args
 
-            elif FSM.EnumStates.ANY in self.defaultTransitions.get(self.state, []):
+            elif FSM.EnumStates.ANY in self.defaultTransitions.get(self._state, []):
                 # Whenever we have a '*' as our to transition, we allow
                 # to transit to any other state
                 return (request,) + args
@@ -451,11 +451,11 @@ class FSM(DirectObject):
             # request) not listed in defaultTransitions and not
             # handled by an earlier filter.
             if request[0].isupper():
-                raise RequestDenied("%s (from state: %s)" % (request, self.state))
+                raise RequestDenied("%s (from state: %s)" % (request, self._state))
 
         # In either case, we quietly ignore unhandled command
         # (lowercase) requests.
-        assert self.notify.debug("%s ignoring request %s from state %s." % (self._name, request, self.state))
+        assert self.notify.debug("%s ignoring request %s from state %s." % (self._name, request, self._state))
         return None
 
     def filterOff(self, request, args):
@@ -478,10 +478,10 @@ class FSM(DirectObject):
         self.fsmLock.acquire()
         try:
             if self.stateArray:
-                if not self.state in self.stateArray:
+                if not self._state in self.stateArray:
                     return self.request(self.stateArray[0])
                 else:
-                    cur_index = self.stateArray.index(self.state)
+                    cur_index = self.stateArray.index(self._state)
                     new_index = (cur_index + 1) % len(self.stateArray)
                     return self.request(self.stateArray[new_index], args)
             else:
@@ -496,10 +496,10 @@ class FSM(DirectObject):
         self.fsmLock.acquire()
         try:
             if self.stateArray:
-                if not self.state in self.stateArray:
+                if not self._state in self.stateArray:
                     return self.request(self.stateArray[0])
                 else:
-                    cur_index = self.stateArray.index(self.state)
+                    cur_index = self.stateArray.index(self._state)
                     new_index = (cur_index - 1) % len(self.stateArray)
                     return self.request(self.stateArray[new_index], args)
             else:
@@ -529,12 +529,12 @@ class FSM(DirectObject):
         return transition
 
     async def __transition(self, newState, *args):
-        assert self.state
+        assert self._state
         assert self.notify.debug("%s to state %s." % (self._name, newState))
 
-        self.oldState = self.state
+        self.oldState = self._state
         self.newState = newState
-        self.state = None
+        self._state = None
 
         try:
             if not self.__callFromToFunc(self.oldState, self.newState, *args):
@@ -551,7 +551,7 @@ class FSM(DirectObject):
             # exception.  This might leave things a little unclean
             # since we've partially transitioned, but what can you do?
 
-            self.state = 'InternalError'
+            self._state = 'InternalError'
             del self.oldState
             del self.newState
             raise
@@ -559,7 +559,7 @@ class FSM(DirectObject):
         if self._broadcastStateChanges:
             messenger.send(self.getStateChangeEvent())
 
-        self.state = newState
+        self._state = newState
         del self.oldState
         del self.newState
 
@@ -572,7 +572,7 @@ class FSM(DirectObject):
     def __callEnterFunc(self, name, *args):
         # Calls the appropriate enter function when transitioning into
         # a new state, if it exists.
-        assert self.state is None and self.newState == name
+        assert self._state is None and self.newState == name
 
         func = getattr(self, "enter" + name, None)
         if not func:
@@ -584,7 +584,7 @@ class FSM(DirectObject):
     def __callFromToFunc(self, oldState, newState, *args):
         # Calls the appropriate fromTo function when transitioning into
         # a new state, if it exists.
-        assert self.state is None and self.oldState == oldState and self.newState == newState
+        assert self._state is None and self.oldState == oldState and self.newState == newState
 
         func = getattr(self, "from%sTo%s" % (oldState,newState), None)
         if func:
@@ -595,7 +595,7 @@ class FSM(DirectObject):
     def __callExitFunc(self, name):
         # Calls the appropriate exit function when leaving a
         # state, if it exists.
-        assert self.state is None and self.oldState == name
+        assert self._state is None and self.oldState == name
 
         func = getattr(self, "exit" + name, None)
         if not func:
@@ -614,8 +614,8 @@ class FSM(DirectObject):
         self.fsmLock.acquire()
         try:
             className = self.__class__.__name__
-            if self.state:
-                str = ('%s FSM:%s in state "%s"' % (className, self._name, self.state))
+            if self._state:
+                str = ('%s FSM:%s in state "%s"' % (className, self._name, self._state))
             else:
                 str = ('%s FSM:%s in transition from \'%s\' to \'%s\'' % (className, self._name, self.oldState, self.newState))
             return str
