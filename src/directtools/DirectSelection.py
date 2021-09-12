@@ -559,13 +559,16 @@ class SelectionQueue(CollisionHandlerQueue):
         for i in range(startIndex, self.getNumEntries()):
             entry = self.getEntry(i)
             nodePath = entry.getIntoNodePath()
-            if (skipFlags & SKIP_HIDDEN) and nodePath.isHidden():
+            if (nodePath.isEmpty()):
+                # Skip if the node is empty
+                pass
+            elif (skipFlags & SKIP_HIDDEN) and nodePath.isHidden():
                 # Skip if hidden node
                 pass
             elif (skipFlags & SKIP_BACKFACE) and self.isEntryBackfacing(entry):
                 # Skip, if backfacing poly
                 pass
-            elif (skipFlags & SKIP_CAMERA) and \
+            elif (skipFlags & SKIP_CAMERA) and (not base.camera.isEmpty()) and \
                  (base.camera in nodePath.getAncestors()):
                 # Skip if parented to a camera.
                 pass
