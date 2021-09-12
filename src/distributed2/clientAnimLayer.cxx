@@ -12,3 +12,5 @@
  */
 
 #include "clientAnimLayer.h"
+
+template class InterpolatedVariable<ClientAnimLayer>;

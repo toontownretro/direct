@@ -6,7 +6,8 @@
   #define LOCAL_LIBS \
     directbase dcparser
 
-  //#define OTHER_LIBS \
+  #define OTHER_LIBS \
+    linmath:c
 
   #define BUILDING_DLL BUILDING_DIRECT_DISTRIBUTED2
 
