@@ -39,7 +39,7 @@ class HostBase(DirectObject):
         self.mainDir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
         self.main_dir = self.mainDir
 
-        self.wantStats = self.config.GetBool('want-pstats', 0).value
+        self.wantStats = self.config.GetBool('want-pstats', 0)
 
         # Client repository.
         self.cr = None
