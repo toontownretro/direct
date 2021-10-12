@@ -3,6 +3,8 @@
 
   #define USE_PACKAGES eigen
 
+  #define OTHER_LIBS dtoolbase:c dtool:m
+
   #define SOURCES \
     directbase.cxx directbase.h directsymbols.h \
 
