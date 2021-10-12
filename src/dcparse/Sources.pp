@@ -9,11 +9,11 @@
   $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
   panda:m
 
-#define C++FLAGS -DWITHIN_PANDA
-
 #begin bin_target
   #define TARGET dcparse
   #define USE_PACKAGES zlib openssl
+
+  #define C++FLAGS $[C++FLAGS] -DWITHIN_PANDA
 
   #define SOURCES \
     dcparse.cxx

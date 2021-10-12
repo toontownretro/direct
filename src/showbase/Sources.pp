@@ -12,6 +12,8 @@
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m
 
+  #define BUILDING_DLL BUILDING_DIRECT_SHOWBASE
+
   #define WIN_SYS_LIBS \
     User32.lib
 

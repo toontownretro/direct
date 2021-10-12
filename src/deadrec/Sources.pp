@@ -7,7 +7,7 @@
     interrogatedb \
     dtoolutil:c dtoolbase:c dtool:m \
     prc pandabase:c putil:c \
-    pipeline:c
+    pipeline:c pgraph:c panda:m
 
   #define BUILDING_DLL BUILDING_DIRECT_DEADREC
 
