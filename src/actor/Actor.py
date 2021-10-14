@@ -476,7 +476,7 @@ class Actor(DirectObject, NodePath):
         # A model loaded from disk will always have just one bundle.
         #assert(node.getNumBundles() == 1)
         bundleHandle = node.getCharacter()
-
+    
         bundleDict[partName] = Actor.PartDef(bundleNP, bundleHandle, partModel)
 
     def setPlayRate(self, rate, anim=None, partName=None, layer=0):
