@@ -5,7 +5,13 @@
 // under Windows).
 
 #define DIR_TYPE metalib
+
+#if $[BUILD_COMPONENTS]
+#define BUILDING_DLL BUILDING_DIRECT_STUB
+#else
 #define BUILDING_DLL BUILDING_DIRECT
+#endif
+
 #define USE_PACKAGES native_net
 
 #define COMPONENT_LIBS \
