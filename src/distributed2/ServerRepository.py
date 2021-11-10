@@ -558,11 +558,15 @@ class ServerRepository(BaseObjectManager):
         elif dcHash != self.hashVal:
             valid = False
             msg = "DC hash mismatch"
+        elif client.state == ClientState.Verified:
+            # Prevent them from sending hello more than once.
+            valid = False
+            msg = "Already signed in"
 
         dg.addUint8(int(valid))
         if not valid:
             self.notify.warning("Could not verify client %i (%s)" % (client.connection, msg))
-            # Client did not verify correctly. Let them know and
+            # Client did not verify correctly.  Let them know and
             # close them out.
             dg.addString(msg)
             self.sendDatagram(dg, client.connection)
