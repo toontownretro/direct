@@ -385,6 +385,16 @@ class ServerRepository(BaseObjectManager):
         if not do.dclass:
             return
 
+        # The client must have interest in the object's location to be able to
+        # send the message.  If the client is not interested in the object's
+        # location, the object would not be in the client's doId2do table, so
+        # there's no way the client could send a message to this object unless
+        # the client is modified.
+        if not do.zoneId in client.currentInterestZoneIds:
+            self.notify.warning("SUSPICIOUS: client %i tried to send message to an object "
+                                "whose zone ID is not in the client interest zones." % client.id)
+            return
+
         fieldNumber = dgi.getUint16()
         field = do.dclass.getFieldByIndex(fieldNumber)
         if not field:
