@@ -17,6 +17,11 @@ class ClientState(IntEnum):
     Verified = 1
 
 class ServerRepository(BaseObjectManager):
+    """
+    This class implements the core functionality of the server.  It keeps track
+    of all distributed objects and clients in the world and manages sending
+    state updates to interested clients.
+    """
 
     notify = directNotify.newCategory("ServerRepository")
     notify.setDebug(False)
@@ -291,6 +296,18 @@ class ServerRepository(BaseObjectManager):
             return True
         return False
 
+    def ensureDatagramSize(self, n, dgi, client):
+        """
+        Ensures that there at least n bytes remaining in the datagram to unpack
+        from the client's message.  If not, the server should not continue on with
+        the message.
+        """
+        if dgi.getRemainingSize() < n:
+            self.notify.warning("Truncated message from client %i" % client.connection)
+            self.closeClientConnection(client)
+            return False
+        return True
+
     def handleDatagram(self, msg):
         datagram = msg.getDatagram()
         connection = msg.getConnection()
@@ -301,11 +318,16 @@ class ServerRepository(BaseObjectManager):
             self.notify.warning("SECURITY: received message from unknown source %i" % connection)
             return
 
-        self.clientSender = client
-
+        if not self.ensureDatagramSize(2, dgi, client):
+            return
         type = dgi.getUint16()
 
+        self.clientSender = client
+
         if client.state == ClientState.Unverified:
+            # In the unverified (just connected) client state, the only
+            # message the client can send is the hello message to get verified
+            # and signed onto the server.
             if type == NetMessages.CL_Hello:
                 self.handleClientHello(client, dgi)
             else:
@@ -375,7 +397,28 @@ class ServerRepository(BaseObjectManager):
             self.sendDatagram(dg, client.connection, reliable)
 
     def handleObjectMessage(self, client, dgi):
+        """
+        Receives a message sent on a distributed object by a client.  Does a
+        bunch of security and sanity checks before actually unpacking the
+        contents of the message and passing it onto the object.  The field
+        must be a method in the DC file and marked with the 'clsend' keyword.
+
+        Messages are used for RPC-like communication between client and server
+        views of a distributed object.  Object messages can only be sent
+        between the server and client.  The client cannot send messages to
+        other clients, only the server.  Object messages in the DC file are
+        implicitly server-send only unless explicitly marked 'clsend'.
+        (server only) If the field is marked 'broadcast', the message will be
+        sent to all clients that have interest in the object's location.
+        """
+
+        # Make sure the message has the doId (4 bytes) and the field number
+        # (2 bytes).
+        if not self.ensureDatagramSize(6, dgi, client):
+            return
+
         doId = dgi.getUint32()
+
         do = self.doId2do.get(doId)
         if not do:
             self.notify.warning("SUSPICIOUS: client %i tried to send message to unknown doId %i" %
@@ -429,11 +472,17 @@ class ServerRepository(BaseObjectManager):
 
     def handleClientAddInterest(self, client, dgi):
         """ Called when client wants to add interest into a set of zones """
+
+        if not self.ensureDatagramSize(2, dgi, client):
+            return
         handle = dgi.getUint8()
         numZones = dgi.getUint8()
-        for _ in range(numZones):
+
+        i = 0
+        while i < numZones and dgi.getRemainingSize() >= 4:
             zoneId = dgi.getUint32()
             client.explicitInterestZoneIds.add(zoneId)
+            i += 1
 
         self.updateClientInterestZones(client)
         self.sendInterestComplete(client, handle)
@@ -441,13 +490,17 @@ class ServerRepository(BaseObjectManager):
     def handleClientRemoveInterest(self, client, dgi):
         """ Called when client wants to remove interest from a set of zones """
 
+        if not self.ensureDatagramSize(2, dgi, client):
+            return
         handle = dgi.getUint8()
         numZones = dgi.getUint8()
-        for _ in range(numZones):
-            zoneId = dgi.getUint32()
 
+        i = 0
+        while i < numZones and dgi.getRemainingSize() >= 4:
+            zoneId = dgi.getUint32()
             if zoneId in client.explicitInterestZoneIds:
                 client.explicitInterestZoneIds.remove(zoneId)
+            i += 1
 
         self.updateClientInterestZones(client)
         self.sendInterestComplete(client, handle)
@@ -455,13 +508,19 @@ class ServerRepository(BaseObjectManager):
     def handleClientSetInterest(self, client, dgi):
         """ Called when client wants to completely replace its interest zones """
 
+        if not self.ensureDatagramSize(2, dgi, client):
+            return
+
         client.explicitInterestZoneIds = set()
 
         handle = dgi.getUint8()
         numZones = dgi.getUint8()
-        for _ in range(numZones):
+
+        i = 0
+        while i < numZones and dgi.getRemainingSize() >= 4:
             zoneId = dgi.getUint32()
             client.explicitInterestZoneIds.add(zoneId)
+            i += 1
 
         self.updateClientInterestZones(client)
         self.sendInterestComplete(client, handle)
@@ -541,24 +600,39 @@ class ServerRepository(BaseObjectManager):
         del self.clientsByConnection[client.connection]
 
     def handleClientTick(self, client, dgi):
+        # delta tick (4 bytes) and dt (4 bytes)
+        if not self.ensureDatagramSize(8, dgi, client):
+            return
         client.prevTickCount = int(client.tickCount)
         client.deltaTick = dgi.getInt32()
         client.dt = dgi.getFloat32()
         self.notify.debug("Client acknowleged tick %i" % client.deltaTick)
 
     def handleClientSetCMDRate(self, client, dgi):
+        if not self.ensureDatagramSize(1, dgi, client):
+            return
         cmdRate = dgi.getUint8()
         client.cmdRate = cmdRate
         client.cmdInterval = 1.0 / cmdRate
 
     def handleClientSetUpdateRate(self, client, dgi):
+        if not self.ensureDatagramSize(1, dgi, client):
+            return
         updateRate = dgi.getUint8()
         updateRate = max(sv_minupdaterate.getValue(), min(updateRate, sv_maxupdaterate.getValue()))
         client.updateRate = updateRate
         client.updateInterval = 1.0 / updateRate
 
     def handleClientHello(self, client, dgi):
+
+        # Must have the 2 byte string length.
+        if not self.ensureDatagramSize(2, dgi, client):
+            return
         password = dgi.getString()
+
+        # And now make sure we have the remaining data.
+        if not self.ensureDatagramSize(6, dgi, client):
+            return
         dcHash = dgi.getUint32()
         updateRate = dgi.getUint8()
         cmdRate = dgi.getUint8()
