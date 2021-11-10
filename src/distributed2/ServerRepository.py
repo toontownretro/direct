@@ -382,15 +382,18 @@ class ServerRepository(BaseObjectManager):
                                 (client.id, doId))
             return
 
-        fieldNumber = dgi.getUint16()
-        field = do.dclass.getFieldByIndex(fieldNumber)
-        if field.asParameter():
-            self.notify.warning("SUSPICIOUS: client %i tried to send message on a parameter field!")
+        if not do.dclass:
             return
 
+        fieldNumber = dgi.getUint16()
+        field = do.dclass.getFieldByIndex(fieldNumber)
         if not field:
             self.notify.warning("SUSPICIOUS: client %i tried to send message on unknown field %i on doId %i" %
-                                (client.id, doId, fieldNumber))
+                                (client.id, fieldNumber, doId))
+            return
+
+        if field.asParameter():
+            self.notify.warning("SUSPICIOUS: client %i tried to send message on a parameter field!" % client.id)
             return
 
         if do.owner != client:
