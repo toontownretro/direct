@@ -623,7 +623,10 @@ class ServerRepository(BaseObjectManager):
         elif state == SteamNetworkSystem.NCSClosedByPeer or \
             state == SteamNetworkSystem.NCSProblemDetectedLocally:
 
-            client = self.clientsByConnection[connection]
+            client = self.clientsByConnection.get(connection)
+            if not client:
+                self.notify.info("Connection %i disconnected but wasn't a recorded client, ignoring " % connection)
+                return
             self.notify.info("Client %i disconnected" % client.connection)
             self.handleClientDisconnect(client)
 
