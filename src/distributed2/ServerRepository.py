@@ -308,6 +308,9 @@ class ServerRepository(BaseObjectManager):
         if client.state == ClientState.Unverified:
             if type == NetMessages.CL_Hello:
                 self.handleClientHello(client, dgi)
+            else:
+                self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in unverified state" % (client.connection, type))
+                self.closeClientConnection(client)
 
         elif client.state == ClientState.Verified:
             if type == NetMessages.CL_SetCMDRate:
@@ -326,6 +329,9 @@ class ServerRepository(BaseObjectManager):
                 self.handleClientSetInterest(client, dgi)
             elif type == NetMessages.B_ObjectMessage:
                 self.handleObjectMessage(client, dgi)
+            else:
+                self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in verified state" % (client.connection, type))
+                self.closeClientConnection(client)
 
     def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
