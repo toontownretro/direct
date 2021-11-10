@@ -451,12 +451,23 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             return
         if not do.dclass:
             return
+
         field = do.dclass.getFieldByName(name)
         if not field:
             self.notify.warning("Tried to send update for non-existent field %s" % name)
             return
+
         if field.asParameter():
             self.notify.warning("Tried to send parameter field as a message")
+            return
+
+        # The field must be marked as `clsend` in the DC file for the client
+        # to be able to send this message.  The AI will double-check that the
+        # field is clsend before unpacking the message, in case a modified
+        # client removes this check.
+        if not field.isClsend():
+            self.notify.warning("Tried to send a non-clsend message! Field %s" % name)
+            self.disconnect()
             return
 
         packer = DCPacker()
