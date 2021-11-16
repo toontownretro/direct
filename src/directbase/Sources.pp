@@ -6,7 +6,7 @@
   #define OTHER_LIBS dtoolbase:c dtool:m
 
   #define SOURCES \
-    directbase.h directsymbols.h \
+    directbase.h directsymbols.h
 
   #define INSTALL_HEADERS \
     directbase.h directsymbols.h

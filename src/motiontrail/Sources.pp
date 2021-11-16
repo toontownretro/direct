@@ -26,7 +26,6 @@
     dtoolutil:c \
     dtoolbase:c \
     dtool:m \
-    pandabase:c \
     prc \
     gsgbase:c \
     parametrics:c

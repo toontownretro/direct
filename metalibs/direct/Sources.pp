@@ -24,7 +24,7 @@
   parametrics:c \
   interrogatedb  \
   dtoolutil:c dtoolbase:c dtool:m \
-  express:c pstatclient:c prc pandabase:c linmath:c \
+  express:c pstatclient:c prc linmath:c \
   putil:c display:c event:c pgraph:c pgraphnodes:c \
   gsgbase:c gobj:c mathutil:c \
   downloader:c pnmimage:c anim:c \

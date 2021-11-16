@@ -6,7 +6,7 @@
     express:c linmath:c \
     interrogatedb \
     dtoolutil:c dtoolbase:c dtool:m \
-    prc pandabase:c putil:c \
+    prc putil:c \
     pipeline:c pgraph:c panda:m
 
   #define BUILDING_DLL BUILDING_DIRECT_DEADREC

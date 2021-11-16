@@ -2,7 +2,7 @@
     express:c pandaexpress:m \
     pstatclient:c pipeline:c panda:m \
     interrogatedb  \
-    dtoolutil:c dtoolbase:c dtool:m prc pandabase:c \
+    dtoolutil:c dtoolbase:c dtool:m prc \
     downloader:c $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
     linmath:c putil:c
 

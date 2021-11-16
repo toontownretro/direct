@@ -8,7 +8,7 @@
     pgraph:c putil:c panda:m express:c pandaexpress:m \
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m \
-    pandabase:c prc gsgbase:c pstatclient:c \
+    prc gsgbase:c pstatclient:c \
     $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
     pipeline:c
 

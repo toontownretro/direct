@@ -4,7 +4,7 @@
     directbase
   #define OTHER_LIBS \
     pgraph:c pgraphnodes:c gsgbase:c gobj:c mathutil:c pstatclient:c \
-    downloader:c pandabase:c pnmimage:c prc \
+    downloader:c pnmimage:c prc \
     pipeline:c cull:c \
     $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
     display:c linmath:c event:c putil:c panda:m \
