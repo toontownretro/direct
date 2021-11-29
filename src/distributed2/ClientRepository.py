@@ -265,6 +265,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.doId2do[do.doId] = do
             self.addObject(do)
 
+            print("Generate owner", classDef, "with doId", doId, "in zone", zoneId, "dclass", dclass)
+
             do.generate()
 
             if hasState:
@@ -290,6 +292,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.dclass = dclass
             self.doId2do[do.doId] = do
             self.addObject(do)
+
+            print("Generate", classDef, "with doId", doId, "in zone", zoneId, "dclass", dclass)
 
             do.generate()
 
@@ -465,10 +469,10 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         # to be able to send this message.  The AI will double-check that the
         # field is clsend before unpacking the message, in case a modified
         # client removes this check.
-        if not field.isClsend():
-            self.notify.warning("Tried to send a non-clsend message! Field %s" % name)
-            self.disconnect()
-            return
+        #if not field.isClsend():
+        #    self.notify.warning("Tried to send a non-clsend message! Field %s" % name)
+        #    self.disconnect()
+        #    return
 
         packer = DCPacker()
         packer.rawPackUint16(NetMessages.B_ObjectMessage)
