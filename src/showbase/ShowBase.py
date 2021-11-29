@@ -1072,6 +1072,7 @@ class ShowBase(HostBase):
         ## This is the root of the 3-D scene graph.
         self.render = NodePath('render')
         self.render.setAttrib(RescaleNormalAttrib.makeDefault())
+        self.render.node().setBounds(OmniBoundingVolume())
 
         self.render.setTwoSided(0)
         self.backfaceCullingEnabled = 1
@@ -2059,8 +2060,8 @@ class ShowBase(HostBase):
         return Task.cont
 
     def __clearCache(self, task):
-        TransformState.clearCache()
-        RenderState.clearCache()
+        #TransformState.clearCache()
+        #RenderState.clearCache()
         task.delayTime = 2.0
         return task.again
 
