@@ -22,6 +22,7 @@
 
 class FrameSnapshot;
 class DCClass;
+class DCField;
 class DCPacker;
 
 template<>
@@ -29,6 +30,9 @@ class Extension<FrameSnapshotManager> : public ExtensionBase<FrameSnapshotManage
 private:
   bool encode_object_state(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
                            PackedObject::PackedFields &fields);
+
+  bool encode_field(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
+                    DCField *field, PackedObject::PackedFields &fields);
 
 public:
   PackedObject *find_or_create_object_packet_for_baseline(PyObject *dist_obj, DCClass *dclass,

@@ -36,9 +36,8 @@ PUBLISHED:
    */
   class DOFieldData {
   public:
-    DOFieldData() { _recv_proxy = nullptr; _on_recv = nullptr; }
+    DOFieldData() { _recv_proxy = nullptr; }
     PyObject *_recv_proxy;
-    PyObject *_on_recv;
   };
   class DOData : public ReferenceCount {
   public:

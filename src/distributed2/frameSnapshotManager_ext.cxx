@@ -21,6 +21,32 @@
 #include "dcField.h"
 #include "dcField_ext.h"
 #include "dcParameter.h"
+#include "dcClassParameter.h"
+
+/**
+ * Encodes a single DCField from a DCClass into the packer.
+ */
+bool Extension<FrameSnapshotManager>::
+encode_field(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
+             DCField *field, PackedObject::PackedFields &fields) {
+
+  DCClassParameter *cls_param = field->as_class_parameter();
+  if (cls_param != nullptr) {
+    const DCClass *field_dclass = cls_param->get_class();
+    if (!field_dclass->is_struct()) {
+      // This is a recursive dclass field.
+    }
+  }
+
+  // Encode the field data.
+  packer.begin_pack(field);
+  //invoke_extension(field).pack_args(args);
+  if (!packer.end_pack()) {
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * Packs the current state of the specified object into the packer and fills
@@ -100,7 +126,7 @@ encode_object_state(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
     size_t field_length = packer.get_length() - prev_length;
 
     // Store the location and length of the field in the overall buffer.
-    fields.push_back({ i, pos, field_length });
+    fields.push_back({ dclass, i, pos, field_length });
     pos += field_length;
   }
 

@@ -32,6 +32,9 @@ class EXPCL_DIRECT_DISTRIBUTED2 PackedObject : public TypedReferenceCount {
 public:
   // Specifies where individual fields are in the buffer.
   struct PackedField {
+    // The DCClass that contains the field.  It may not be the same dclass as
+    // the PackedObject,
+    DCClass *_dclass;
     int field_index; // index into dclass _inherited_fields
     size_t offset; // where does the packed data for this field begin
     size_t length; // how big is the data for the field

@@ -202,19 +202,6 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
       set_field_coll.stop();
     }
 
-    // Check to see if the object defines a method to handle when this
-    // particuler field is unpacked.
-    // Re-use the proxy_name buffer
-    if (field_data._on_recv != nullptr) {
-      // Call it
-      PyObject_CallObject(field_data._on_recv, NULL);
-      if (PyErr_Occurred()) {
-        distributed2_cat.error()
-          << "Python error occurred during recv handler for field" << field->get_name() << "\n";
-        PyErr_Print();
-      }
-    }
-
     Py_DECREF(args);
   }
 
@@ -310,12 +297,6 @@ add_object(PyObject *dist_obj) {
     } else {
       field_data._recv_proxy = nullptr;
     }
-    sprintf(proxy_name, "OnRecv_%s", c_field_name);
-    if (PyObject_HasAttrString(dist_obj, proxy_name)) {
-      field_data._on_recv = PyObject_GetAttrString(dist_obj, proxy_name);
-    } else {
-      field_data._on_recv = nullptr;
-    }
 
     data->_field_data[i] = field_data;
   }
@@ -344,7 +325,6 @@ remove_object(DOID_TYPE do_id) {
   for (size_t i = 0; i < data->_field_data.size(); i++) {
     DOFieldData &fdata = data->_field_data[i];
     Py_XDECREF(fdata._recv_proxy);
-    Py_XDECREF(fdata._on_recv);
   }
 
   _do_data.erase(it);
