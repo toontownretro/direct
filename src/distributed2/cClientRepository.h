@@ -63,7 +63,7 @@ PUBLISHED:
 
 private:
   PyObject *_py_repo;
-  typedef pmap<DOID_TYPE, PT(DOData)> DODataMap;
+  typedef pflat_hash_map<DOID_TYPE, PT(DOData), integer_hash<DOID_TYPE>> DODataMap;
   DODataMap _do_data;
 };
 

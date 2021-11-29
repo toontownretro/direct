@@ -32,7 +32,7 @@ PUBLISHED:
 
 private:
   // The most recently sent packets for each object ID.
-  typedef phash_map<DOID_TYPE, PT(PackedObject), integer_hash<DOID_TYPE>> PrevSentPackets;
+  typedef pflat_hash_map<DOID_TYPE, PT(PackedObject), integer_hash<DOID_TYPE>> PrevSentPackets;
   PrevSentPackets _prev_sent_packets;
 
 PUBLISHED:
