@@ -1777,7 +1777,7 @@ class ShowBase(HostBase):
             if not self.particleMgr:
                 PMG = importlib.import_module('direct.particles.ParticleManagerGlobal')
                 self.particleMgr = PMG.particleMgr
-                self.particleMgr.setFrameStepping(1)
+                self.particleMgr.setFrameStepping(0)
 
             if not self.physicsMgr:
                 PMG = importlib.import_module('direct.showbase.PhysicsManagerGlobal')
@@ -1789,7 +1789,7 @@ class ShowBase(HostBase):
             self.particleMgrEnabled = 1
             self.physicsMgrEnabled = 1
             self.taskMgr.remove('manager-update')
-            self.taskMgr.add(self.updateManagers, 'manager-update')
+            self.taskMgr.add(self.updateManagers, 'manager-update', sort = 40)
 
     def disableParticles(self):
         """
