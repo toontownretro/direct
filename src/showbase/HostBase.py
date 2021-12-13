@@ -289,6 +289,9 @@ class HostBase(DirectObject):
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
 
+    def getRenderTime(self):
+        return self.tickCount * self.intervalPerTick + self.remainder
+
     def getNetworkBase(self, tick, doId):
         doMod = doId % self.timestampRandomizeWindow
         baseTick = self.timestampNetworkingBase * int((tick - doMod) / self.timestampNetworkingBase)
