@@ -682,6 +682,7 @@ class ServerRepository(BaseObjectManager):
         # Tell the client their ID and our tick rate.
         dg.addUint16(client.id)
         dg.addUint8(base.ticksPerSec)
+        dg.addUint32(base.tickCount)
 
         self.numClients += 1
 
