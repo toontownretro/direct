@@ -636,6 +636,10 @@ time_fixup2_hermite(SamplePoint &fixup, SamplePoint *&prev, SamplePoint *&start,
 
     if (_looping) {
       fixup.value = LoopingLerp(1 - frac, prev->value, start->value);
+
+    } else if (_angles) {
+      fixup.value = tlerp_angles(1 - frac, prev->value, start->value);
+
     } else {
       fixup.value = tlerp(1 - frac, prev->value, start->value);
     }
@@ -657,12 +661,14 @@ interpolate_hermite(Type *out, double frac, SamplePoint *prev, SamplePoint *star
 
   if (_looping) {
     *out = LoopingLerp_Hermite(frac, prev->value, start->value, end->value);
+
   } else if (!_angles) {
     *out = Lerp_Hermite(frac, prev->value, start->value, end->value);
+
   } else {
     // Can't do hermite with angles, get discontinuities, so just linear
     // interp.
-    *out = tlerp(frac, start->value, end->value);
+    *out = tlerp_angles(frac, start->value, end->value);
   }
 
   // Clamp the output from interpolation.
@@ -694,7 +700,14 @@ derivative_hermite_smooth_velocity(Type *out, double frac, SamplePoint *b, Sampl
   time_fixup_hermite(fixup, b, c, d);
   Type prev_vel = (c->value - b->value) / (c->timestamp - b->timestamp);
   Type cur_vel = (d->value - c->value) / (d->timestamp - c->timestamp);
-  *out = tlerp(frac, prev_vel, cur_vel);
+
+  if (_angles) {
+    *out = tlerp_angles(frac, prev_vel, cur_vel);
+
+  } else {
+    *out = tlerp(frac, prev_vel, cur_vel);
+  }
+
 }
 
 /**
@@ -714,6 +727,8 @@ interpolate(Type *out, double frac, SamplePoint *start, SamplePoint *end) {
 
   if (_looping) {
     *out = LoopingLerp(frac, start->value, end->value);
+  } else if (_angles) {
+    *out = tlerp_angles(frac, start->value, end->value);
   } else {
     *out = tlerp(frac, start->value, end->value);
   }
@@ -747,6 +762,11 @@ extrapolate(Type *out, SamplePoint *old, SamplePoint *new_point, double dest_tim
     double extrapolation_amount = std::min(dest_time - new_point->timestamp,
                                            max_extrapolate);
     double divisor = 1.0 / (new_point->timestamp - old->timestamp);
-    *out = tlerp(1.0 + extrapolation_amount * divisor, old->value, new_point->value);
+
+    if (_angles) {
+      *out = tlerp_angles(1.0 + extrapolation_amount * divisor, old->value, new_point->value);
+    } else {
+      *out = tlerp(1.0 + extrapolation_amount * divisor, old->value, new_point->value);
+    }
   }
 }

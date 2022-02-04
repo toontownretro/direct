@@ -56,6 +56,91 @@ inline T Lerp_Hermite( float t, const T& p0, const T& p1, const T& p2 )
 	return output;
 }
 
+/**
+ * Specialization of tlerp for quaternions.
+ */
+template<>
+INLINE LQuaternionf
+tlerp<LQuaternionf>(float perct, const LQuaternionf &q1, const LQuaternionf &q2) {
+  if (q1 == q2) {
+    return q1;
+  }
+
+  LQuaternionf dest;
+  LQuaternionf::slerp(q1, q2, perct, dest);
+  return dest;
+}
+
+/**
+ * Specialization of tlerp for quaternions.
+ */
+template<>
+INLINE LQuaterniond
+tlerp<LQuaterniond>(float perct, const LQuaterniond &q1, const LQuaterniond &q2) {
+  if (q1 == q2) {
+    return q1;
+  }
+
+  LQuaterniond dest;
+  LQuaterniond::slerp(q1, q2, perct, dest);
+  return dest;
+}
+
+template<class T>
+INLINE T tlerp_angles(float perct, const T &a, const T &b) {
+	return tlerp(perct, a, b);
+}
+
+/**
+ * Interpolates euler angles with quaternions.
+ */
+INLINE LVecBase3f
+tlerp_angles(float perct, const LVecBase3f &a, const LVecBase3f &b) {
+  if (a == b) {
+    return a;
+  }
+
+  LQuaternionf quat_a;
+  quat_a.set_hpr(a);
+
+  LQuaternionf quat_b;
+  quat_b.set_hpr(b);
+
+  LQuaternionf dest;
+  LQuaternionf::slerp(quat_a, quat_b, perct, dest);
+  return dest.get_hpr();
+}
+
+/**
+ * Interpolates euler angles with quaternions.
+ */
+INLINE LVecBase3d
+tlerp_angles(float perct, const LVecBase3d &a, const LVecBase3d &b) {
+  if (a == b) {
+    return a;
+  }
+
+  LQuaterniond quat_a;
+  quat_a.set_hpr(a);
+
+  LQuaterniond quat_b;
+  quat_b.set_hpr(b);
+
+  LQuaterniond dest;
+  LQuaterniond::slerp(quat_a, quat_b, perct, dest);
+  return dest.get_hpr();
+}
+
+template<>
+inline LQuaternionf Lerp_Hermite<LQuaternionf>(float t, const LQuaternionf &p0, const LQuaternionf &p1, const LQuaternionf &p2) {
+	return tlerp(t, p1, p2);
+}
+
+template<>
+inline LQuaterniond Lerp_Hermite<LQuaterniond>(float t, const LQuaterniond &p0, const LQuaterniond &p1, const LQuaterniond &p2) {
+	return tlerp(t, p1, p2);
+}
+
 template <class T>
 inline T Derivative_Hermite( float t, const T& p0, const T& p1, const T& p2 )
 {

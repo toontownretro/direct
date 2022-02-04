@@ -53,6 +53,7 @@ public:
 // ClientAnimLayer.
 INLINE ClientAnimLayer LoopingLerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer tlerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to);
+INLINE ClientAnimLayer tlerp_angles(float percent, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer LoopingLerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer Lerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE void Lerp_Clamp(ClientAnimLayer &val);
