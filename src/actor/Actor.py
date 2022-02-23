@@ -1,4 +1,10 @@
-"""Actor module: contains the Actor class."""
+"""Actor module: contains the Actor class.
+
+See the :ref:`loading-actors-and-animations` page in the Programming Guide
+to learn more about loading animated models.
+"""
+
+__all__ = ['Actor']
 
 from panda3d.core import *
 from panda3d.core import Loader as PandaLoader
@@ -641,7 +647,7 @@ class Actor(DirectObject, NodePath):
             if not animDefs:
                 return 1
             return animDefs[0].channel.getFrameRate()
- 
+
         # Return frame rate of channel playing on a layer.
         for partDef in self.getPartDefs(partName):
             animLayer = partDef.char.getAnimLayer(layer)
@@ -758,7 +764,7 @@ class Actor(DirectObject, NodePath):
         """
         if not self.__LODNode:
             return None
-        
+
         lod = self.__LODNode.find(str(lodName))
         if lod.isEmpty():
             return None
@@ -851,19 +857,19 @@ class Actor(DirectObject, NodePath):
         if not partBundleDict:
             Actor.notify.warning("no lod named %s!" % (lodName))
             return None
-            
+
         partDef = partBundleDict.get(partName)
         if not partDef:
             Actor.notify.warning("no part named %s!" % (partName))
             return None
-            
+
         joint = partDef.charNP.find("**/" + jointName)
         if joint.isEmpty():
             Actor.notify.warning("%s not found!" % (jointName))
             return None
-            
+
         return path.instanceTo(joint)
-                
+
     def attach(self, partName, anotherPartName, jointName, lodName="lodRoot"):
         """attach(self, string, string, string, key="lodRoot")
         Attach one actor part to another at a joint called jointName"""
@@ -871,17 +877,17 @@ class Actor(DirectObject, NodePath):
         if not partBundleDict:
             Actor.notify.warning("no lod named %s!" % (lodName))
             return
-            
+
         partDef = partBundleDict.get(partName)
         if not partDef:
             Actor.notify.warning("no part named %s!" % (partName))
             return
-            
+
         anotherPartDef = partBundleDict.get(anotherPartName)
         if not anotherPartDef:
             Actor.notify.warning("no part named %s!" % (anotherPartName))
             return
-            
+
         joint = anotherPartDef.charNP.find("**/" + jointName)
         if joint.isEmpty():
             Actor.notify.warning("%s not found!" % (jointName))
