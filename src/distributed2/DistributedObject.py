@@ -1,6 +1,7 @@
 from .BaseDistributedObject import BaseDistributedObject
 
 from panda3d.direct import *
+from panda3d.core import *
 
 from .ClientConfig import *
 
@@ -119,7 +120,7 @@ class DistributedObject(BaseDistributedObject):
     def getInterpolateAmount(self):
         serverTickMultiple = 1
         if self.getPredictable():
-            return base.intervalPerTick * serverTickMultiple
+            return 0.0#return base.intervalPerTick * serverTickMultiple
         return base.ticksToTime(base.timeToTicks(getClientInterpAmount()) + serverTickMultiple)
 
     def resetInterpolatedVars(self):
@@ -192,7 +193,7 @@ class DistributedObject(BaseDistributedObject):
                 # Fix up time for interpolating prediction results.
                 now = base.localAvatar.finalPredictedTick * base.intervalPerTick
                 now -= base.intervalPerTick
-                now += base.remainder * base.intervalPerTick
+                now += base.remainder
 
         done = True
         if now < self.lastInterpolationTime:
