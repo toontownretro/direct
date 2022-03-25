@@ -80,6 +80,9 @@ class BaseDistributedObject(DirectObject):
 
         mgr = base.simTaskMgr if sim else base.taskMgr
 
+        if name in self._tasks:
+            self.removeTask(name)
+
         if delay <= 0:
             task = mgr.add(method, self.taskName(name), extraArgs = extraArgs, appendTask = appendTask, sort = sort)
         else:
