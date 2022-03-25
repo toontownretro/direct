@@ -1085,7 +1085,7 @@ class Actor(DirectObject, NodePath):
         from direct.interval import ActorInterval
         return ActorInterval.ActorInterval(self, *args, **kw)
 
-    def cleanup(self):
+    def cleanup(self, removeNode=True):
         """
         This method should be called when intending to destroy the Actor, and
         cleans up any additional resources stored on the Actor class before
@@ -1100,7 +1100,7 @@ class Actor(DirectObject, NodePath):
         if(self.__geomNode):
             self.__geomNode.removeNode()
             self.__geomNode = None
-        if not self.isEmpty():
+        if removeNode and not self.isEmpty():
             self.removeNode()
 
     def removeNode(self):
@@ -1146,13 +1146,13 @@ class Actor(DirectObject, NodePath):
         else:
             return 1
 
-    def delete(self):
+    def delete(self, removeNode=True):
         try:
             self.Actor_deleted
             return
         except:
             self.Actor_deleted = 1
-            self.cleanup()
+            self.cleanup(removeNode=removeNode)
 
     def copyActor(self, other, overwrite=False):
         # act like a copy constructor
