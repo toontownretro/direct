@@ -11,3 +11,5 @@ forcetype InterpolatedVariable<LVecBase4d>
 forcetype InterpolatedVariable<LQuaterniond>
 
 forcetype InterpolatedVariable<int>
+
+forcetype InterpolatedVariable<ClientAnimLayer>

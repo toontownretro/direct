@@ -60,8 +60,8 @@ INLINE void Lerp_Clamp(ClientAnimLayer &val);
 INLINE std::ostream &operator << (std::ostream &out, const ClientAnimLayer &layer);
 
 BEGIN_PUBLISH
-typedef InterpolatedVariable<ClientAnimLayer> InterpolatedClientAnimLayer;
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<ClientAnimLayer>);
+typedef InterpolatedVariable<ClientAnimLayer> InterpolatedClientAnimLayer;
 END_PUBLISH
 
 #include "clientAnimLayer.I"
