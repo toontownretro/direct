@@ -155,6 +155,10 @@ class ServerRepository(BaseObjectManager):
         do.announceGenerate()
 
     def deleteObject(self, do, removeFromOwnerTable = True):
+        if do.isDeleted():
+            assert do.doId not in self.doId2do
+            return
+
         del self.doId2do[do.doId]
         self.objectsByZoneId[do.zoneId].remove(do)
         if not self.objectsByZoneId[do.zoneId]:
