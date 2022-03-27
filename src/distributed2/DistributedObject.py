@@ -111,12 +111,15 @@ class DistributedObject(BaseDistributedObject):
         # Restore all of our interpolated variables to the most recently
         # networked value.  This way if the value does not change in the new
         # snapshot, we record the networked value, and not the most recently
-        # interpolated value.
-        for entry in self.interpVars:
-            if entry.arrayIndex != -1:
-                entry.setter(entry.arrayIndex, entry.var.getLastNetworkedValue())
-            else:
-                entry.setter(entry.var.getLastNetworkedValue())
+        # interpolated value.  However, we only want to do this if the object
+        # is actually generated and we have a previously received networked
+        # value.
+        if self.isDOAlive():
+            for entry in self.interpVars:
+                if entry.arrayIndex != -1:
+                    entry.setter(entry.arrayIndex, entry.var.getLastNetworkedValue())
+                else:
+                    entry.setter(entry.var.getLastNetworkedValue())
 
     def getInterpolateAmount(self):
         serverTickMultiple = 1
