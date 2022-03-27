@@ -269,6 +269,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             print("Generate owner", classDef, "with doId", doId, "in zone", zoneId, "dclass", dclass)
 
             do.generate()
+            assert do.isDOGenerated()
 
             if hasState:
                 self.notify.debug("Unpacking baseline/initial owner object state")
@@ -277,6 +278,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
                 self.unpackObjectState(dgi, doId)
 
             do.announceGenerate()
+            assert do.isDOAlive()
 
     def __handleGenerateObject(self, dgi):
         while dgi.getRemainingSize() > 0:
@@ -297,6 +299,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             print("Generate", classDef, "with doId", doId, "in zone", zoneId, "dclass", dclass)
 
             do.generate()
+            assert do.isDOGenerated()
 
             if hasState:
                 self.notify.debug("Unpacking baseline/initial object state")
@@ -305,6 +308,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
                 self.unpackObjectState(dgi, doId)
 
             do.announceGenerate()
+            assert do.isDOAlive()
 
     def __handleDeleteObject(self, dgi):
         while dgi.getRemainingSize() > 0:
@@ -322,14 +326,18 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             del self.doId2ownerView[do.doId]
         if do.doState > DOState.Disabled:
             do.disable()
+            assert do.isDODisabled()
         do.delete()
+        assert do.isDODeleted()
 
     def deleteAllObjects(self):
         for do in list(self.doId2do.values()) + list(self.doId2ownerView.values()):
             self.removeObject(do.doId)
             if do.doState > DOState.Disabled:
                 do.disable()
+                assert do.isDODisabled()
             do.delete()
+            assert do.isDODeleted()
 
         self.doId2do = {}
         self.doId2ownerView = {}

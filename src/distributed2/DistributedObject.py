@@ -4,6 +4,7 @@ from panda3d.direct import *
 from panda3d.core import *
 
 from .ClientConfig import *
+from .DOState import DOState
 
 class InterpVarEntry:
 
@@ -257,7 +258,7 @@ class DistributedObject(BaseDistributedObject):
         baseline state has been applied, or when the object was disabled and
         it is coming back. """
 
-        pass
+        self.doState = DOState.Alive
 
     def disable(self):
         """ Called when the object is being temporarily removed/cached away.
@@ -268,6 +269,8 @@ class DistributedObject(BaseDistributedObject):
         self.removeFromInterpolationList()
         self.ignoreAll()
         self.removeAllTasks()
+
+        self.doState = DOState.Disabled
 
     def delete(self):
         self.interpVars = None

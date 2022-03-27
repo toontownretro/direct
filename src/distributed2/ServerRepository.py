@@ -127,6 +127,7 @@ class ServerRepository(BaseObjectManager):
             owner.objectsByZoneId.setdefault(do.zoneId, set()).add(do)
 
         do.generate()
+        assert do.isDOGenerated()
 
         clients = set(self.zonesToClients.get(do.zoneId, set()))
         if len(clients) > 0:
@@ -153,9 +154,10 @@ class ServerRepository(BaseObjectManager):
             self.updateClientInterestZones(owner)
 
         do.announceGenerate()
+        assert do.isDOAlive()
 
     def deleteObject(self, do, removeFromOwnerTable = True):
-        if do.isDeleted():
+        if do.isDODeleted():
             assert do.doId not in self.doId2do
             return
 
@@ -184,6 +186,7 @@ class ServerRepository(BaseObjectManager):
         self.snapshotMgr.removePrevSentPacket(do.doId)
 
         do.delete()
+        assert do.isDODeleted()
 
     def simObjects(self):
         dos = list(self.doId2do.values())
