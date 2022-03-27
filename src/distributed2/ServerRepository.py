@@ -193,7 +193,7 @@ class ServerRepository(BaseObjectManager):
         for do in dos:
             # This DO may have been deleted during a simulation run for a
             # previous DO.
-            if not do.isDeleted():
+            if not do.isDODeleted():
                 do.simulate()
 
     def simObjectsTask(self, task):

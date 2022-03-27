@@ -50,7 +50,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
     def updateObjects(self, task):
         for do in self.doId2do.values():
-            if not do.isDeleted():
+            if not do.isDODeleted():
                 do.update()
         return task.cont
 
