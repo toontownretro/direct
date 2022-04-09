@@ -400,8 +400,15 @@ class ServerRepository(BaseObjectManager):
                     if cl in excludeClients:
                         continue
                     self.sendDatagram(dg, cl.connection, reliable)
+            elif field.isOwnrecv():
+                # If the field is an ownrecv without an explicit target client,
+                # implicitly send to owner client.
+                if not do.owner:
+                    self.notify.warning("Can't implicitly send ownrecv message to owner with no owner client")
+                    return
+                self.sendDatagram(dg, do.owner.connection, reliable)
             else:
-                self.notify.warning("Can't send non-broadcast object message without a target client")
+                self.notify.warning("Can't send non-broadcast and non-ownrecv object message without a target client")
                 return
         else:
             self.sendDatagram(dg, client.connection, reliable)
