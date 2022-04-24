@@ -19,7 +19,9 @@ Built-in global variables
 Some key variables used in all Panda3D scripts are actually attributes of the
 ShowBase instance.  When creating an instance of this class, it will write many
 of these variables to the built-in scope of the Python interpreter, so that
-they are accessible to any Python module, without the need fors extra imports.
+they are accessible to any Python module, without the need for extra imports.
+For example, the ShowBase instance itself is accessible anywhere through the
+:data:`~builtins.base` variable.
 
 While these are handy for prototyping, we do not recommend using them in bigger
 projects, as it can make the code confusing to read to other Python developers,
@@ -1777,7 +1779,7 @@ class ShowBase(HostBase):
             if not self.particleMgr:
                 PMG = importlib.import_module('direct.particles.ParticleManagerGlobal')
                 self.particleMgr = PMG.particleMgr
-                self.particleMgr.setFrameStepping(1)
+                self.particleMgr.setFrameStepping(0)
 
             if not self.physicsMgr:
                 PMG = importlib.import_module('direct.showbase.PhysicsManagerGlobal')
@@ -1789,7 +1791,7 @@ class ShowBase(HostBase):
             self.particleMgrEnabled = 1
             self.physicsMgrEnabled = 1
             self.taskMgr.remove('manager-update')
-            self.taskMgr.add(self.updateManagers, 'manager-update')
+            self.taskMgr.add(self.updateManagers, 'manager-update', sort = 40)
 
     def disableParticles(self):
         """
@@ -1823,7 +1825,7 @@ class ShowBase(HostBase):
         return self.physicsMgrEnabled
 
     def updateManagers(self, state):
-        dt = globalClock.getDt()
+        dt = self.clock.dt
         if self.particleMgrEnabled:
             self.particleMgr.doParticles(dt)
         if self.physicsMgrEnabled:
@@ -1849,7 +1851,11 @@ class ShowBase(HostBase):
         if port is None:
             port = -1
         PStatClient.connect(hostname, port)
-        return PStatClient.isConnected()
+        if PStatClient.isConnected():
+            PStatClient.mainTick()
+            return True
+        else:
+            return False
 
     def addSfxManager(self, extraSfxManager):
         """
@@ -2868,14 +2874,15 @@ class ShowBase(HostBase):
         Returns:
             A `~direct.task.Task` that can be awaited.
         """
-        globalClock.setMode(ClockObject.MNonRealTime)
-        globalClock.setDt(1.0/float(fps))
+        clock = self.clock
+        clock.mode = ClockObject.MNonRealTime
+        clock.dt = 1.0 / fps
         t = self.taskMgr.add(self._movieTask, namePrefix + '_task')
         t.frameIndex = 0  # Frame 0 is not captured.
         t.numFrames = int(duration * fps)
         t.source = source
         t.outputString = namePrefix + '_%0' + repr(sd) + 'd.' + format
-        t.setUponDeath(lambda state: globalClock.setMode(ClockObject.MNormal))
+        t.setUponDeath(lambda state: clock.setMode(ClockObject.MNormal))
         return t
 
     def _movieTask(self, state):

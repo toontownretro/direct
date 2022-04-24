@@ -1,4 +1,10 @@
-"""Actor module: contains the Actor class."""
+"""Actor module: contains the Actor class.
+
+See the :ref:`loading-actors-and-animations` page in the Programming Guide
+to learn more about loading animated models.
+"""
+
+__all__ = ['Actor']
 
 from panda3d.core import *
 from panda3d.core import Loader as PandaLoader
@@ -493,9 +499,9 @@ class Actor(DirectObject, NodePath):
         if anim is None:
             # Set play rate of layer for duration of currently playing channel.
             for partDef in self.getPartDefs(partName):
-                animLayer = partDef.char.getAnimLayer(layer)
-                if not animLayer:
+                if not partDef.char.isValidLayerIndex(layer):
                     continue
+                animLayer = partDef.char.getAnimLayer(layer)
                 animLayer._play_rate = rate
 
             return
@@ -537,9 +543,9 @@ class Actor(DirectObject, NodePath):
             partName, partDef = next(iter(partBundleDict.items()))
 
         # Return play rate of layer.
-        animLayer = partDef.char.getAnimLayer(layer)
-        if not animLayer:
+        if not partDef.char.isValidLayerIndex(layer):
             return 1.0
+        animLayer = partDef.char.getAnimLayer(layer)
         return animLayer._play_rate
 
     def getDuration(self, animName=None, partName=None,
@@ -572,10 +578,10 @@ class Actor(DirectObject, NodePath):
             else:
                 partName, partDef = next(iter(partBundleDict.items()))
 
-            animLayer = partDef.char.getAnimLayer(layer)
-            if not animLayer:
+            if not partDef.char.isValidLayerIndex(layer):
                 return 0.1
-            if animLayer._sequence == -1:
+            animLayer = partDef.char.getAnimLayer(layer)
+            if not partDef.char.isValidChannelIndex(animLayer._sequence):
                 return 0.1
             chan = partDef.char.getChannel(animLayer._sequence)
             playRate = animLayer._play_rate
@@ -599,11 +605,11 @@ class Actor(DirectObject, NodePath):
         # Return num frames of a layer.
         for partDef in self.getPartDefs(partName):
             # Return num frames of a layer.
+            if not partDef.char.isValidLayerIndex(layer):
+                continue
             animLayer = partDef.char.getAnimLayer(layer)
-            if not animLayer:
-                return 1
-            if animLayer._sequence == -1:
-                return 1
+            if not partDef.char.isValidChannelIndex(animLayer._sequence):
+                continue
             return partDef.char.getChannel(animLayer._sequence).getNumFrames()
 
         return 1
@@ -624,9 +630,11 @@ class Actor(DirectObject, NodePath):
 
         # Return frame rate of a layer.
         for partDef in self.getPartDefs(partName):
+            if not partDef.char.isValidLayerIndex(layer):
+                continue
             animLayer = partDef.char.getAnimLayer(layer)
-            if not animLayer or animLayer._sequence == -1:
-                return 1
+            if not partDef.char.isValidChannelIndex(animLayer._sequence):
+                continue
             return partDef.char.getChannel(animLayer._sequence).getFrameRate() * animLayer._play_rate
 
         return 1
@@ -641,11 +649,13 @@ class Actor(DirectObject, NodePath):
             if not animDefs:
                 return 1
             return animDefs[0].channel.getFrameRate()
- 
+
         # Return frame rate of channel playing on a layer.
         for partDef in self.getPartDefs(partName):
+            if not partDef.char.isValidLayerIndex(layer):
+                return 1
             animLayer = partDef.char.getAnimLayer(layer)
-            if not animLayer or animLayer._sequence == -1:
+            if not partDef.char.isValidChannelIndex(animLayer._sequence):
                 return 1
             return partDef.char.getChannel(animLayer._sequence).getFrameRate()
 
@@ -758,7 +768,7 @@ class Actor(DirectObject, NodePath):
         """
         if not self.__LODNode:
             return None
-        
+
         lod = self.__LODNode.find(str(lodName))
         if lod.isEmpty():
             return None
@@ -851,19 +861,19 @@ class Actor(DirectObject, NodePath):
         if not partBundleDict:
             Actor.notify.warning("no lod named %s!" % (lodName))
             return None
-            
+
         partDef = partBundleDict.get(partName)
         if not partDef:
             Actor.notify.warning("no part named %s!" % (partName))
             return None
-            
+
         joint = partDef.charNP.find("**/" + jointName)
         if joint.isEmpty():
             Actor.notify.warning("%s not found!" % (jointName))
             return None
-            
+
         return path.instanceTo(joint)
-                
+
     def attach(self, partName, anotherPartName, jointName, lodName="lodRoot"):
         """attach(self, string, string, string, key="lodRoot")
         Attach one actor part to another at a joint called jointName"""
@@ -871,17 +881,17 @@ class Actor(DirectObject, NodePath):
         if not partBundleDict:
             Actor.notify.warning("no lod named %s!" % (lodName))
             return
-            
+
         partDef = partBundleDict.get(partName)
         if not partDef:
             Actor.notify.warning("no part named %s!" % (partName))
             return
-            
+
         anotherPartDef = partBundleDict.get(anotherPartName)
         if not anotherPartDef:
             Actor.notify.warning("no part named %s!" % (anotherPartName))
             return
-            
+
         joint = anotherPartDef.charNP.find("**/" + jointName)
         if joint.isEmpty():
             Actor.notify.warning("%s not found!" % (jointName))
@@ -1079,7 +1089,7 @@ class Actor(DirectObject, NodePath):
         from direct.interval import ActorInterval
         return ActorInterval.ActorInterval(self, *args, **kw)
 
-    def cleanup(self):
+    def cleanup(self, removeNode=True):
         """
         This method should be called when intending to destroy the Actor, and
         cleans up any additional resources stored on the Actor class before
@@ -1094,7 +1104,7 @@ class Actor(DirectObject, NodePath):
         if(self.__geomNode):
             self.__geomNode.removeNode()
             self.__geomNode = None
-        if not self.isEmpty():
+        if removeNode and not self.isEmpty():
             self.removeNode()
 
     def removeNode(self):
@@ -1140,13 +1150,13 @@ class Actor(DirectObject, NodePath):
         else:
             return 1
 
-    def delete(self):
+    def delete(self, removeNode=True):
         try:
             self.Actor_deleted
             return
         except:
             self.Actor_deleted = 1
-            self.cleanup()
+            self.cleanup(removeNode=removeNode)
 
     def copyActor(self, other, overwrite=False):
         # act like a copy constructor
@@ -1498,21 +1508,21 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return -1
-        animLayer = partDef.char.getAnimLayer(layer)
-        if not animLayer:
+        if not partDef.char.isValidLayerIndex(layer):
             return -1
+        animLayer = partDef.char.getAnimLayer(layer)
         return animLayer._sequence
 
     def getChannelLength(self, channel, partName="modelRoot"):
         if not self.__partBundleDict:
-            return 0
+            return 0.1
         lodName, partBundleDict = next(iter(self.__partBundleDict.items()))
         partDef = partBundleDict.get(partName)
         if not partDef:
-            return 0
+            return 0.1
+        if not partDef.char.isValidChannelIndex(channel):
+            return 0.1
         chan = partDef.char.getChannel(channel)
-        if not chan:
-            return 0
         return chan.getLength(partDef.char)
 
     def getChannelActivity(self, channel, partName="modelRoot", index=0):
@@ -1522,9 +1532,9 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return -1
-        chan = partDef.char.getChannel(channel)
-        if not chan:
+        if not partDef.char.isValidChannelIndex(channel):
             return -1
+        chan = partDef.char.getChannel(channel)
         if chan.getNumActivities() == 0:
             return -1
         return chan.getActivity(index)
@@ -1540,10 +1550,10 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return -1
-        animLayer = partDef.char.getAnimLayer(layer)
-        if not animLayer:
+        if not partDef.char.isValidLayerIndex(layer):
             currChannel = -1
         else:
+            animLayer = partDef.char.getAnimLayer(layer)
             currChannel = animLayer._sequence
         return partDef.char.getChannelForActivity(activity, currChannel, seed)
 
@@ -1558,7 +1568,7 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return -1
-        if layer < 0 or layer >= partDef.char.getNumAnimLayers():
+        if not partDef.char.isValidLayerIndex(layer):
             return -1
         return partDef.char.getAnimLayer(layer)._activity
 
@@ -1573,9 +1583,9 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return True
-        animLayer = partDef.char.getAnimLayer(layer)
-        if not animLayer:
+        if not partDef.char.isValidLayerIndex(layer):
             return True
+        animLayer = partDef.char.getAnimLayer(layer)
         return animLayer._sequence_finished
 
     def isChannelPlaying(self, partName="modelRoot", layer=0):
@@ -1589,11 +1599,9 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return False
-        if layer < 0 or layer >= partDef.char.getNumAnimLayers():
+        if not partDef.char.isValidLayerIndex(layer):
             return False
         animLayer = partDef.char.getAnimLayer(layer)
-        if not animLayer:
-            return False
         return animLayer.isPlaying()
 
     def getCycle(self, partName="modelRoot", layer=0):
@@ -1607,9 +1615,9 @@ class Actor(DirectObject, NodePath):
         partDef = partBundleDict.get(partName)
         if not partDef:
             return 0.0
-        animLayer = partDef.char.getAnimLayer(layer)
-        if not animLayer:
+        if not partDef.char.isValidLayerIndex(layer):
             return 0.0
+        animLayer = partDef.char.getAnimLayer(layer)
         return animLayer._cycle
 
     def getCurrentFrame(self, animName=None, partName=None, layer=0):
@@ -1636,11 +1644,13 @@ class Actor(DirectObject, NodePath):
                     return 0
 
             # Return the animation playing on the indicated layer of the part.
+            if not partDef.char.isValidLayerIndex(layer):
+                return 0
             animLayer = partDef.char.getAnimLayer(layer)
-            if not animLayer:
+            if not animLayer.isPlaying():
                 return 0
 
-            if not animLayer.isPlaying():
+            if not partDef.char.isValidChannelIndex(animLayer._sequence):
                 return 0
 
             chan = partDef.char.getChannel(animLayer._sequence)

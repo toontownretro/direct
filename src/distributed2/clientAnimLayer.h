@@ -53,14 +53,15 @@ public:
 // ClientAnimLayer.
 INLINE ClientAnimLayer LoopingLerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer tlerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to);
+INLINE ClientAnimLayer tlerp_angles(float percent, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer LoopingLerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE ClientAnimLayer Lerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to);
 INLINE void Lerp_Clamp(ClientAnimLayer &val);
 INLINE std::ostream &operator << (std::ostream &out, const ClientAnimLayer &layer);
 
 BEGIN_PUBLISH
-typedef InterpolatedVariable<ClientAnimLayer> InterpolatedClientAnimLayer;
 EXPORT_TEMPLATE_CLASS(EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2, InterpolatedVariable<ClientAnimLayer>);
+typedef InterpolatedVariable<ClientAnimLayer> InterpolatedClientAnimLayer;
 END_PUBLISH
 
 #include "clientAnimLayer.I"

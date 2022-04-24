@@ -215,8 +215,16 @@ class Audio3DManager:
             self.sound_dict[WeakNodePath(object)] = []
 
         self.sound_dict[object].append(sound)
-        return 1
 
+        # Apply the current object's position, orientation, and velocity to the sound immediately.
+        pos = object.getPos(self.root)
+        q = object.getQuat(self.root)
+        fwd = q.getForward()
+        up = q.getUp()
+        vel = self.getSoundVelocity(sound)
+        sound.set3dAttributes(pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], fwd[0], fwd[1], fwd[2], up[0], up[1], up[2])
+
+        return 1
 
     def detachSound(self, sound):
         """
@@ -281,10 +289,13 @@ class Audio3DManager:
                 continue
 
             pos = node_path.getPos(self.root)
+            q = node_path.getQuat(self.root)
+            fwd = q.getForward()
+            up = q.getUp()
 
             for sound in sounds:
                 vel = self.getSoundVelocity(sound)
-                sound.set3dAttributes(pos[0], pos[1], pos[2], vel[0], vel[1], vel[2])
+                sound.set3dAttributes(pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], fwd[0], fwd[1], fwd[2], up[0], up[1], up[2])
 
         # Update the position of the listener based on the object
         # to which it is attached

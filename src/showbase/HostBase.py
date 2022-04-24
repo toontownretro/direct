@@ -78,6 +78,7 @@ class HostBase(DirectObject):
         # We will manually manage the clock
         globalClock.setMode(ClockObject.MSlave)
         self.globalClock = globalClock
+        self.clock = self.globalClock
 
         # Since we have already started up a TaskManager, and probably
         # a number of tasks; and since the TaskManager had to use the
@@ -288,6 +289,9 @@ class HostBase(DirectObject):
 
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
+
+    def getRenderTime(self):
+        return self.tickCount * self.intervalPerTick + self.remainder
 
     def getNetworkBase(self, tick, doId):
         doMod = doId % self.timestampRandomizeWindow

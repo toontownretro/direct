@@ -52,19 +52,19 @@ class BaseDistributedObject(DirectObject):
     def getSimulationTime(self):
         return self.simulationTime
 
-    def isGenerated(self):
+    def isDOGenerated(self):
         return self.doState >= DOState.Generated
 
-    def isAlive(self):
+    def isDOAlive(self):
         return self.doState >= DOState.Alive
 
-    def isDisabled(self):
+    def isDODisabled(self):
         return self.doState <= DOState.Disabled
 
-    def isFresh(self):
+    def isDOFresh(self):
         return self.doState == DOState.Fresh
 
-    def isDeleted(self):
+    def isDODeleted(self):
         return self.doState == DOState.Deleted
 
     def addTask(self, method, name, extraArgs = [], appendTask = None, sim = True, sort = 0, delay = 0):
@@ -79,6 +79,9 @@ class BaseDistributedObject(DirectObject):
         """
 
         mgr = base.simTaskMgr if sim else base.taskMgr
+
+        if name in self._tasks:
+            self.removeTask(name)
 
         if delay <= 0:
             task = mgr.add(method, self.taskName(name), extraArgs = extraArgs, appendTask = appendTask, sort = sort)

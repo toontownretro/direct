@@ -21,8 +21,6 @@
 
 NotifyCategoryDecl(distributed2, EXPCL_DIRECT_DISTRIBUTED2, EXPTP_DIRECT_DISTRIBUTED2);
 
-extern EXPCL_DIRECT_DISTRIBUTED2 ConfigVariableDouble cl_extrapolate_amount;
-
 extern EXPCL_DIRECT_DISTRIBUTED2 void init_libdistributed2();
 
 #endif

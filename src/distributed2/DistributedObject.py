@@ -1,8 +1,10 @@
 from .BaseDistributedObject import BaseDistributedObject
 
 from panda3d.direct import *
+from panda3d.core import *
 
 from .ClientConfig import *
+from .DOState import DOState
 
 class InterpVarEntry:
 
@@ -109,17 +111,20 @@ class DistributedObject(BaseDistributedObject):
         # Restore all of our interpolated variables to the most recently
         # networked value.  This way if the value does not change in the new
         # snapshot, we record the networked value, and not the most recently
-        # interpolated value.
-        for entry in self.interpVars:
-            if entry.arrayIndex != -1:
-                entry.setter(entry.arrayIndex, entry.var.getLastNetworkedValue())
-            else:
-                entry.setter(entry.var.getLastNetworkedValue())
+        # interpolated value.  However, we only want to do this if the object
+        # is actually generated and we have a previously received networked
+        # value.
+        if self.isDOAlive():
+            for entry in self.interpVars:
+                if entry.arrayIndex != -1:
+                    entry.setter(entry.arrayIndex, entry.var.getLastNetworkedValue())
+                else:
+                    entry.setter(entry.var.getLastNetworkedValue())
 
     def getInterpolateAmount(self):
         serverTickMultiple = 1
         if self.getPredictable():
-            return base.intervalPerTick * serverTickMultiple
+            return 0.0#return base.intervalPerTick * serverTickMultiple
         return base.ticksToTime(base.timeToTicks(getClientInterpAmount()) + serverTickMultiple)
 
     def resetInterpolatedVars(self):
@@ -192,7 +197,7 @@ class DistributedObject(BaseDistributedObject):
                 # Fix up time for interpolating prediction results.
                 now = base.localAvatar.finalPredictedTick * base.intervalPerTick
                 now -= base.intervalPerTick
-                now += base.remainder * base.intervalPerTick
+                now += base.remainder
 
         done = True
         if now < self.lastInterpolationTime:
@@ -256,7 +261,7 @@ class DistributedObject(BaseDistributedObject):
         baseline state has been applied, or when the object was disabled and
         it is coming back. """
 
-        pass
+        self.doState = DOState.Alive
 
     def disable(self):
         """ Called when the object is being temporarily removed/cached away.
@@ -267,6 +272,8 @@ class DistributedObject(BaseDistributedObject):
         self.removeFromInterpolationList()
         self.ignoreAll()
         self.removeAllTasks()
+
+        self.doState = DOState.Disabled
 
     def delete(self):
         self.interpVars = None

@@ -6,4 +6,4 @@ cl_interp = ConfigVariableDouble("cl_interp", 0.1)
 cl_interp_ratio = ConfigVariableDouble("cl_interp_ratio", 2)
 
 def getClientInterpAmount():
-    return max(cl_interp.getValue(), cl_interp_ratio.getValue() / cl_updaterate.getValue())
+    return max(cl_interp.getValue(), cl_interp_ratio.getValue() / float(cl_updaterate.getValue()))

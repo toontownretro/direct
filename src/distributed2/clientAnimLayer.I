@@ -158,6 +158,14 @@ tlerp(float percent, ClientAnimLayer &from, ClientAnimLayer &to) {
  *
  */
 INLINE ClientAnimLayer
+tlerp_angles(float percent, ClientAnimLayer &from, ClientAnimLayer &to) {
+  return tlerp(percent, from, to);
+}
+
+/**
+ *
+ */
+INLINE ClientAnimLayer
 LoopingLerp_Hermite(float percent, ClientAnimLayer &prev, ClientAnimLayer &from, ClientAnimLayer &to) {
   ClientAnimLayer output;
   output.sequence = to.sequence;
