@@ -1,7 +1,7 @@
 #begin interface_target
   #define TARGET directbase
 
-  #define USE_PACKAGES eigen
+  #define USE_PACKAGES eigen sleef
 
   #define OTHER_LIBS dtoolbase:c dtool:m
 
