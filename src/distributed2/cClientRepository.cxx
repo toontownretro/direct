@@ -86,7 +86,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
   // before we unpack the state.
   if (odata->_pre_data_update != nullptr) {
     pre_data_coll.start();
-    PyObject_CallObject(odata->_pre_data_update, NULL);
+    PyObject_CallNoArgs(odata->_pre_data_update);
     if (PyErr_Occurred()) {
       distributed2_cat.error()
         << "Python error occurred during preDataUpdate()\n";
@@ -198,7 +198,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
         distributed2_cat.debug()
           << "Setting unpacked value directly on object\n";
       }
-      PyObject_SetAttrString(dist_obj, field->get_name().c_str(), args);
+      PyObject_SetAttr(dist_obj, field_data._field_name, args);
       set_field_coll.stop();
     }
 
@@ -209,7 +209,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
   // unpacked the state.
   if (odata->_post_data_update != nullptr) {
     post_data_coll.start();
-    PyObject_CallObject(odata->_post_data_update, NULL);
+    PyObject_CallNoArgs(odata->_post_data_update);
     if (PyErr_Occurred()) {
       distributed2_cat.error()
         << "Python error occurred during postDataUpdate()\n";
@@ -283,7 +283,7 @@ add_object(PyObject *dist_obj) {
   char proxy_name[256];
   for (size_t i = 0; i < dclass->get_num_inherited_fields(); i++) {
     // Check for proxies on the field.
-    DOFieldData field_data;
+    DOFieldData &field_data = data->_field_data[i];
 
     DCField *field = dclass->get_inherited_field(i);
     if (field->as_parameter() == nullptr) {
@@ -298,7 +298,7 @@ add_object(PyObject *dist_obj) {
       field_data._recv_proxy = nullptr;
     }
 
-    data->_field_data[i] = field_data;
+    field_data._field_name = PyUnicode_FromString(c_field_name);
   }
 
   Py_INCREF(dist_obj);
@@ -325,6 +325,7 @@ remove_object(DOID_TYPE do_id) {
   for (size_t i = 0; i < data->_field_data.size(); i++) {
     DOFieldData &fdata = data->_field_data[i];
     Py_XDECREF(fdata._recv_proxy);
+    Py_XDECREF(fdata._field_name);
   }
 
   _do_data.erase(it);
