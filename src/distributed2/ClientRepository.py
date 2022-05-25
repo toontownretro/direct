@@ -48,11 +48,11 @@ class ClientRepository(BaseObjectManager, CClientRepository):
     #            do.simulate()
     #    return task.cont
 
-    def updateObjects(self, task):
-        for do in self.doId2do.values():
-            if not do.isDODeleted():
-                do.update()
-        return task.cont
+    #def updateObjects(self, task):
+    #    for do in self.doId2do.values():
+    #        if not do.isDODeleted():
+    #            do.update()
+    #    return task.cont
 
     def runFrame(self, task):
         self.readerPollUntilEmpty()
@@ -68,13 +68,13 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         base.simTaskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
         #base.simTaskMgr.add(self.simObjects, "clientSimObjects", sort = 0)
         base.taskMgr.add(self.interpolateObjects, "clientInterpolateObjects", sort = 30)
-        base.taskMgr.add(self.updateObjects, "clientUpdateObjects", sort = 31)
+        #base.taskMgr.add(self.updateObjects, "clientUpdateObjects", sort = 31)
 
     def stopClientLoop(self):
         base.simTaskMgr.remove("clientRunFrame")
         base.simTaskMgr.remove("clientSimObjects")
         base.taskMgr.remove("clientInterpolateObjects")
-        base.taskMgr.remove("clientUpdateObjects")
+        #base.taskMgr.remove("clientUpdateObjects")
 
     def getNextInterestHandle(self):
         return (self.interestHandle + 1) % 256
