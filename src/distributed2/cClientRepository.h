@@ -45,6 +45,7 @@ PUBLISHED:
     DOID_TYPE _do_id;
     DCClass *_dclass;
     PyObject *_dist_obj;
+    PyObject *_dict;
     PyObject *_pre_data_update;
     PyObject *_post_data_update;
     PyObject *_on_data_changed;

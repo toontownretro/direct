@@ -198,7 +198,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
         distributed2_cat.debug()
           << "Setting unpacked value directly on object\n";
       }
-      PyObject_SetAttr(dist_obj, field_data._field_name, args);
+      PyDict_SetItem(odata->_dict, field_data._field_name, args);
       set_field_coll.stop();
     }
 
@@ -266,6 +266,7 @@ add_object(PyObject *dist_obj) {
   data->_do_id = do_id;
   data->_dclass = dclass;
   data->_dist_obj = dist_obj;
+  data->_dict = PyObject_GetAttrString(dist_obj, (char *)"__dict__");
   if (PyObject_HasAttrString(dist_obj, (char *)"preDataUpdate")) {
     data->_pre_data_update = PyObject_GetAttrString(dist_obj, (char *)"preDataUpdate");
   } else {
@@ -284,18 +285,19 @@ add_object(PyObject *dist_obj) {
   for (size_t i = 0; i < dclass->get_num_inherited_fields(); i++) {
     // Check for proxies on the field.
     DOFieldData &field_data = data->_field_data[i];
+    field_data._field_name = nullptr;
+    field_data._recv_proxy = nullptr;
 
     DCField *field = dclass->get_inherited_field(i);
     if (field->as_parameter() == nullptr) {
       continue;
     }
+
     const char *c_field_name = field->get_name().c_str();
 
     sprintf(proxy_name, "RecvProxy_%s", c_field_name);
     if (PyObject_HasAttrString(dist_obj, proxy_name)) {
       field_data._recv_proxy = PyObject_GetAttrString(dist_obj, proxy_name);
-    } else {
-      field_data._recv_proxy = nullptr;
     }
 
     field_data._field_name = PyUnicode_FromString(c_field_name);
@@ -318,15 +320,16 @@ remove_object(DOID_TYPE do_id) {
   }
 
   DOData *data = (*it).second;
-  Py_XDECREF(data->_dist_obj);
-  Py_XDECREF(data->_pre_data_update);
-  Py_XDECREF(data->_post_data_update);
-  Py_XDECREF(data->_on_data_changed);
   for (size_t i = 0; i < data->_field_data.size(); i++) {
     DOFieldData &fdata = data->_field_data[i];
     Py_XDECREF(fdata._recv_proxy);
     Py_XDECREF(fdata._field_name);
   }
+  Py_XDECREF(data->_pre_data_update);
+  Py_XDECREF(data->_post_data_update);
+  Py_XDECREF(data->_on_data_changed);
+  Py_XDECREF(data->_dict);
+  Py_XDECREF(data->_dist_obj);
 
   _do_data.erase(it);
 }
