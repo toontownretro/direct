@@ -158,15 +158,15 @@ class HostBase(DirectObject):
 
     def setFrameTime(self, time):
         self.frameTime = time
-        self.globalClock.setFrameTime(time)
+        self.globalClock.frame_time = time
 
     def setDeltaTime(self, dt):
         self.deltaTime = dt
-        self.globalClock.setDt(dt)
+        self.globalClock.dt = dt
 
     def setFrameCount(self, count):
         self.frameCount = count
-        self.globalClock.setFrameCount(count)
+        self.globalClock.frame_count = count
 
     def shutdown(self):
         self.eventMgr.shutdown()
@@ -269,8 +269,8 @@ class HostBase(DirectObject):
                 elapsedTicks = (self.tickCount - self.oldTickCount)
                 self.deltaTime = elapsedTicks * self.intervalPerTick
             # Set it on the global clock for anything that uses it
-            self.globalClock.setFrameTime(self.frameTime)
-            self.globalClock.setDt(self.deltaTime)
+            self.globalClock.frame_time = self.frameTime
+            self.globalClock.dt = self.deltaTime
 
             # Step all simulation-bound tasks
             self.simTaskMgr.step()
@@ -284,8 +284,8 @@ class HostBase(DirectObject):
         # Restore the true time for rendering and frame-bound stuff
         self.frameTime = (self.tickCount * self.intervalPerTick) + self.remainder
         self.deltaTime = self.realDeltaTime
-        self.globalClock.setFrameTime(self.frameTime)
-        self.globalClock.setDt(self.realDeltaTime)
+        self.globalClock.frame_time = self.frameTime
+        self.globalClock.dt = self.realDeltaTime
 
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
@@ -303,15 +303,15 @@ class HostBase(DirectObject):
 
     def doRunFrame(self):
         # Manually advance the clock
-        now = self.globalClock.getRealTime()
+        now = self.globalClock.real_time
         self.realDeltaTime = now - self.realFrameTime
         self.realFrameTime += self.realDeltaTime
 
         self.deltaTime = self.realDeltaTime
         self.frameTime = self.realFrameTime
-        self.globalClock.setDt(self.realDeltaTime)
-        self.globalClock.setFrameTime(self.realFrameTime)
-        self.globalClock.setFrameCount(self.frameCount)
+        self.globalClock.dt = self.realDeltaTime
+        self.globalClock.frame_time = self.realFrameTime
+        self.globalClock.frame_count = self.frameCount
 
         self.preRunFrame()
         self.runFrame()
