@@ -47,12 +47,43 @@ unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
 
   PyMutexHolder holder;
 
+  pvector<const DOData *> unpacked;
+  unpacked.reserve(num_objects);
+
   for (int i = 0; i < num_objects; i++) {
     DOID_TYPE do_id = dgi.get_uint32();
-    if (!unpack_object_state(dgi, do_id)) {
+    DODataMap::const_iterator it = _do_data.find(do_id);
+    if (it == _do_data.end()) {
+      distributed2_cat.error()
+        << "State snapshot has data for DO ID " << do_id << ", but we don't "
+        << "have that object in our table.\n";
       return;
     }
+    const DOData *odata = (*it).second;
+    if (!unpack_object_state(dgi, odata)) {
+      distributed2_cat.error()
+        << "Failed to unpack object state for DO " << odata->_do_id << "\n";
+      return;
+    }
+    if (odata->_post_data_update != nullptr) {
+      // Add to list of objects that should have postDataUpdate() called on
+      // them.
+      unpacked.push_back(odata);
+    }
   }
+
+  // Now call the postDataUpdate() method on all objects that had
+  // new state information.
+  post_data_coll.start();
+  for (const DOData *odata : unpacked) {
+    PyObject_CallNoArgs(odata->_post_data_update);
+    if (PyErr_Occurred()) {
+      distributed2_cat.error()
+        << "Python error occurred during postDataUpdate() for DO " << odata->_do_id << "\n";
+      PyErr_Print();
+    }
+  }
+  post_data_coll.stop();
 }
 
 /**
@@ -60,25 +91,10 @@ unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
  * distributed object.
  */
 bool CClientRepository::
-unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
-
+unpack_object_state(DatagramIterator &dgi, const DOData *odata) {
   PStatTimer timer(unpack_object_coll);
 
-  // Find the object in our internal object cache.
-  find_in_map_coll.start();
-  DODataMap::const_iterator dit = _do_data.find(do_id);
-  if (dit == _do_data.end()) {
-    distributed2_cat.error()
-      << "dist obj " << do_id << " does not exist in CClientRepository object "
-      << "table\n";
-    find_in_map_coll.stop();
-    return false;
-  }
-
-  DOData *odata = (*dit).second;
-
-  find_in_map_coll.stop();
-
+  DOID_TYPE do_id = odata->_do_id;
   PyObject *dist_obj = odata->_dist_obj;
   DCClass *dclass = odata->_dclass;
 
@@ -127,7 +143,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
       return false;
     }
 
-    DOFieldData &field_data = odata->_field_data[field_number];
+    const DOFieldData &field_data = odata->_field_data[field_number];
 
     if (distributed2_cat.is_debug()) {
       distributed2_cat.debug()
@@ -203,19 +219,6 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
     }
 
     Py_DECREF(args);
-  }
-
-  // Finally call the postDataUpdate method so they can do stuff after we've
-  // unpacked the state.
-  if (odata->_post_data_update != nullptr) {
-    post_data_coll.start();
-    PyObject_CallNoArgs(odata->_post_data_update);
-    if (PyErr_Occurred()) {
-      distributed2_cat.error()
-        << "Python error occurred during postDataUpdate()\n";
-      PyErr_Print();
-    }
-    post_data_coll.stop();
   }
 
   return true;

@@ -57,7 +57,8 @@ PUBLISHED:
   INLINE void set_python_repository(PyObject *repo);
 
   void unpack_server_snapshot(DatagramIterator &dgi, bool is_delta);
-  bool unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id);
+  INLINE bool unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id);
+  bool unpack_object_state(DatagramIterator &dgi, const DOData *data);
 
   void add_object(PyObject *dist_obj);
   void remove_object(DOID_TYPE do_id);
