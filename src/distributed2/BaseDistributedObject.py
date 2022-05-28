@@ -47,10 +47,6 @@ class BaseDistributedObject(DirectObject):
         self.doState = DOState.Fresh
         # Set of tasks that have been created on this object.
         self._tasks = {}
-        self.simulationTime = 0.0
-
-    def getSimulationTime(self):
-        return self.simulationTime
 
     def isDOGenerated(self):
         return self.doState >= DOState.Generated
