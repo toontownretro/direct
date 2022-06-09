@@ -38,12 +38,14 @@ PUBLISHED:
   public:
     DOFieldData() { _recv_proxy = nullptr; }
     PyObject *_recv_proxy;
+    PyObject *_field_name;
   };
   class DOData : public ReferenceCount {
   public:
     DOID_TYPE _do_id;
     DCClass *_dclass;
     PyObject *_dist_obj;
+    PyObject *_dict;
     PyObject *_pre_data_update;
     PyObject *_post_data_update;
     PyObject *_on_data_changed;
@@ -55,7 +57,8 @@ PUBLISHED:
   INLINE void set_python_repository(PyObject *repo);
 
   void unpack_server_snapshot(DatagramIterator &dgi, bool is_delta);
-  bool unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id);
+  INLINE bool unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id);
+  bool unpack_object_state(DatagramIterator &dgi, const DOData *data);
 
   void add_object(PyObject *dist_obj);
   void remove_object(DOID_TYPE do_id);

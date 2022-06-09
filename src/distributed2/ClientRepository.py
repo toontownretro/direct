@@ -48,11 +48,11 @@ class ClientRepository(BaseObjectManager, CClientRepository):
     #            do.simulate()
     #    return task.cont
 
-    def updateObjects(self, task):
-        for do in self.doId2do.values():
-            if not do.isDODeleted():
-                do.update()
-        return task.cont
+    #def updateObjects(self, task):
+    #    for do in self.doId2do.values():
+    #        if not do.isDODeleted():
+    #            do.update()
+    #    return task.cont
 
     def runFrame(self, task):
         self.readerPollUntilEmpty()
@@ -68,13 +68,13 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         base.simTaskMgr.add(self.runFrame, "clientRunFrame", sort = -100)
         #base.simTaskMgr.add(self.simObjects, "clientSimObjects", sort = 0)
         base.taskMgr.add(self.interpolateObjects, "clientInterpolateObjects", sort = 30)
-        base.taskMgr.add(self.updateObjects, "clientUpdateObjects", sort = 31)
+        #base.taskMgr.add(self.updateObjects, "clientUpdateObjects", sort = 31)
 
     def stopClientLoop(self):
         base.simTaskMgr.remove("clientRunFrame")
         base.simTaskMgr.remove("clientSimObjects")
         base.taskMgr.remove("clientInterpolateObjects")
-        base.taskMgr.remove("clientUpdateObjects")
+        #base.taskMgr.remove("clientUpdateObjects")
 
     def getNextInterestHandle(self):
         return (self.interestHandle + 1) % 256
@@ -246,6 +246,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.sendDatagram(dg)
 
     def __handleGenerateOwnerObject(self, dgi):
+        generated = []
+
         while dgi.getRemainingSize() > 0:
             classId = dgi.getUint16()
             doId = dgi.getUint32()
@@ -272,16 +274,27 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.generate()
             assert do.isDOGenerated()
 
+            generated.append((do, hasState))
+
             if hasState:
                 self.notify.debug("Unpacking baseline/initial owner object state")
-                # An initial state was supplied for the object
+                do.preDataUpdate()
+                # An initial state was supplied for the object.
                 # Unpack it in the C++ repository.
                 self.unpackObjectState(dgi, doId)
 
+        # Now that all new objects are generated with an initial
+        # state applied, call postDataUpdate() and announceGenerate() on
+        # them.
+        for do, hasState in generated:
+            if hasState:
+                do.postDataUpdate()
             do.announceGenerate()
             assert do.isDOAlive()
 
     def __handleGenerateObject(self, dgi):
+        generated = []
+
         while dgi.getRemainingSize() > 0:
             classId = dgi.getUint16()
             doId = dgi.getUint32()
@@ -302,12 +315,21 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             do.generate()
             assert do.isDOGenerated()
 
+            generated.append((do, hasState))
+
             if hasState:
                 self.notify.debug("Unpacking baseline/initial object state")
-                # An initial state was supplied for the object
+                do.preDataUpdate()
+                # An initial state was supplied for the object.
                 # Unpack it in the C++ repository.
                 self.unpackObjectState(dgi, doId)
 
+        # Now that all new objects are generated with an initial
+        # state applied, call postDataUpdate() and announceGenerate() on
+        # them.
+        for do, hasState in generated:
+            if hasState:
+                do.postDataUpdate()
             do.announceGenerate()
             assert do.isDOAlive()
 

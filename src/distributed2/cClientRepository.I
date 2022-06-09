@@ -30,3 +30,15 @@ set_python_repository(PyObject *repo) {
   _py_repo = repo;
   Py_XINCREF(_py_repo);
 }
+
+/**
+ *
+ */
+INLINE bool CClientRepository::
+unpack_object_state(DatagramIterator &scan, DOID_TYPE do_id) {
+  DODataMap::const_iterator it = _do_data.find(do_id);
+  if (it == _do_data.end()) {
+    return false;
+  }
+  return unpack_object_state(scan, (*it).second);
+}

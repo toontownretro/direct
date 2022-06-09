@@ -27,16 +27,16 @@ class DistributedObject(BaseDistributedObject):
 
     neverDisable = False
 
-    InterpolateList = []
+    InterpolateList = set()
     TeleportList = []
 
     def __init__(self):
         BaseDistributedObject.__init__(self)
         #self.interpGroup = CInterpolatedGroup()
-        self.oldSimulationTime = 0.0
         self.isOwner = False
         self.interpVars = []
         self.lastInterpolationTime = 0.0
+        self.predictable = False
 
     @staticmethod
     def interpolateObjects():
@@ -44,7 +44,7 @@ class DistributedObject(BaseDistributedObject):
         ctx = InterpolationContext()
         ctx.enableExtrapolation(True)
         ctx.setLastTimestamp(base.cr.lastServerTickTime)
-        for do in DistributedObject.InterpolateList:
+        for do in set(DistributedObject.InterpolateList):
             do.interpolate(globalClock.getFrameTime())
             do.postInterpolate()
 
@@ -77,30 +77,8 @@ class DistributedObject(BaseDistributedObject):
         for entry in self.interpVars:
             entry.var.setInterpolationAmount(self.getInterpolateAmount())
 
-    def RecvProxy_simulationTime(self, addT):
-        # Note, this needs to be encoded relative to the packet timestamp, not
-        # raw client clock.
-        tickBase = base.getNetworkBase(base.tickCount, self.doId)
-        t = tickBase
-        # and then go back to floating point time
-        t += addT # Add in an additional up to 256 100ths from the server.
-
-        # Center self.simulationTime around current time.
-        while t < base.tickCount - 127:
-            t += 256
-        while t > base.tickCount + 127:
-            t -= 256
-
-        self.simulationTime = t * base.intervalPerTick
-
-    def isSimulationChanged(self):
-        return self.simulationTime != self.oldSimulationTime
-
-    def getPredictable(self):
-        return False
-
-    def shouldInterpolate(self):
-        return True
+    #def shouldInterpolate(self):
+    #    return True
 
     def preDataUpdate(self):
         """
@@ -122,9 +100,9 @@ class DistributedObject(BaseDistributedObject):
                     entry.setter(entry.var.getLastNetworkedValue())
 
     def getInterpolateAmount(self):
+        if self.predictable:
+            return 0.0
         serverTickMultiple = 1
-        if self.getPredictable():
-            return 0.0#return base.intervalPerTick * serverTickMultiple
         return base.ticksToTime(base.timeToTicks(getClientInterpAmount()) + serverTickMultiple)
 
     def resetInterpolatedVars(self):
@@ -137,15 +115,6 @@ class DistributedObject(BaseDistributedObject):
                 entry.var.reset(entry.getter(entry.arrayIndex))
             else:
                 entry.var.reset(entry.getter())
-
-    def getLastChangedTime(self, flags):
-        if flags & DistributedObject.SimulationVar:
-            if self.simulationTime == 0.0:
-                return base.frameTime
-            else:
-                return self.simulationTime
-
-        return base.frameTime
 
     def postInterpolate(self):
         """
@@ -176,8 +145,9 @@ class DistributedObject(BaseDistributedObject):
                 # Value is changed, we need to interpolate it.
                 entry.needsInterpolation = True
 
-        if self.shouldInterpolate():
-            self.addToInterpolationList()
+        #if self.shouldInterpolate():
+            #self.addToInterpolationList()
+        DistributedObject.InterpolateList.add(self)
 
     def onStoreLastNetworkedValue(self):
         for entry in self.interpVars:
@@ -192,12 +162,11 @@ class DistributedObject(BaseDistributedObject):
 
     def interpolate(self, now):
 
-        if self.getPredictable():
-            if hasattr(base, 'localAvatar') and now == globalClock.getFrameTime():
-                # Fix up time for interpolating prediction results.
-                now = base.localAvatar.finalPredictedTick * base.intervalPerTick
-                now -= base.intervalPerTick
-                now += base.remainder
+        if self.predictable:
+            # Fix up time for interpolating prediction results.
+            now = base.localAvatar.finalPredictedTick * base.intervalPerTick
+            now -= base.intervalPerTick
+            now += base.remainder
 
         done = True
         if now < self.lastInterpolationTime:
@@ -224,15 +193,13 @@ class DistributedObject(BaseDistributedObject):
                 entry.setter(entry.var.getInterpolatedValue())
 
         if done:
-            self.removeFromInterpolationList()
+            DistributedObject.InterpolateList.remove(self)
 
     def addToInterpolationList(self):
-        if not self in DistributedObject.InterpolateList:
-            DistributedObject.InterpolateList.append(self)
+        DistributedObject.InterpolateList.add(self)
 
     def removeFromInterpolationList(self):
-        if self in DistributedObject.InterpolateList:
-            DistributedObject.InterpolateList.remove(self)
+        DistributedObject.InterpolateList.discard(self)
 
     def postDataUpdate(self):
         """
@@ -240,15 +207,15 @@ class DistributedObject(BaseDistributedObject):
         unpacked onto the object.
         """
 
-        simChanged = self.isSimulationChanged()
-        if not self.getPredictable():
-            if simChanged:
-                self.onLatchInterpolatedVars(
-                    self.getLastChangedTime(DistributedObject.SimulationVar),
-                    DistributedObject.SimulationVar)
+        if not self.interpVars:
+            return
+
+        if not self.predictable:
+            self.onLatchInterpolatedVars(
+                base.frameTime,
+                DistributedObject.SimulationVar)
         else:
             self.onStoreLastNetworkedValue()
-        self.oldSimulationTime = self.simulationTime
 
     def sendUpdate(self, name, args = []):
         """

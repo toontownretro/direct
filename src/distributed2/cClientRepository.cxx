@@ -47,12 +47,43 @@ unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
 
   PyMutexHolder holder;
 
+  pvector<const DOData *> unpacked;
+  unpacked.reserve(num_objects);
+
   for (int i = 0; i < num_objects; i++) {
     DOID_TYPE do_id = dgi.get_uint32();
-    if (!unpack_object_state(dgi, do_id)) {
+    DODataMap::const_iterator it = _do_data.find(do_id);
+    if (it == _do_data.end()) {
+      distributed2_cat.error()
+        << "State snapshot has data for DO ID " << do_id << ", but we don't "
+        << "have that object in our table.\n";
       return;
     }
+    const DOData *odata = (*it).second;
+    if (!unpack_object_state(dgi, odata)) {
+      distributed2_cat.error()
+        << "Failed to unpack object state for DO " << odata->_do_id << "\n";
+      return;
+    }
+    if (odata->_post_data_update != nullptr) {
+      // Add to list of objects that should have postDataUpdate() called on
+      // them.
+      unpacked.push_back(odata);
+    }
   }
+
+  // Now call the postDataUpdate() method on all objects that had
+  // new state information.
+  post_data_coll.start();
+  for (const DOData *odata : unpacked) {
+    PyObject_CallNoArgs(odata->_post_data_update);
+    if (PyErr_Occurred()) {
+      distributed2_cat.error()
+        << "Python error occurred during postDataUpdate() for DO " << odata->_do_id << "\n";
+      PyErr_Print();
+    }
+  }
+  post_data_coll.stop();
 }
 
 /**
@@ -60,25 +91,10 @@ unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
  * distributed object.
  */
 bool CClientRepository::
-unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
-
+unpack_object_state(DatagramIterator &dgi, const DOData *odata) {
   PStatTimer timer(unpack_object_coll);
 
-  // Find the object in our internal object cache.
-  find_in_map_coll.start();
-  DODataMap::const_iterator dit = _do_data.find(do_id);
-  if (dit == _do_data.end()) {
-    distributed2_cat.error()
-      << "dist obj " << do_id << " does not exist in CClientRepository object "
-      << "table\n";
-    find_in_map_coll.stop();
-    return false;
-  }
-
-  DOData *odata = (*dit).second;
-
-  find_in_map_coll.stop();
-
+  DOID_TYPE do_id = odata->_do_id;
   PyObject *dist_obj = odata->_dist_obj;
   DCClass *dclass = odata->_dclass;
 
@@ -86,7 +102,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
   // before we unpack the state.
   if (odata->_pre_data_update != nullptr) {
     pre_data_coll.start();
-    PyObject_CallObject(odata->_pre_data_update, NULL);
+    PyObject_CallNoArgs(odata->_pre_data_update);
     if (PyErr_Occurred()) {
       distributed2_cat.error()
         << "Python error occurred during preDataUpdate()\n";
@@ -127,7 +143,7 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
       return false;
     }
 
-    DOFieldData &field_data = odata->_field_data[field_number];
+    const DOFieldData &field_data = odata->_field_data[field_number];
 
     if (distributed2_cat.is_debug()) {
       distributed2_cat.debug()
@@ -198,24 +214,11 @@ unpack_object_state(DatagramIterator &dgi, DOID_TYPE do_id) {
         distributed2_cat.debug()
           << "Setting unpacked value directly on object\n";
       }
-      PyObject_SetAttrString(dist_obj, field->get_name().c_str(), args);
+      PyDict_SetItem(odata->_dict, field_data._field_name, args);
       set_field_coll.stop();
     }
 
     Py_DECREF(args);
-  }
-
-  // Finally call the postDataUpdate method so they can do stuff after we've
-  // unpacked the state.
-  if (odata->_post_data_update != nullptr) {
-    post_data_coll.start();
-    PyObject_CallObject(odata->_post_data_update, NULL);
-    if (PyErr_Occurred()) {
-      distributed2_cat.error()
-        << "Python error occurred during postDataUpdate()\n";
-      PyErr_Print();
-    }
-    post_data_coll.stop();
   }
 
   return true;
@@ -266,6 +269,7 @@ add_object(PyObject *dist_obj) {
   data->_do_id = do_id;
   data->_dclass = dclass;
   data->_dist_obj = dist_obj;
+  data->_dict = PyObject_GetAttrString(dist_obj, (char *)"__dict__");
   if (PyObject_HasAttrString(dist_obj, (char *)"preDataUpdate")) {
     data->_pre_data_update = PyObject_GetAttrString(dist_obj, (char *)"preDataUpdate");
   } else {
@@ -283,22 +287,23 @@ add_object(PyObject *dist_obj) {
   char proxy_name[256];
   for (size_t i = 0; i < dclass->get_num_inherited_fields(); i++) {
     // Check for proxies on the field.
-    DOFieldData field_data;
+    DOFieldData &field_data = data->_field_data[i];
+    field_data._field_name = nullptr;
+    field_data._recv_proxy = nullptr;
 
     DCField *field = dclass->get_inherited_field(i);
     if (field->as_parameter() == nullptr) {
       continue;
     }
+
     const char *c_field_name = field->get_name().c_str();
 
     sprintf(proxy_name, "RecvProxy_%s", c_field_name);
     if (PyObject_HasAttrString(dist_obj, proxy_name)) {
       field_data._recv_proxy = PyObject_GetAttrString(dist_obj, proxy_name);
-    } else {
-      field_data._recv_proxy = nullptr;
     }
 
-    data->_field_data[i] = field_data;
+    field_data._field_name = PyUnicode_FromString(c_field_name);
   }
 
   Py_INCREF(dist_obj);
@@ -318,14 +323,16 @@ remove_object(DOID_TYPE do_id) {
   }
 
   DOData *data = (*it).second;
-  Py_XDECREF(data->_dist_obj);
-  Py_XDECREF(data->_pre_data_update);
-  Py_XDECREF(data->_post_data_update);
-  Py_XDECREF(data->_on_data_changed);
   for (size_t i = 0; i < data->_field_data.size(); i++) {
     DOFieldData &fdata = data->_field_data[i];
     Py_XDECREF(fdata._recv_proxy);
+    Py_XDECREF(fdata._field_name);
   }
+  Py_XDECREF(data->_pre_data_update);
+  Py_XDECREF(data->_post_data_update);
+  Py_XDECREF(data->_on_data_changed);
+  Py_XDECREF(data->_dict);
+  Py_XDECREF(data->_dist_obj);
 
   _do_data.erase(it);
 }
