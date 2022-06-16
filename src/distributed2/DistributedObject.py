@@ -42,7 +42,7 @@ class DistributedObject(BaseDistributedObject):
     def interpolateObjects():
         #print("interpolate at", globalClock.getFrameTime())
         ctx = InterpolationContext()
-        ctx.enableExtrapolation(True)
+        ctx.enableExtrapolation(False)
         ctx.setLastTimestamp(base.cr.lastServerTickTime)
         for do in set(DistributedObject.InterpolateList):
             do.interpolate(globalClock.getFrameTime())
