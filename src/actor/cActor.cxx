@@ -677,6 +677,8 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
 
 
 CActor::CActor(const CActor &other) {
+    _got_name = other._got_name;
+    
     // Assign these elements to ourself (overwrite)
     NodePath other_copy = other.copy_to(NodePath());
     other_copy.detach_node();
@@ -706,6 +708,8 @@ CActor::~CActor() {
 }
 
 void CActor::operator=(const CActor &copy) {
+    _got_name = copy._got_name;
+    
     // Just copy these to ourselves.
     NodePath node_copy = copy.copy_to(*this);
     
@@ -800,10 +804,306 @@ void CActor::copy_part_bundles(const CActor &other) {
         our_part_def._anims_by_name.insert(part_def._anims_by_name.begin(), part_def._anims_by_name.end());
     }
 }
+        
+/**
+ * stop(layer=-1, kill=false)
+ *
+ * Stop named animation on the given part of the actor.
+ * If no name specified then stop all animations on the actor.
+ * NOTE: Stops all LODs.
+**/
+void CActor::stop(int layer, bool kill) {
+    pvector<PartDef> part_defs = get_part_defs();
+    
+    // Stopping all layers or a specific layer
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { continue; }
+        if (layer == -1 || layer < character->get_num_anim_layers()) { character->stop(layer, kill); }
+    }
+}
+
+/**
+ * stop(string, string, layer=-1, kill=false)
+ *
+ * Stop named animation on the given part of the actor.
+ * If no name specified then stop all animations on the actor.
+ * NOTE: Stops all LODs.
+**/
+void CActor::stop(const std::string &anim_name, const std::string &part_name, int layer, bool kill) {
+    bool has_anim_name = !anim_name.empty();
+    
+    // If both strings are empty for some reason, Just call the version that needs no
+    // paramaters.
+    if (!has_anim_name && part_name.empty()) { stop(layer, kill); return; }
+    
+    pvector<PartDef> part_defs = get_part_defs(part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { continue; }
+        
+        // Stopping all layers or a specific layer for a part.
+        if (!has_anim_name) {
+            if (layer == -1 || layer < character->get_num_anim_layers()) { character->stop(layer, kill); }
+            continue;
+        }
+            
+        int channel_index = part_def.get_channel_index(anim_name);
+        if (channel_index == -1) { continue; }
+        for (int i = 0; i < character->get_num_anim_layers(); i++) {
+            AnimLayer *anim_layer = character->get_anim_layer(i);
+            if (anim_layer == nullptr) { continue; }
+            if (anim_layer->_sequence == channel_index) {
+                // This layer is playing the channel we want to stop.
+                character->stop(layer, kill);
+            }
+        }
+    }
+}
+        
+/**
+ * play(string, int=0, int=-1, int=0, float=1.0, bool=false, float=0.0, float=0.0)
+ *
+ * Play the given animation on the given part of the actor.
+ * If no part is specified, try to play on all parts. 
+ * NOTE: Plays over ALL LODs.
+**/
+void CActor::play(const std::string &anim_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->play(anim_def.get_index(), from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, auto_kill, blend_in, blend_out);
+    }
+}
+
+/**
+ * play(int, int=0, int=-1, int=0, float=1.0, bool=false, float=0.0, float=0.0)
+ *
+ * Play the given animation on the given part of the actor.
+ * If no part is specified, try to play on all parts. 
+ * NOTE: Plays over ALL LODs.
+**/
+void CActor::play(int channel, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->play(anim_def.get_index(), from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, auto_kill, blend_in, blend_out);
+    }
+}
+
+/**
+ * play(string, string, int=0, int=-1, int=0, float=1.0, bool=false, float=0.0, float=0.0)
+ *
+ * Play the given animation on the given part of the actor.
+ * If no part is specified, try to play on all parts. 
+ * NOTE: Plays over ALL LODs.
+**/
+void CActor::play(const std::string &anim_name, const std::string &part_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->play(anim_def.get_index(), from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, auto_kill, blend_in, blend_out);
+    }
+}
+
+/**
+ * play(int, string, int=0, int=-1, int=0, float=1.0, bool=false, float=0.0, float=0.0)
+ *
+ * Play the given animation on the given part of the actor.
+ * If no part is specified, try to play on all parts. 
+ * NOTE: Plays over ALL LODs.
+**/
+void CActor::play(int channel, const std::string &part_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->play(anim_def.get_index(), from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, auto_kill, blend_in, blend_out);
+    }
+}
+
+/**
+ * loop(string, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Loop the given animation on the given part of the actor,
+ * restarting at zero frame if requested. If no part name
+ * is given then try to loop on all parts. 
+ * NOTE: Loops on all LODs.
+**/
+void CActor::loop(const std::string &anim_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->loop(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * loop(int, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Loop the given animation on the given part of the actor,
+ * restarting at zero frame if requested. If no part name
+ * is given then try to loop on all parts. 
+ * NOTE: Loops on all LODs.
+**/
+void CActor::loop(int channel, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->loop(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * loop(string, string, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Loop the given animation on the given part of the actor,
+ * restarting at zero frame if requested. If no part name
+ * is given then try to loop on all parts. 
+ * NOTE: Loops on all LODs.
+**/
+void CActor::loop(const std::string &anim_name, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->loop(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * loop(int, string, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Loop the given animation on the given part of the actor,
+ * restarting at zero frame if requested. If no part name
+ * is given then try to loop on all parts. 
+ * NOTE: Loops on all LODs.
+**/
+void CActor::loop(int channel, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->loop(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
 
 
 /**
- * load_anims(pmap<string, string>, string='modelRoot',
+ * load_anims(pvector<pair<string, string> >, string='modelRoot',
  * string='lodRoot', load_now=false)
  *
  * Actor anim loader. Takes an optional partName (defaults to
@@ -924,8 +1224,11 @@ AnimChannel *CActor::load_anim(const Filename &filename) {
  * added to the part character, or false if there was an error.
 **/
 bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(AnimChannel) channel) {
+    PT(Character) character = part_def._character;
+    if (character == nullptr) { return false; }
+    
     AnimChannelTable *animation_table = (AnimChannelTable *)channel.p();
-    if (!part_def._character->bind_anim(animation_table)) {
+    if (!character->bind_anim(animation_table)) {
         pmap<std::string, AnimDef>::iterator it = part_def._anims_by_name.find(anim_def.get_name());
         if (it != part_def._anims_by_name.end()) {
             part_def._anims_by_name.erase(it);
@@ -933,7 +1236,7 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
         return false;
     }
     
-    int channel_index = part_def._character->add_channel(channel);
+    int channel_index = character->add_channel(channel);
     if (channel_index < 0) {
         pmap<std::string, AnimDef>::iterator it = part_def._anims_by_name.find(anim_def.get_name());
         if (it != part_def._anims_by_name.end()) {
@@ -1075,10 +1378,16 @@ void CActor::load_model_internal(NodePath &model, const std::string &part_name, 
     }
     
     CActor::PartDef part_def = g->second;
-    int num_channels = part_def._character->get_num_channels();
+    PT(Character) character = part_def._character;
+    if (character == nullptr) {
+        actor_cat.error() << "Character was NULL for " << bundle_name << " in channel setup!\n";
+        return; 
+    }
+    
+    int num_channels = character->get_num_channels();
     for (int i = 0; i < num_channels; i++) {
-        PT(AnimChannel) channel = part_def._character->get_channel(i);
-        AnimDef anim_def = AnimDef(Filename(), channel, part_def._character);
+        PT(AnimChannel) channel = character->get_channel(i);
+        AnimDef anim_def = AnimDef(Filename(), channel, character);
         std::string channel_name = std::string(channel->get_name());
         anim_def.set_name(channel_name);
         anim_def.set_index(i);
@@ -1261,6 +1570,258 @@ void CActor::set_center(const LPoint3f center) {
     // as set_lod_animation can just be called whenever you want.
 }
 
+/**
+ * Returns a vector of AnimDefs for each part and lod combination for
+ * the indicated anim_name (may also be a channel index).
+**/
+pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name) {
+    pvector<AnimDef> anim_defs;
+    pvector<PartDef> part_defs = get_part_defs();
+    
+    // We got our part defs, Need we need to iterate them all.
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        AnimDef *anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
+            anim_defs.push_back(*anim_def);
+        }
+    }
+    
+    return anim_defs;
+}
+
+/**
+ * Returns a vector of AnimDefs for each part and lod combination for
+ * the indicated anim_name (may also be a channel index).
+**/
+pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
+    pvector<AnimDef> anim_defs;
+    pvector<PartDef> part_defs = get_part_defs();
+    
+    // We got our part defs, Need we need to iterate them all.
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        AnimDef *anim_def = part_def.get_anim_def(anim_index);
+        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
+            anim_defs.push_back(*anim_def);
+        }
+    }
+    
+    return anim_defs;
+}
+
+/**
+ * Returns a vector of AnimDefs for each part and lod combination for
+ * the indicated anim_name (may also be a channel index).
+**/
+pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name) {
+    bool has_part_name = !part_name.empty();
+    bool has_lod_name = !lod_name.empty();
+    
+    // If both strings are empty for some reason, Just call the version that needs no
+    // paramaters.
+    if (!has_part_name && !has_lod_name) { return get_anim_defs(anim_name); }
+    
+    pvector<AnimDef> anim_defs;
+    pvector<PartDef> part_defs = get_part_defs(part_name, lod_name);
+    
+    // We got our part defs, Need we need to iterate them all.
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        AnimDef *anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
+            anim_defs.push_back(*anim_def);
+        }
+    }
+    
+    return anim_defs;
+}
+
+/**
+ * Returns a vector of AnimDefs for each part and lod combination for
+ * the indicated anim_name (may also be a channel index).
+**/
+pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name) {
+    bool has_part_name = !part_name.empty();
+    bool has_lod_name = !lod_name.empty();
+    
+    // If both strings are empty for some reason, Just call the version that needs no
+    // paramaters.
+    if (!has_part_name && !has_lod_name) { return get_anim_defs(anim_index); }
+    
+    pvector<AnimDef> anim_defs;
+    pvector<PartDef> part_defs = get_part_defs(part_name, lod_name);
+    
+    // We got our part defs, Need we need to iterate them all.
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        AnimDef *anim_def = part_def.get_anim_def(anim_index);
+        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
+            anim_defs.push_back(*anim_def);
+        }
+    }
+    
+    return anim_defs;
+}
+
+/**
+ * Returns a vector of AnimDefs for each part and lod combination for
+ * the indicated anim_name (may also be a channel index).
+**/
+pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name) {
+    bool has_part_names = part_names.size() <= 0;
+    bool has_lod_name = !lod_name.empty();
+    
+    // If both our part name vector and lod name is empty for some reason, 
+    // Just call the version that needs no paramaters.
+    if (!has_part_names && !has_lod_name) { return get_anim_defs(anim_name); }
+    
+    pvector<AnimDef> anim_defs;
+    pvector<PartDef> part_defs = get_part_defs(part_names, lod_name);
+    
+    // We got our part defs, Need we need to iterate them all.
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        AnimDef *anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
+            anim_defs.push_back(*anim_def);
+        }
+    }
+    
+    return anim_defs;
+}
+
+/**
+ * Returns a vector of AnimDefs for each part and lod combination for
+ * the indicated anim_name (may also be a channel index).
+**/
+pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name) {
+    bool has_part_names = part_names.size() <= 0;
+    bool has_lod_name = !lod_name.empty();
+    
+    // If both our part name vector and lod name is empty for some reason, 
+    // Just call the version that needs no paramaters.
+    if (!has_part_names && !has_lod_name) { return get_anim_defs(anim_index); }
+    
+    pvector<AnimDef> anim_defs;
+    pvector<PartDef> part_defs = get_part_defs(part_names, lod_name);
+    
+    // We got our part defs, Need we need to iterate them all.
+    for (size_t i = 0; i < part_defs.size(); i++) {
+        PartDef part_def = part_defs[i];
+        AnimDef *anim_def = part_def.get_anim_def(anim_index);
+        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
+            anim_defs.push_back(*anim_def);
+        }
+    }
+    
+    return anim_defs;
+}
+
+/**
+ * Returns a vector of PartDefs for each part and lod combination.
+**/
+pvector<CActor::PartDef> CActor::get_part_defs() {
+    std::string delimiter(":");
+    pvector<PartDef> part_defs;
+    
+    // Just iterate the entire map and get all of our PartDefs.
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        PartDef part_def = it->second;
+        part_defs.push_back(part_def);
+    }
+    
+    return part_defs;
+}
+
+/**
+ * Returns a vector of PartDefs for each part and lod combination.
+**/
+pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, const std::string &lod_name) {
+    bool has_part_name = !part_name.empty();
+    bool has_lod_name = !lod_name.empty();
+    
+    // If both strings are empty for some reason, Just call the version that needs no
+    // paramaters.
+    if (!has_part_name && !has_lod_name) { return get_part_defs(); }
+    
+    std::string delimiter(":");
+    pvector<PartDef> part_defs;
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(delimiter));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(delimiter) + delimiter.length());
+        // The bundle name is now the part name.
+        curr_part_name = bundle_name;
+        
+        if (!has_lod_name) { // We want all part defs that match this part name, LOD or not.
+            if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+        } else if (!has_part_name) { // We want all part defs that are under this LOD.
+            if (curr_lod_name.compare(lod_name) == 0) { part_defs.push_back(part_def); }
+        } else { // We want all part defs that match this part name, and are under the specified LOD.
+            if (curr_lod_name.compare(lod_name) == 0 && curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+        }
+    }
+    
+    return part_defs;
+}
+
+/**
+ * Returns a vector of PartDefs for each part and lod combination.
+**/
+pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name) {
+    bool has_part_names = part_names.size() <= 0;
+    bool has_lod_name = !lod_name.empty();
+    
+    // If both our part name vector and lod name is empty for some reason, 
+    // Just call the version that needs no paramaters.
+    if (!has_part_names && !has_lod_name) { return get_part_defs(); }
+    
+    std::string delimiter(":");
+    pvector<PartDef> part_defs;
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(delimiter));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(delimiter) + delimiter.length());
+        // The bundle name is now the part name.
+        curr_part_name = bundle_name;
+        
+        // If we don't have any part names, Then just check the lod name,
+        // and continue the loop.
+        if (!has_part_names) { // We want all part defs that are under this LOD.
+            if (curr_lod_name.compare(lod_name) == 0) { part_defs.push_back(part_def); }
+            continue;
+        }
+        
+        // We have part names, So we need to iterate them all.
+        for (size_t i = 0; i < part_names.size(); i++) {
+            std::string part_name = part_names[i];
+            
+            // If we don't have a lod name, Only check the part name and continue the loop.
+            if (!has_lod_name) { // We want all part defs that match this part name, LOD or not.
+                if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+                continue;
+            }
+            
+            // We want all part defs that match this part name, and are under the specified LOD.
+            if (curr_lod_name.compare(lod_name) == 0 && curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+        }
+    }
+    
+    return part_defs;
+}
 
 /* Part Defitition */
 

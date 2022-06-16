@@ -3,6 +3,7 @@
 #include "animChannel.h"
 #include "animChannelBundle.h"
 #include "animChannelTable.h"
+#include "animLayer.h"
 #include "character.h"
 #include "characterNode.h"
 #include "directbase.h"
@@ -46,7 +47,7 @@ class CActor;
 
 class EXPCL_DIRECT_ACTOR CActor : NodePath {
     class EXPCL_DIRECT_ACTOR AnimDef {
-        public:
+        PUBLISHED:
             INLINE AnimDef(Filename filename = Filename(), PT(AnimChannel) channel = nullptr, PT(Character) character = nullptr);
             INLINE ~AnimDef() = default;
             
@@ -86,7 +87,7 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
     class EXPCL_DIRECT_ACTOR PartDef {
         friend class CActor;
         
-        public:
+        PUBLISHED:
             INLINE PartDef();
             INLINE PartDef(const NodePath &char_np, PT(Character) character, const NodePath &part_model);
             INLINE PartDef(const PartDef &other);
@@ -118,6 +119,19 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         
         void load_model(const NodePath &model_node, const std::string &part_name, const std::string &lod_name, bool copy=true, bool ok_missing=false, bool keep_model=false);
         void load_model(const std::string &model_path, const std::string &part_name, const std::string &lod_name, bool copy=true, bool ok_missing=false, bool keep_model=false);
+        
+        void stop(int layer=1, bool kill=false);
+        void stop(const std::string &anim_name, const std::string &part_name, int layer=1, bool kill=false);
+        
+        void play(const std::string &anim_name, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, bool auto_kill=false, PN_stdfloat blend_in=0.0, PN_stdfloat blend_out=0.0);
+        void play(int channel, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, bool auto_kill=false, PN_stdfloat blend_in=0.0, PN_stdfloat blend_out=0.0);
+        void play(const std::string &anim_name, const std::string &part_name, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, bool auto_kill=false, PN_stdfloat blend_in=0.0, PN_stdfloat blend_out=0.0);
+        void play(int channel, const std::string &part_name, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, bool auto_kill=false, PN_stdfloat blend_in=0.0, PN_stdfloat blend_out=0.0);
+        
+        void loop(const std::string &anim_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        void loop(int channel, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        void loop(const std::string &anim_name, const std::string &part_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        void loop(int channel, const std::string &part_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
         
         INLINE void set_geom_node(const NodePath &node);
         INLINE const NodePath &get_geom_node() const;
@@ -184,8 +198,20 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
                bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
         CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
                bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
+
         
         void load_anims(const pvector<std::pair<std::string, std::string> > &anims, const std::string &part_name, const std::string &lod_name, bool load_now=false);
+        
+        pvector<AnimDef> get_anim_defs(const std::string &anim_name);
+        pvector<AnimDef> get_anim_defs(int anim_index);
+        pvector<AnimDef> get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name);
+        
+        pvector<PartDef> get_part_defs();
+        pvector<PartDef> get_part_defs(const std::string &part_name, const std::string &lod_name);
+        pvector<PartDef> get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name);
         
     private:
         void initialize_geom_node(bool flattenable=true);
