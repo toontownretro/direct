@@ -133,6 +133,17 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         void loop(const std::string &anim_name, const std::string &part_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
         void loop(int channel, const std::string &part_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
         
+        void pingpong(const std::string &anim_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        void pingpong(int channel, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        void pingpong(const std::string &anim_name, const std::string &part_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        void pingpong(int channel, const std::string &part_name, bool restart=true, int from_frame=0, int to_frame=-1, int layer=0, PN_stdfloat play_rate=1.0, PN_stdfloat blend_in=0.0);
+        
+        void pose(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, int frame=0, int layer=0, PN_stdfloat blend_in=0.0, PN_stdfloat blend_out=0.0);
+        void pose(int channel, const std::string &part_name, const std::string &lod_name, int frame=0, int layer=0, PN_stdfloat blend_in=0.0, PN_stdfloat blend_out=0.0);
+        
+        void set_transition(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, bool flag=false);
+        void set_transition(int channel, const std::string &part_name, const std::string &lod_name, bool flag=false);
+        
         INLINE void set_geom_node(const NodePath &node);
         INLINE const NodePath &get_geom_node() const;
         
@@ -155,6 +166,37 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         NodePath get_lod(const std::string &lod_name);
         
         void set_center(const LPoint3f center = LPoint3f(0.0, 0.0, 0.0));
+        
+        std::string get_current_anim(int layer=0);
+        std::string get_current_anim(const std::string &part_name, int layer=0);
+        
+        int get_current_channel(int layer=0);
+        int get_current_channel(const std::string &part_name, int layer=0);
+        
+        PN_stdfloat get_channel_length(int channel=0);
+        PN_stdfloat get_channel_length(const std::string &part_name, int channel=0);
+        
+        int get_channel_activity(int channel=0, int index=0);
+        int get_channel_activity(const std::string &part_name, int channel=0, int index=0);
+        
+        int get_channel_for_activity(int activity=0, int seed=0, int layer=0);
+        int get_channel_for_activity(const std::string &part_name, int activity=0, int seed=0, int layer=0);
+        
+        int get_current_activity(int layer=0);
+        int get_current_activity(const std::string &part_name, int layer=0);
+        
+        bool is_current_channel_finished(int layer=0);
+        bool is_current_channel_finished(const std::string &part_name, int layer=0);
+        
+        bool is_channel_playing(int layer=0);
+        bool is_channel_playing(const std::string &part_name, int layer=0);
+        
+        PN_stdfloat get_cycle(int layer=0);
+        PN_stdfloat get_cycle(const std::string &part_name, int layer=0);
+        
+        int get_current_frame(int layer=0);
+        int get_current_frame(const std::string &part_name, int layer=0);
+        int get_current_frame(const std::string &anim_name, const std::string &part_name, int layer=0);
         
     public:
         //////////////////////////////
@@ -218,7 +260,7 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         
         void copy_part_bundles(const CActor &other);
         
-        AnimChannel *load_anim(const std::string &filename);
+        INLINE AnimChannel *load_anim(const std::string &filename);
         AnimChannel *load_anim(const Filename &filename);
         
         bool bind_anim(PartDef &part_def, AnimDef &anim_def, PT(AnimChannel) channel);

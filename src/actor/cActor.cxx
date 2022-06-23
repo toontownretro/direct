@@ -764,8 +764,6 @@ void CActor::initialize_geom_node(bool flattenable) {
  * instances own. NOTE: This method does not actually copy geometry!
 **/
 void CActor::copy_part_bundles(const CActor &other) {
-    std::string delimiter(":");
-    
     for (pmap<std::string, PartDef>::const_iterator it = other._part_bundle_dict.begin(); it != other._part_bundle_dict.end(); it++) {
         NodePath part_lod;
         
@@ -773,9 +771,9 @@ void CActor::copy_part_bundles(const CActor &other) {
         PartDef part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
-        std::string lod_name = bundle_name.substr(0, bundle_name.find(delimiter));
+        std::string lod_name = bundle_name.substr(0, bundle_name.find(':'));
         // Erase the lod name and the delimiter.
-        bundle_name.erase(0, bundle_name.find(delimiter) + delimiter.length());
+        bundle_name.erase(0, bundle_name.find(':') + 1);
         // The bundle name is now the part name.
         std::string part_name = bundle_name;
         
@@ -786,14 +784,14 @@ void CActor::copy_part_bundles(const CActor &other) {
         }
         
         if (part_lod.is_empty()) {
-            actor_cat.warning() << "No LOD named: " << lod_name << "\n";
+            actor_cat.warning() << "No LOD named: " << lod_name << '\n';
             return;
         }
         
         // Find the part in our tree.
         NodePath bundle_np = part_lod.find("**/" + part_prefix + part_name);
         if (bundle_np.is_empty()) {
-            actor_cat.error() << "LOD: " << lod_name << " has no matching part: " << part_name << "\n";
+            actor_cat.error() << "LOD: " << lod_name << " has no matching part: " << part_name << '\n';
             continue;
         }
         
@@ -852,7 +850,7 @@ void CActor::stop(const std::string &anim_name, const std::string &part_name, in
         }
             
         int channel_index = part_def.get_channel_index(anim_name);
-        if (channel_index == -1) { continue; }
+        if (channel_index <= -1) { continue; }
         for (int i = 0; i < character->get_num_anim_layers(); i++) {
             AnimLayer *anim_layer = character->get_anim_layer(i);
             if (anim_layer == nullptr) { continue; }
@@ -1100,6 +1098,201 @@ void CActor::loop(int channel, const std::string &part_name, bool restart, int f
     }
 }
 
+/**
+ * pingpong(string, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Plays the indicated animation channel on the indicated layer back and forth
+ * repeatedly.
+**/
+void CActor::pingpong(const std::string &anim_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->pingpong(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * pingpong(int, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Plays the indicated animation channel on the indicated layer back and forth
+ * repeatedly.
+**/
+void CActor::pingpong(int channel, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->pingpong(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * pingpong(string, string, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Plays the indicated animation channel on the indicated layer back and forth
+ * repeatedly.
+**/
+void CActor::pingpong(const std::string &anim_name, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->pingpong(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * pingpong(int, string, bool=true, int=0, int=-1, int=0, float=1.0, float=0.0)
+ *
+ * Plays the indicated animation channel on the indicated layer back and forth
+ * repeatedly.
+**/
+void CActor::pingpong(int channel, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // If no last frame is specified, We want the full animation.
+        if (to_frame <= -1) {
+            PT(AnimChannel) channel = anim_def.get_animation_channel();
+            if (channel != nullptr) { 
+                to_frame = channel->get_num_frames() - 1;
+            } else {
+                to_frame = 0;
+            }
+        }
+        
+        character->pingpong(anim_def.get_index(), restart, from_frame, to_frame, layer, anim_def.get_play_rate() * play_rate, blend_in);
+    }
+}
+
+/**
+ * pose(string, string, string, int=0, int=0, float=0.0, float=0.0)
+ *
+ * Pose the actor in position found at given frame in the specified
+ * animation for the specified part. If no part is specified attempt
+ * to apply pose to all parts.
+**/
+void CActor::pose(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, int frame, int layer, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
+    
+    if (frame <= -1) { frame = 0; }
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        character->pose(anim_def.get_index(), frame, layer, blend_in, blend_out);
+    }
+}
+
+/**
+ * pose(string, string, string, int=0, int=0, float=0.0, float=0.0)
+ *
+ * Pose the actor in position found at given frame in the specified
+ * animation for the specified part. If no part is specified attempt
+ * to apply pose to all parts.
+**/
+void CActor::pose(int channel, const std::string &part_name, const std::string &lod_name, int frame, int layer, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
+    
+    if (frame <= -1) { frame = 0; }
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        character->pose(anim_def.get_index(), frame, layer, blend_in, blend_out);
+    }
+}
+
+/**
+ * set_transition(string, string, string, bool)
+ *
+ * Enables or disables transitions into the indicated animation.
+**/
+void CActor::set_transition(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, bool flag) {
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(AnimChannel) channel = anim_def.get_animation_channel();
+        if (channel == nullptr) { continue; }
+        
+        if (flag) {
+            channel->clear_flags(AnimChannel::F_snap);
+        } else {
+            channel->set_flags(AnimChannel::F_snap);
+        }
+    }
+}
+
+/**
+ * set_transition(int, string, string, bool)
+ *
+ * Enables or disables transitions into the indicated animation.
+**/
+void CActor::set_transition(int channel, const std::string &part_name, const std::string &lod_name, bool flag) {
+    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
+    
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        PT(AnimChannel) channel = anim_def.get_animation_channel();
+        if (channel == nullptr) { continue; }
+        
+        if (flag) {
+            channel->clear_flags(AnimChannel::F_snap);
+        } else {
+            channel->set_flags(AnimChannel::F_snap);
+        }
+    }
+}
 
 
 /**
@@ -1137,7 +1330,7 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
         lod_names.push_back(anim_lod_name);
     }
     
-    actor_cat.debug() << "in loadAnim: " << anims[0].first << ", part: " << anim_part_name << ", lod: " << lod_names[0] << "\n";
+    actor_cat.debug() << "in loadAnim: " << anims[0].first << ", part: " << anim_part_name << ", lod: " << lod_names[0] << '\n';
     
     for (size_t i = 0; i < anims.size(); i++) {
         std::pair<std::string, std::string> it = anims[i];
@@ -1168,7 +1361,7 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
                 anim_def.set_name(anim_name);
                 part_def._anims_by_name[anim_name] = anim_def;
                 if (!bind_anim(part_def, anim_def, channel)) {
-                    actor_cat.warning() << "Failed to bind anim (" << anim_name << ", " << filename << ") to part " << anim_part_name << ", lod " << l_name << "\n";
+                    actor_cat.warning() << "Failed to bind anim (" << anim_name << ", " << filename << ") to part " << anim_part_name << ", lod " << l_name << '\n';
                 }
             }
         }
@@ -1180,20 +1373,10 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
  * AnimChannel contained within it.  Returns nullptr if an error occurred.
  * If the file contains multiple channels, it only returns the first one.
 **/
-AnimChannel *CActor::load_anim(const std::string &filename) {
-    Filename file(filename);
-    return load_anim(file);
-}
-
-/**
- * Loads a single animation from the indicated filename and returns the
- * AnimChannel contained within it.  Returns nullptr if an error occurred.
- * If the file contains multiple channels, it only returns the first one.
-**/
 AnimChannel *CActor::load_anim(const Filename &filename) {
     PT(PandaNode) anim_model = loader->load_sync(filename, LoaderOptions());
     if (anim_model == nullptr) {
-        actor_cat.warning() << "Failed to load animation file " << filename << "\n";
+        actor_cat.warning() << "Failed to load animation file " << filename << '\n';
         return nullptr;
     }
     
@@ -1277,7 +1460,7 @@ void CActor::load_model(const NodePath &model_node, const std::string &part_name
     std::string model_lod_name("lodRoot");
     if (!lod_name.empty()) { model_lod_name = lod_name; }
     
-    actor_cat.debug() << "in loadModel: " << model_node.get_name() << ", part: " << model_part_name << ", lod: " << model_lod_name << ", copy: " << copy << "\n";
+    actor_cat.debug() << "in loadModel: " << model_node.get_name() << ", part: " << model_part_name << ", lod: " << model_lod_name << ", copy: " << copy << '\n';
     
     if (copy) {
         model = model_node.copy_to(NodePath());
@@ -1301,7 +1484,7 @@ void CActor::load_model(const std::string &model_path, const std::string &part_n
     std::string model_lod_name("lodRoot");
     if (!lod_name.empty()) { model_lod_name = lod_name; }
     
-    actor_cat.debug() << "in loadModel: " << model_path << ", part: " << model_part_name << ", lod: " << model_lod_name << ", copy: " << copy << "\n";
+    actor_cat.debug() << "in loadModel: " << model_path << ", part: " << model_part_name << ", lod: " << model_lod_name << ", copy: " << copy << '\n';
     
     LoaderOptions loader_options = LoaderOptions(model_loader_options);
     if (!copy) {
@@ -1722,7 +1905,6 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std
  * Returns a vector of PartDefs for each part and lod combination.
 **/
 pvector<CActor::PartDef> CActor::get_part_defs() {
-    std::string delimiter(":");
     pvector<PartDef> part_defs;
     
     // Just iterate the entire map and get all of our PartDefs.
@@ -1744,8 +1926,6 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
     // If both strings are empty for some reason, Just call the version that needs no
     // paramaters.
     if (!has_part_name && !has_lod_name) { return get_part_defs(); }
-    
-    std::string delimiter(":");
     pvector<PartDef> part_defs;
     
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
@@ -1754,11 +1934,11 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
         PartDef part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
-        curr_lod_name = bundle_name.substr(0, bundle_name.find(delimiter));
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
         // Erase the lod name and the delimiter.
-        bundle_name.erase(0, bundle_name.find(delimiter) + delimiter.length());
+        bundle_name.erase(0, bundle_name.find(':') + 1);
         // The bundle name is now the part name.
-        curr_part_name = bundle_name;
+        curr_part_name = std::move(bundle_name);
         
         if (!has_lod_name) { // We want all part defs that match this part name, LOD or not.
             if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
@@ -1782,8 +1962,6 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
     // If both our part name vector and lod name is empty for some reason, 
     // Just call the version that needs no paramaters.
     if (!has_part_names && !has_lod_name) { return get_part_defs(); }
-    
-    std::string delimiter(":");
     pvector<PartDef> part_defs;
     
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
@@ -1792,11 +1970,11 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
         PartDef part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
-        curr_lod_name = bundle_name.substr(0, bundle_name.find(delimiter));
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
         // Erase the lod name and the delimiter.
-        bundle_name.erase(0, bundle_name.find(delimiter) + delimiter.length());
+        bundle_name.erase(0, bundle_name.find(':') + 1);
         // The bundle name is now the part name.
-        curr_part_name = bundle_name;
+        curr_part_name = std::move(bundle_name);
         
         // If we don't have any part names, Then just check the lod name,
         // and continue the loop.
@@ -1823,11 +2001,831 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
     return part_defs;
 }
 
+/**
+ * Return the anim currently playing on the actor. If part not
+ * specified return current anim of an arbitrary part in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+std::string CActor::get_current_anim(int layer) {
+    if (_part_bundle_dict.empty()) { return EMPTY_STR; }
+    
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin();
+    if (it == _part_bundle_dict.end()) { return EMPTY_STR; }
+    
+    std::string curr_lod_name, curr_part_name;
+    std::string bundle_name(it->first);
+    PartDef part_def = it->second;
+    
+    // Get back both our lod name and our part name by splitting the string.
+    curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+    // Erase the lod name and the delimiter.
+    bundle_name.erase(0, bundle_name.find(':') + 1);
+    // The bundle name is now the part name.
+    curr_part_name = std::move(bundle_name);
+    
+    // Return the animation playing on the indicated layer of the part.
+    PT(Character) character = part_def._character;
+    if (character == nullptr || !character->is_valid_layer_index(layer)) { return EMPTY_STR; }
+    
+    AnimLayer *anim_layer = character->get_anim_layer(layer);
+    if (anim_layer == nullptr || !anim_layer->is_playing()) { return EMPTY_STR; }
+    
+    // Return the name associated with the channel index the layer is
+    // playing.
+    AnimDef anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
+    return anim_def.get_name();
+}
+
+/**
+ * Return the anim currently playing on the actor. If part not
+ * specified return current anim of an arbitrary part in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+std::string CActor::get_current_anim(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return EMPTY_STR; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(part_name) != 0) { continue; }
+        
+        // Return the animation playing on the indicated layer of the part.
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return EMPTY_STR; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr || !anim_layer->is_playing()) { return EMPTY_STR; }
+        
+        // Return the name associated with the channel index the layer is
+        // playing.
+        AnimDef anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
+        return anim_def.get_name();
+    }
+    
+    actor_cat.warning() << "No part named: " << part_name << '\n';
+    return EMPTY_STR;
+}
+
+/**
+ * Return the anim currently playing on the actor. If part not
+ * specified return current anim of an arbitrary part in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+int CActor::get_current_channel(int layer) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return -1; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr || !anim_layer->is_playing()) { return -1; }
+        
+        return anim_layer->_sequence;
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return -1;
+}
+
+/**
+ * Return the anim currently playing on the actor. If part not
+ * specified return current anim of an arbitrary part in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+int CActor::get_current_channel(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return -1; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr || !anim_layer->is_playing()) { return -1; }
+        
+        return anim_layer->_sequence;
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return -1;
+}
+
+PN_stdfloat CActor::get_channel_length(int channel) {
+    if (_part_bundle_dict.empty()) { return 0.1; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_channel_index(channel)) { return 0.1; }
+        
+        AnimChannel *anim_channel = character->get_channel(channel);
+        if (anim_channel == nullptr) { return 0.1; }
+        
+        return anim_channel->get_length(character);
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return 0.1;
+}
+
+PN_stdfloat CActor::get_channel_length(const std::string &part_name, int channel) {
+    if (_part_bundle_dict.empty()) { return 0.1; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_channel_index(channel)) { return 0.1; }
+        
+        AnimChannel *anim_channel = character->get_channel(channel);
+        if (anim_channel == nullptr) { return 0.1; }
+        
+        return anim_channel->get_length(character);
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return 0.1;
+}
+
+int CActor::get_channel_activity(int channel, int index) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_channel_index(channel)) { return -1; }
+        
+        AnimChannel *anim_channel = character->get_channel(channel);
+        if (anim_channel == nullptr || anim_channel->get_num_activities() == 0) { return -1; }
+        
+        return anim_channel->get_activity(index);
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return -1;
+}
+
+int CActor::get_channel_activity(const std::string &part_name, int channel, int index) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_channel_index(channel)) { return -1; }
+        
+        AnimChannel *anim_channel = character->get_channel(channel);
+        if (anim_channel == nullptr || anim_channel->get_num_activities() == 0) { return -1; }
+        
+        return anim_channel->get_activity(index);
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return -1;
+}
+
+int CActor::get_channel_for_activity(int activity, int seed, int layer) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        int curr_channel = -1;
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { return -1; }
+        
+        if (character->is_valid_layer_index(layer)) {
+            AnimLayer *anim_layer = character->get_anim_layer(layer);
+            curr_channel = anim_layer->_sequence;
+        } 
+        
+        return character->get_channel_for_activity(activity, curr_channel, seed);
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return -1;
+}
+
+int CActor::get_channel_for_activity(const std::string &part_name, int activity, int seed, int layer) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        int curr_channel = -1;
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { return -1; }
+        
+        if (character->is_valid_layer_index(layer)) {
+            AnimLayer *anim_layer = character->get_anim_layer(layer);
+            curr_channel = anim_layer->_sequence;
+        } 
+        
+        return character->get_channel_for_activity(activity, curr_channel, seed);
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return -1;
+}
+
+/**
+ * Returns the current activity number of the indicated layer.
+**/
+int CActor::get_current_activity(int layer) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return -1; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return -1; }
+        
+        return anim_layer->_activity;
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return -1;
+}
+
+/**
+ * Returns the current activity number of the indicated layer.
+**/
+int CActor::get_current_activity(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return -1; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return -1; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return -1; }
+        
+        return anim_layer->_activity;
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return -1;
+}
+
+/**
+ * Returns true if the channel playing on the indicated layer of the
+ * indicated part has finished playing.
+**/
+bool CActor::is_current_channel_finished(int layer) {
+    if (_part_bundle_dict.empty()) { return true; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return true; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return true; }
+        
+        return anim_layer->_sequence_finished;
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return true;
+}
+
+/**
+ * Returns true if the channel playing on the indicated layer of the
+ * indicated part has finished playing.
+**/
+bool CActor::is_current_channel_finished(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return true; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return true; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return true; }
+        
+        return anim_layer->_sequence_finished;
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return true;
+}
+
+/**
+ * Returns true if the indicated layer of the indicated part is currently
+ * playing a channel.
+**/
+bool CActor::is_channel_playing(int layer) {
+    if (_part_bundle_dict.empty()) { return false; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return false; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return false; }
+        
+        return anim_layer->is_playing();
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return false;
+}
+
+/**
+ * Returns true if the indicated layer of the indicated part is currently
+ * playing a channel.
+**/
+bool CActor::is_channel_playing(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return false; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return false; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return false; }
+        
+        return anim_layer->is_playing();
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return false;
+}
+
+/**
+ * Returns the current cycle of the channel playing on the indicated layer
+ * of the indicated part.
+**/
+PN_stdfloat CActor::get_cycle(int layer) {
+    if (_part_bundle_dict.empty()) { return 0.0; }
+    
+    std::string working_part_name("modelRoot");
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return 0.0; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return 0.0; }
+        
+        return anim_layer->_cycle;
+    }
+    
+    actor_cat.warning() << "No part named: modelRoot\n";
+    return 0.0;
+}
+
+/**
+ * Returns the current cycle of the channel playing on the indicated layer
+ * of the indicated part.
+**/
+PN_stdfloat CActor::get_cycle(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return 0.0; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return 0.0; }
+        
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { return 0.0; }
+        
+        return anim_layer->_cycle;
+    }
+    
+    actor_cat.warning() << "No part named: " << working_part_name << '\n';
+    return 0.0;
+}
+
+/**
+ * Return the current frame number of the named animation, or if no
+ * animation is specified, then the animation current playing on the
+ * actor. If part not specified return current animation of first part
+ * in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+int CActor::get_current_frame(int layer) {
+    if (_part_bundle_dict.empty()) { return 0; }
+    
+    // Get the first entry.
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin();
+    if (it == _part_bundle_dict.end()) { return 0; }
+    
+    // Get the part definition from our iterator.
+    PartDef part_def = it->second;
+    
+    // Get our character and sanity check our layer.
+    PT(Character) character = part_def._character;
+    if (character == nullptr || !character->is_valid_layer_index(layer)) { return 0; }
+    
+    // Get our animation layer, And make sure it's playing.
+    AnimLayer *anim_layer = character->get_anim_layer(layer);
+    if (anim_layer == nullptr || !anim_layer->is_playing()) { return 0; }
+    
+    // Make sure the channel is valid.
+    if (!character->is_valid_channel_index(anim_layer->_sequence)) { return 0; }
+    
+    // Get the animation channel.
+    PT(AnimChannel) channel = character->get_channel(anim_layer->_sequence);
+    if (channel == nullptr) { return 0; }
+    
+    // Return our current frame.
+    return (anim_layer->_cycle * (channel->get_num_frames() - 1));
+}
+
+/**
+ * Return the current frame number of the named animation, or if no
+ * animation is specified, then the animation current playing on the
+ * actor. If part not specified return current animation of first part
+ * in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+int CActor::get_current_frame(const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return 0; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        
+        // Get the bundle name from our iterator.
+        std::string bundle_name(it->first);
+        
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        // Get our character and sanity check our layer.
+        PT(Character) character = part_def._character;
+        if (character == nullptr || !character->is_valid_layer_index(layer)) { return 0; }
+        
+        // Get our animation layer, And make sure it's playing.
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr || !anim_layer->is_playing()) { return 0; }
+        
+        // Make sure the channel is valid.
+        if (!character->is_valid_channel_index(anim_layer->_sequence)) { return 0; }
+        
+        // Get the animation channel.
+        PT(AnimChannel) channel = character->get_channel(anim_layer->_sequence);
+        if (channel == nullptr) { return 0; }
+        
+        // Return our current frame.
+        return (anim_layer->_cycle * (channel->get_num_frames() - 1));
+    }
+    
+    actor_cat.warning() << "Couldn't find part: " << working_part_name << '\n';
+    return 0;
+}
+
+/**
+ * Return the current frame number of the named animation, or if no
+ * animation is specified, then the animation current playing on the
+ * actor. If part not specified return current animation of first part
+ * in dictionary.
+ * NOTE: Only returns info for an arbitrary LOD.
+**/
+int CActor::get_current_frame(const std::string &anim_name, const std::string &part_name, int layer) {
+    if (_part_bundle_dict.empty()) { return 0; }
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    // If the animation name is empty, Call the version of this function which only needs a part name.
+    if (anim_name.empty()) { return get_current_frame(part_name, layer); }
+    
+    // Get all of our animation definitions.
+    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    if (anim_defs.empty()) { return 0; }
+    
+    // Return current frame of the named animation if it is currently
+    // playing on any layer.
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef anim_def = anim_defs[i];
+        
+        // Get our character and sanity check our layer.
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        
+        // Get the animation channel.
+        PT(AnimChannel) channel = anim_def.get_animation_channel();
+        if (channel == nullptr) { continue; }
+        
+        // Find the layer playing the channel.
+        for (int i = 0; i < character->get_num_anim_layers(); i++) {
+            AnimLayer *anim_layer = character->get_anim_layer(i);
+            
+            // Make sure the animation layer is playing.
+            if (anim_layer == nullptr || !anim_layer->is_playing()) { continue; }
+            
+            // If the animation layer channel index and the animation definition channel index
+            // don't match, Continue onward.
+            if (anim_layer->_sequence != anim_def.get_index()) { continue; }
+            
+            // Return our current frame.
+            return (anim_layer->_cycle * (channel->get_num_frames() - 1));
+        }
+    }
+    
+    // No matches found, Return 0.
+    return 0;
+}
+
 /* Part Defitition */
 
 int CActor::PartDef::get_channel_index(const std::string &anim_name) {
     pmap<std::string, AnimDef>::iterator g = _anims_by_name.find(anim_name);
     if (g == _anims_by_name.end()) {
+        actor_cat.warning() << "No animation named: " << anim_name << '\n';
         return -1;
     }
     return g->second.get_index();
@@ -1835,6 +2833,7 @@ int CActor::PartDef::get_channel_index(const std::string &anim_name) {
 
 CActor::AnimDef *CActor::PartDef::get_anim_def(int index) {
     if (index >= _anims_by_index.size() || index <= -1) {
+        actor_cat.warning() << "Invalid animation index: " << index << '\n';
         return nullptr;
     }
     return &_anims_by_index[index];
@@ -1843,6 +2842,7 @@ CActor::AnimDef *CActor::PartDef::get_anim_def(int index) {
 CActor::AnimDef *CActor::PartDef::get_anim_def(const std::string &anim_name) {
     pmap<std::string, AnimDef>::iterator g = _anims_by_name.find(anim_name);
     if (g == _anims_by_name.end()) {
+        actor_cat.warning() << "No animation named: " << anim_name << '\n';
         return nullptr;
     }
     return &g->second;

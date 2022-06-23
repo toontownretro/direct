@@ -1,5 +1,16 @@
 /* Actor */
 
+/**
+ * Loads a single animation from the indicated filename and returns the
+ * AnimChannel contained within it.  Returns nullptr if an error occurred.
+ * If the file contains multiple channels, it only returns the first one.
+**/
+INLINE AnimChannel *CActor::load_anim(const std::string &filename) {
+    Filename file(filename);
+    return load_anim(file);
+}
+
+
 INLINE void CActor::set_geom_node(const NodePath &node) {
     _geom_node = node;
 }
