@@ -8,8 +8,8 @@ fgd_files = ConfigVariableList(
 
 default_material = ConfigVariableString(
   "default-material",
-  #"materials/dev/dev_measuregeneric01.mat",
-  "maps/smiley.txo",
+  "materials/brickwall001.mto",
+  #"maps/smiley.txo",
   "The default material to use for solids")
 
 default_point_entity = ConfigVariableString(

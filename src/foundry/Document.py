@@ -144,9 +144,9 @@ class Document(DirectObject):
         # Each document has its own message bus, task manager, and event manager.
         self.taskMgr = TaskManager()
         self.taskMgr.mgr = AsyncTaskManager("documentTaskMgr")
-        self.messenger = Messenger(self.taskMgr)
+        self.messenger = Messenger()#self.taskMgr)
         self.eventMgr = EventManager(messenger = self.messenger, taskMgr = self.taskMgr)
-        self.messenger.setEventMgr(self.eventMgr)
+        #self.messenger.setEventMgr(self.eventMgr)
 
         self.render = NodePath("docRender")
         self.render.setAttrib(LightRampAttrib.makeIdentity())

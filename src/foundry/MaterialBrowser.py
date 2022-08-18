@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui
 
 class MaterialBrowser(AssetBrowser):
 
-    FileExtensions = ["txo"]
+    FileExtensions = ["mto", "pmat"]
 
     Thumbnails = {}
 
