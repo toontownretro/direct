@@ -115,7 +115,7 @@ class ServerRepository(BaseObjectManager):
     # Generate a distributed object on the network
     # Can be given a client owner, in which that client will generate an
     # owner-view instance of the object.
-    def generateObject(self, do, zoneId, owner = None):
+    def generateObject(self, do, zoneId, owner = None, announce = True):
         do.zoneId = zoneId
         do.doId = self.allocateObjectID()
         do.dclass = self.dclassesByName[do.__class__.__name__]
@@ -130,11 +130,14 @@ class ServerRepository(BaseObjectManager):
         assert do.isDOGenerated()
 
         clients = set(self.zonesToClients.get(do.zoneId, set()))
-        if len(clients) > 0:
-            if owner:
-                # Don't include the owner in this message, we send a specific
-                # generate for the owner.
-                clients -= set([owner])
+        print(clients, owner)
+        if owner and clients:
+            # Don't include the owner in this message, we send a specific
+            # generate for the owner.
+            clients -= set([owner])
+
+        print(clients, owner)
+        if clients:
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_GenerateObject)
             self.packObjectGenerate(dg, do)
@@ -153,8 +156,9 @@ class ServerRepository(BaseObjectManager):
             # location of owned objects.
             self.updateClientInterestZones(owner)
 
-        do.announceGenerate()
-        assert do.isDOAlive()
+        if announce:
+            do.announceGenerate()
+            assert do.isDOAlive()
 
     def deleteObject(self, do, removeFromOwnerTable = True):
         if do.isDODeleted():
@@ -546,6 +550,8 @@ class ServerRepository(BaseObjectManager):
         dg.addUint16(object.dclass.getNumber())
         dg.addUint32(object.doId)
         dg.addUint32(object.zoneId)
+
+        print("packing generate for", object)
 
         # Find or create a baseline state.
         baseline = self.snapshotMgr.findOrCreateObjectPacketForBaseline(

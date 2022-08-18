@@ -568,8 +568,7 @@ class SelectionQueue(CollisionHandlerQueue):
             elif (skipFlags & SKIP_BACKFACE) and self.isEntryBackfacing(entry):
                 # Skip, if backfacing poly
                 pass
-            elif (skipFlags & SKIP_CAMERA) and (not base.camera.isEmpty()) and \
-                 (base.camera in nodePath.getAncestors()):
+            elif (skipFlags & SKIP_CAMERA) and (not base.camera.isEmpty()) and (base.camera in nodePath.getAncestors()):
                 # Skip if parented to a camera.
                 pass
             # Can pick unpickable, use the first visible node

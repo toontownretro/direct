@@ -920,6 +920,9 @@ class Loader(DirectObject):
         assert Loader.notify.debug("Unloading texture: %s" % (texture))
         TexturePool.releaseTexture(texture)
 
+    def loadMaterial(self, filename):
+        return MaterialPool.loadMaterial(filename)
+
     # sound loading funcs
     def loadSfx(self, *args, **kw):
         """Loads one or more sound files, specifically designated as a
