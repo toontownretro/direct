@@ -52,7 +52,7 @@ class Viewport3D(Viewport):
         self.camera.setHpr(143, -18, 0)
 
         # FIXME: Move this to direct
-        from toontown.toonbase.ToontownPostProcess import ToontownPostProcess
+        #from toontown.toonbase.ToontownPostProcess import ToontownPostProcess
         #pp = ToontownPostProcess()
         #pp.startup(self.win)
         #pp.addCamera(self.cam, 0)

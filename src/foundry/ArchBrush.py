@@ -20,7 +20,7 @@ class ArchBrush(BaseBrush):
         self.startAngle = self.addControl(NumericControl(self, "Start angle", maxVal = 359))
         self.addHeight = self.addControl(NumericControl(self, "Add height", minVal = -1024, maxVal = 1024))
         self.curvedRamp = self.addControl(BooleanControl(self, "Curved ramp", callback = self.__onSetCurvedRamp))
-        self.tiltAngle = self.addControl(NumericControl(self, "Tilt angle", minVal = -Atan2, maxVal = Atan2, enabled = False))
+        self.tiltAngle = self.addControl(NumericControl(self, "Tilt angle", minVal = -Atan2, maxVal = Atan2, enabled = False, precision=2))
         self.tiltInterp = self.addControl(BooleanControl(self, "Tilt interpolation", enabled = False))
 
     def __onSetCurvedRamp(self, val):

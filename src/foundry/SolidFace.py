@@ -4,7 +4,7 @@ from panda3d.core import GeomVertexWriter, InternalName, Vec4, Geom
 from panda3d.core import ColorAttrib, Vec3, Vec2, deg2Rad, Quat, Point3
 from panda3d.core import CullFaceAttrib, AntialiasAttrib, KeyValues, LVector2i
 from panda3d.core import RenderState, TransparencyAttrib, ColorScaleAttrib, DepthTestAttrib, DepthWriteAttrib, CullBinAttrib
-from panda3d.core import TextureAttrib
+from panda3d.core import TextureAttrib, MaterialAttrib
 #from panda3d.bsp import PlaneCulledGeomNode, BSPMaterialAttrib
 #from panda3d.editor import SolidFaceGeom
 from panda3d.direct import SolidFaceGeom, PlaneCulledGeomNode
@@ -452,7 +452,7 @@ class SolidFace(MapWritable):
         self.material.material = mat
         if mat:
             #self.state3D = self.state3D.setAttrib(BSPMaterialAttrib.make(mat.material))
-            self.state3D = self.state3D.setAttrib(TextureAttrib.make(mat.material))
+            self.state3D = self.state3D.setAttrib(MaterialAttrib.make(mat.material))
             #if mat.material.hasKeyvalue("$translucent") and bool(int(mat.material.getKeyvalue("$translucent"))):
             #    self.state3D = self.state3D.setAttrib(TransparencyAttrib.make(TransparencyAttrib.MDual))
             if self.geom3D:
