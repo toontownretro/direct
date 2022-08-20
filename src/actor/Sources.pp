@@ -10,7 +10,7 @@
   #define LOCAL_LIBS \
     directbase dcparser
   #define OTHER_LIBS \
-    anim:c event:c downloader:c panda:m pandaegg:m express:c pandaexpress:m pgraph:c pgraphnodes:c \
+    anim:c event:c downloader:c panda:m pandaegg:m express:c pandaexpress:m pgraph:c pgraphnodes:c jobsystem:c \
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m \
     prc pstatclient:c linmath:c putil:c \

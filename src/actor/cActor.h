@@ -113,7 +113,7 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
     PUBLISHED:
         CActor(bool flattenable=true, bool set_final=false);
         CActor(const CActor &other);
-        ~CActor();
+        virtual ~CActor();
         
         void CActor::operator=(const CActor &copy);
         
@@ -145,7 +145,7 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         void set_transition(int channel, const std::string &part_name, const std::string &lod_name, bool flag=false);
         
         INLINE void set_geom_node(const NodePath &node);
-        INLINE const NodePath &get_geom_node() const;
+        INLINE NodePath &get_geom_node();
         
         INLINE void set_lod_node();
         void set_lod_node(const NodePath &node);
@@ -197,6 +197,28 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         int get_current_frame(int layer=0);
         int get_current_frame(const std::string &part_name, int layer=0);
         int get_current_frame(const std::string &anim_name, const std::string &part_name, int layer=0);
+        
+        // These functions compensate for actors that are modeled facing the viewer,
+        // but need to face away from the camera in the game.
+        INLINE void face_away_from_viewer();
+        INLINE void face_towards_viewer();
+        
+        void advance();
+        void advance(const std::string &part_name);
+        
+        void set_auto_advance(bool flag=true);
+        void set_auto_advance(const std::string &part_name, bool flag=true);
+        
+        void set_blend(bool frame_blend=false, bool transition_blend=true);
+        void set_blend(const std::string &part_name, bool frame_blend=false, bool transition_blend=true);
+        
+        INLINE void list_joints();
+        void list_joints(const std::string &part_name, const std::string &lod_name);
+        
+        INLINE const Filename get_anim_filename(const std::string &anim_name);
+        const Filename get_anim_filename(const std::string &anim_name, const std::string &part_name);
+        
+        virtual void post_flatten();
         
     public:
         //////////////////////////////
@@ -255,8 +277,17 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         pvector<PartDef> get_part_defs(const std::string &part_name, const std::string &lod_name);
         pvector<PartDef> get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name);
         
+        pvector<PT(Character)> get_part_bundles();
+        pvector<PT(Character)> get_part_bundles(const std::string &part_name);
+        
     private:
         void initialize_geom_node(bool flattenable=true);
+        
+        INLINE const NodePath &get_geom_node() const;
+        
+        INLINE const pmap<std::string, PartDef> &get_part_bundle_dict() const;
+        
+        void do_list_joints(std::stringstream &ss, PT(Character) character, int indent_level, int joint);
         
         void copy_part_bundles(const CActor &other);
         

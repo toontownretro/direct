@@ -1,6 +1,9 @@
 #include "cActor.h"
 #include "config_actor.h"
 
+#include "jobSystem.h"
+#include "transformState.h"
+
 #define EMPTY_STR std::string("")
 
 //////////////////////////////
@@ -2789,16 +2792,17 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
     
     // Return current frame of the named animation if it is currently
     // playing on any layer.
-    for (size_t i = 0; i < anim_defs.size(); i++) {
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(anim_defs.size(), [&] (size_t i) { //for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef anim_def = anim_defs[i];
         
         // Get our character and sanity check our layer.
         PT(Character) character = anim_def.get_character();
-        if (character == nullptr) { continue; }
+        if (character == nullptr) { return 0; }
         
         // Get the animation channel.
         PT(AnimChannel) channel = anim_def.get_animation_channel();
-        if (channel == nullptr) { continue; }
+        if (channel == nullptr) { return 0; }
         
         // Find the layer playing the channel.
         for (int i = 0; i < character->get_num_anim_layers(); i++) {
@@ -2812,13 +2816,273 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
             if (anim_layer->_sequence != anim_def.get_index()) { continue; }
             
             // Return our current frame.
-            return (anim_layer->_cycle * (channel->get_num_frames() - 1));
+            return (int)(anim_layer->_cycle * (channel->get_num_frames() - 1));
         }
-    }
+    });
     
     // No matches found, Return 0.
     return 0;
 }
+
+/**
+ * Advances the animation time on all layers of the indicated part, or all
+ * parts if no part is specified.
+**/
+void CActor::advance() {
+    pvector<PT(Character)> bundles = get_part_bundles();
+    
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(bundles.size(), [&] (size_t i) { //for (size_t i = 0; i < bundles.size(); i++) {
+        PT(Character) character = bundles[i];
+        character->advance();
+    });
+}
+
+/**
+ * Advances the animation time on all layers of the indicated part, or all
+ * parts if no part is specified.
+**/
+void CActor::advance(const std::string &part_name) {
+    pvector<PT(Character)> bundles = get_part_bundles(part_name);
+    
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(bundles.size(), [&] (size_t i) { //for (size_t i = 0; i < bundles.size(); i++) {
+        PT(Character) character = bundles[i];
+        character->advance();
+    });
+}
+
+void CActor::set_auto_advance(bool flag) {
+    pvector<PT(Character)> bundles = get_part_bundles();
+    
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(bundles.size(), [&] (size_t i) { //for (size_t i = 0; i < bundles.size(); i++) {
+        PT(Character) character = bundles[i];
+        character->set_auto_advance_flag(flag);
+    });
+}
+
+void CActor::set_auto_advance(const std::string &part_name, bool flag) {
+    pvector<PT(Character)> bundles = get_part_bundles(part_name);
+    
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(bundles.size(), [&] (size_t i) { //for (size_t i = 0; i < bundles.size(); i++) {
+        PT(Character) character = bundles[i];
+        character->set_auto_advance_flag(flag);
+    });
+}
+
+/**
+ * Changes the way the Actor handles blending of multiple
+ * different animations, and/or interpolation between consecutive
+ * frames.
+ * 
+ * The frame_blend and transition_blend parameters are boolean flags.
+ * You may set either or both to true or false.
+ * 
+ * The frame_blend flag is unrelated to playing multiple
+ * animations.  It controls whether the Actor smoothly
+ * interpolates between consecutive frames of its animation (when
+ * the flag is true) or holds each frame until the next one is
+ * ready (when the flag is false).  The default value of
+ * frame_blend is controlled by the interpolate-frames Config.prc
+ * variable.
+**/
+void CActor::set_blend(bool frame_blend, bool transition_blend) {
+    pvector<PT(Character)> bundles = get_part_bundles();
+    
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(bundles.size(), [&] (size_t i) { //for (size_t i = 0; i < bundles.size(); i++) {
+        PT(Character) character = bundles[i];
+        character->set_frame_blend_flag(frame_blend);
+        character->set_channel_transition_flag(transition_blend);
+    });
+}
+
+/**
+ * Changes the way the Actor handles blending of multiple
+ * different animations, and/or interpolation between consecutive
+ * frames.
+ * 
+ * The frame_blend and transition_blend parameters are boolean flags.
+ * You may set either or both to true or false.
+ * 
+ * The frame_blend flag is unrelated to playing multiple
+ * animations.  It controls whether the Actor smoothly
+ * interpolates between consecutive frames of its animation (when
+ * the flag is true) or holds each frame until the next one is
+ * ready (when the flag is false).  The default value of
+ * frame_blend is controlled by the interpolate-frames Config.prc
+ * variable.
+**/
+void CActor::set_blend(const std::string &part_name, bool frame_blend, bool transition_blend) {
+    pvector<PT(Character)> bundles = get_part_bundles(part_name);
+    
+    JobSystem *jsys = JobSystem::get_global_ptr();
+    jsys->parallel_process(bundles.size(), [&] (size_t i) { //for (size_t i = 0; i < bundles.size(); i++) {
+        PT(Character) character = bundles[i];
+        character->set_frame_blend_flag(frame_blend);
+        character->set_channel_transition_flag(transition_blend);
+    });
+}
+
+/**
+ * Returns a vector of characters for the entire Actor,
+ * or for the indicated part only.
+**/
+pvector<PT(Character)> CActor::get_part_bundles() {
+    pvector<PT(Character)> part_bundles;
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get our character, and if it's a nullptr; Continue as if nothing happened.
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { continue; }
+        
+        part_bundles.push_back(character);
+    }
+    
+    return part_bundles;
+}
+
+/**
+ * Returns a vector of characters for the entire Actor,
+ * or for the indicated part only.
+**/
+pvector<PT(Character)> CActor::get_part_bundles(const std::string &part_name) {
+    pvector<PT(Character)> part_bundles;
+    
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        
+        // Get the bundle name from our iterator.
+        std::string bundle_name(it->first);
+        
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        // Get our character, and if it's a nullptr; Continue as if nothing happened.
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { continue; }
+        
+        part_bundles.push_back(character);
+    }
+    
+    // We couldn't find the specified part.
+    if (part_bundles.empty()) { actor_cat.warning() << "Couldn't find part: " << working_part_name << '\n'; }
+    
+    return part_bundles;
+}
+
+void CActor::list_joints(const std::string &part_name, const std::string &lod_name) {
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    std::string working_lod_name("lodRoot");
+    if (!lod_name.empty()) { working_lod_name = lod_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        
+        // Get the bundle name from our iterator.
+        std::string bundle_name(it->first);
+        
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name or lod name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_lod_name.compare(working_lod_name) != 0 || curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        // Get our character, and if it's a nullptr; Break as we can no longer list the joints.
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { break; }
+        
+        // Get the joint list.
+        std::stringstream ss;
+        do_list_joints(ss, character, 0, 0);
+        
+        // Output the joint list.
+        std::cout << ss.str() << std::endl;
+    }
+}
+
+void CActor::do_list_joints(std::stringstream &ss, PT(Character) character, int indent_level, int joint) {
+    const std::string &joint_name = character->get_joint_name(joint);
+    LMatrix4 joint_value = character->get_joint_value(joint);
+    
+    // Write our joint info to our stream.
+    ss << ' ' * indent_level << joint_name << ' ' << TransformState::make_mat(joint_value) << '\n';
+    
+    // Iterate all of the joints children.
+    for (int i = 0; i < character->get_joint_num_children(joint); i++) {
+        do_list_joints(ss, character, indent_level + 2, character->get_joint_child(joint, i));
+    }
+}
+
+const Filename CActor::get_anim_filename(const std::string &anim_name, const std::string &part_name) {
+    std::string working_part_name("modelRoot");
+    if (!part_name.empty()) { working_part_name = part_name; }
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        
+        // Get the bundle name from our iterator.
+        std::string bundle_name(it->first);
+        
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(working_part_name) != 0) { continue; }
+        
+        // Get our animation definition.
+        AnimDef *anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def == nullptr) { return Filename(); }
+        
+        return anim_def->get_filename();
+    }
+    
+    return Filename();
+}
+
+/**
+ * No-op.
+**/
+void CActor::post_flatten() {
+}
+
 
 /* Part Defitition */
 

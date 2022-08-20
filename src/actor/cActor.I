@@ -10,11 +10,27 @@ INLINE AnimChannel *CActor::load_anim(const std::string &filename) {
     return load_anim(file);
 }
 
-
+/**
+ * set_geom_node()
+**/
 INLINE void CActor::set_geom_node(const NodePath &node) {
     _geom_node = node;
 }
 
+/**
+ * get_geom_node()
+ * Returns a reference to the geom NodePath.
+**/
+INLINE NodePath &CActor::get_geom_node() {
+    return _geom_node;
+}
+
+/**
+ * get_geom_node()
+ * Returns a constant reference to the geom NodePath.
+ *
+ * ONLY USED INTERNALLY.
+**/
 INLINE const NodePath &CActor::get_geom_node() const {
     return _geom_node;
 }
@@ -69,6 +85,28 @@ INLINE void CActor::reset_lod() {
 **/
 INLINE bool CActor::has_lod() {
     return _has_LOD;
+}
+
+INLINE void CActor::face_away_from_viewer() {
+    NodePath &geom_node = get_geom_node();
+    geom_node.set_h(180);
+}
+
+INLINE void CActor::face_towards_viewer() {
+    NodePath &geom_node = get_geom_node();
+    geom_node.set_h(0);
+}
+
+INLINE const pmap<std::string, CActor::PartDef> &CActor::get_part_bundle_dict() const {
+    return _part_bundle_dict;
+}
+
+INLINE void CActor::list_joints() {
+    list_joints("", "");
+}
+
+INLINE const Filename CActor::get_anim_filename(const std::string &anim_name) {
+    return get_anim_filename(anim_name, "");
 }
 
 
