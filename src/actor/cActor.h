@@ -196,7 +196,7 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         
         int get_current_frame(int layer=0);
         int get_current_frame(const std::string &part_name, int layer=0);
-        int get_current_frame(const std::string &anim_name, const std::string &part_name, int layer=0);
+        int get_current_frame(const std::string &anim_name, const std::string &part_name);
         
         // These functions compensate for actors that are modeled facing the viewer,
         // but need to face away from the camera in the game.
@@ -219,6 +219,11 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         const Filename get_anim_filename(const std::string &anim_name, const std::string &part_name);
         
         virtual void post_flatten();
+        
+        INLINE NodePath *control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name);
+        NodePath *control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name, const std::string &lod_name);
+        
+        void release_joint(const std::string &part_name, const std::string &joint_name);
         
     public:
         //////////////////////////////

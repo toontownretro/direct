@@ -109,6 +109,10 @@ INLINE const Filename CActor::get_anim_filename(const std::string &anim_name) {
     return get_anim_filename(anim_name, "");
 }
 
+INLINE NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name) {
+    return control_joint(node, part_name, joint_name, std::string("lodRoot"));
+}
+
 
 /* Animation Defitition */
 

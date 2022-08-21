@@ -2777,14 +2777,14 @@ int CActor::get_current_frame(const std::string &part_name, int layer) {
  * in dictionary.
  * NOTE: Only returns info for an arbitrary LOD.
 **/
-int CActor::get_current_frame(const std::string &anim_name, const std::string &part_name, int layer) {
+int CActor::get_current_frame(const std::string &anim_name, const std::string &part_name) {
     if (_part_bundle_dict.empty()) { return 0; }
     
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
     // If the animation name is empty, Call the version of this function which only needs a part name.
-    if (anim_name.empty()) { return get_current_frame(part_name, layer); }
+    if (anim_name.empty()) { return get_current_frame(part_name, 0); }
     
     // Get all of our animation definitions.
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
@@ -2792,17 +2792,17 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
     
     // Return current frame of the named animation if it is currently
     // playing on any layer.
-    JobSystem *jsys = JobSystem::get_global_ptr();
-    jsys->parallel_process(anim_defs.size(), [&] (size_t i) { //for (size_t i = 0; i < anim_defs.size(); i++) {
+    //JobSystem *jsys = JobSystem::get_global_ptr();
+    for (size_t i = 0; i < anim_defs.size(); i++) { // jsys->parallel_process(anim_defs.size(), [&] (size_t i) {
         AnimDef anim_def = anim_defs[i];
         
         // Get our character and sanity check our layer.
         PT(Character) character = anim_def.get_character();
-        if (character == nullptr) { return 0; }
+        if (character == nullptr) { continue; }
         
         // Get the animation channel.
         PT(AnimChannel) channel = anim_def.get_animation_channel();
-        if (channel == nullptr) { return 0; }
+        if (channel == nullptr) { continue; }
         
         // Find the layer playing the channel.
         for (int i = 0; i < character->get_num_anim_layers(); i++) {
@@ -2818,7 +2818,7 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
             // Return our current frame.
             return (int)(anim_layer->_cycle * (channel->get_num_frames() - 1));
         }
-    });
+    }
     
     // No matches found, Return 0.
     return 0;
@@ -3081,6 +3081,105 @@ const Filename CActor::get_anim_filename(const std::string &anim_name, const std
  * No-op.
 **/
 void CActor::post_flatten() {
+}
+
+/**
+ * The converse of expose_joint: this associates the joint with
+ * the indicated node, so that the joint transform will be copied
+ * from the node to the joint each frame.  This can be used for
+ * programmer animation of a particular joint at runtime.
+ * 
+ * The parameter node should be the NodePath for the node whose
+ * transform will animate the joint.  If node is NULL, a new node
+ * will automatically be created and loaded with the joint's
+ * initial transform.  In either case, the node used will be
+ * returned.
+ * 
+ * It used to be necessary to call this before any animations
+ * have been loaded and bound, but that is no longer so.
+**/
+NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name, const std::string &lod_name) {
+    bool any_good = false;
+    
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        
+        // Get the bundle name from our iterator.
+        std::string bundle_name(it->first);
+        
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name or lod name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_lod_name.compare(lod_name) != 0 || curr_part_name.compare(part_name) != 0) { continue; }
+        
+        // Get our character, and if it's a nullptr; Break as we can no longer control the joint.
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { break; }
+        
+        int joint = character->find_joint(joint_name);
+        
+        if (node == nullptr) {
+            // Because of temporary errors.. I can't just squeeze this down into one line. Bruh.
+            ModelNode joint_node = ModelNode(joint_name);
+            NodePath joint_path = attach_new_node(&joint_node);
+            node = &joint_path;
+            
+            if (joint != -1) { node->set_mat(character->get_joint_default_value(joint)); }
+        }
+        
+        if (joint != -1) {
+            character->set_joint_controller_node(joint, node->node());
+            any_good = true;
+        }
+    }
+    
+    if (!any_good) { actor_cat.warning() << "Cannot control joint " << joint_name << '\n'; }
+    
+    return node;
+}
+/**
+ * Undoes a previous call to control_joint() or freeze_joint()
+ * and restores the named joint to its normal animation. 
+**/
+void CActor::release_joint(const std::string &part_name, const std::string &joint_name) {
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        
+        // Get the bundle name from our iterator.
+        std::string bundle_name(it->first);
+        
+        // Get the part definition from our iterator.
+        PartDef part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match. Keep iterating.
+        // If it doesn't exist at all, The loop will break out.
+        if (curr_part_name.compare(part_name) != 0) { continue; }
+        
+        // Get our character, and if it's a nullptr; Break as we can no longer control the joint.
+        PT(Character) character = part_def._character;
+        if (character == nullptr) { break; }
+        
+        int joint = character->find_joint(joint_name);
+        if (joint == -1) { continue; }
+        
+        character->clear_joint_controller_node(joint);
+    }
 }
 
 
