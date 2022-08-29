@@ -21,5 +21,8 @@
     cActor.cxx cActor.I cActor.h
 
   #define IGATESCAN all
+  
+  #define IGATEEXT \
+    cActor_ext.cxx cActor_ext.h cActor_ext.I
 
 #end lib_target

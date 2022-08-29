@@ -284,10 +284,13 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         
         pvector<PT(Character)> get_part_bundles();
         pvector<PT(Character)> get_part_bundles(const std::string &part_name);
-        
-    private:
+
         void initialize_geom_node(bool flattenable=true);
         
+        NodePath _geom_node = NodePath();
+        NodePath _lod_node = NodePath();
+        
+    private:
         INLINE const NodePath &get_geom_node() const;
         
         INLINE const pmap<std::string, PartDef> &get_part_bundle_dict() const;
@@ -316,9 +319,6 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         LoaderOptions anim_loader_options = LoaderOptions(LoaderOptions::LF_search | LoaderOptions::LF_report_errors | LoaderOptions::LF_convert_anim);
         
         LPoint3f _lod_center = LPoint3f(0.0, 0.0, 0.0);
-        
-        NodePath _geom_node = NodePath();
-        NodePath _lod_node = NodePath();
         
         std::string part_prefix = "__Actor_";
         
