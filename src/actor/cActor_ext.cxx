@@ -2,20 +2,13 @@
 
 #ifdef HAVE_PYTHON
 
-#ifndef CPPPARSER
-extern struct Dtool_PyTypedObject Dtool_NodePath;
-#ifdef STDFLOAT_DOUBLE
-extern struct Dtool_PyTypedObject Dtool_LPoint3d;
-#else
-extern struct Dtool_PyTypedObject Dtool_LPoint3f;
-#endif
-#endif
-
 #define PyString_Check(obj) (PyUnicode_Check(obj) != 0 || PyBytes_Check(obj) != 0)
 
 std::string PyString_ToString(PyObject *obj) {
     char *str = NULL;
     Py_ssize_t str_len = 0;
+    
+    if (obj == NULL || obj == Py_None) { return std::string(""); }
                 
     PyObject *bytesObj = obj;
     if (PyUnicode_Check(obj) != 0) {
@@ -29,6 +22,11 @@ std::string PyString_ToString(PyObject *obj) {
 
 void Extension<CActor>::__init__(PyObject *self, PyObject *models, PyObject *anims, PyObject *other, PyObject *copy,
                                  PyObject *lod_node, PyObject *flattenable, PyObject *set_final, PyObject *ok_missing) {
+
+    // Any and all needed types.
+    Dtool_TypeMap *tmap = Dtool_GetGlobalTypeMap();
+    Dtool_TypeMap::const_iterator it = tmap->find("NodePath");
+    Dtool_PyTypedObject *NodePath_py_type = (*it).second;
 
     bool _copy = true;
     bool _flattenable = true;
@@ -55,54 +53,95 @@ void Extension<CActor>::__init__(PyObject *self, PyObject *models, PyObject *ani
         //   models{}{}, anims{}{} = Multi-part actor w/ LOD
         //
         // Make sure we have models
-        if (models != Py_None) {
-            if (PyDict_Check(models) != 0) {
-                PyObject *model_key, *model_value, *anim_key, *anim_value;
-                Py_ssize_t model_pos = 0, anim_pos = 0;
-                
-                // Increment our iterators and get the values.
-                PyDict_Next(models, &model_pos, &model_key, &model_value);
-                if (anims != Py_None) { PyDict_Next(anims, &anim_pos, &anim_key, &anim_value); }
-                
-                // If the model_value isn't a dict object, Then it isn't a multi-part actor w/ LOD.
-                // But if it is, We will loop the models dictionary and it's sub dictionaries.
-                // If the anim_value isn't a dict object, Then it isn't a multipart actor w/o LOD.
-                // In that case, It will be a single part actor w/ LOD.
-                if (PyDict_Check(model_value)) {
-                    // Get and set our lod node from the python object.
-                    //NodePath *lod_node_ptr = NULL;
-                    //if (lod_node != Py_None && DtoolInstance_GetPointer(lod_node, lod_node_ptr, Dtool_NodePath)) {
-                    //    _this->set_lod_node(*lod_node_ptr);
-                    //}
-                    
-                    // Normally we'd sort the dictonary by getting the keys and turning them into a list and then sort and iterate those.
-                    // But there's no way to do it in C++ without it being a hassle. So whatever.
-                    
-                    
-                    while (PyDict_Next(models, &model_pos, &model_key, &model_value)) {
-                        
-                    }
-                } else if (anims != Py_None && PyDict_Check(anim_value)) {
-                    while (PyDict_Next(anims, &anim_pos, &anim_key, &anim_value)) {
-                        
-                    }
-                } else {
-                    
+        if (PyDict_Check(models) != 0) {
+            PyObject *model_key, *model_value, *anim_key, *anim_value;
+            Py_ssize_t model_pos = 0, anim_pos = 0;
+            
+            // Increment our iterators and get the values.
+            PyDict_Next(models, &model_pos, &model_key, &model_value);
+            if (anims != Py_None) { PyDict_Next(anims, &anim_pos, &anim_key, &anim_value); }
+            
+            // If the model_value isn't a dict object, Then it isn't a multi-part actor w/ LOD.
+            // But if it is, We will loop the models dictionary and it's sub dictionaries.
+            // If the anim_value isn't a dict object, Then it isn't a multipart actor w/o LOD.
+            // In that case, It will be a single part actor w/ LOD.
+            if (PyDict_Check(model_value)) {
+                // Get and set our lod node from the python object.
+                NodePath *lod_node_ptr = NULL;
+                if (lod_node != Py_None && DtoolInstance_GetPointer(lod_node, lod_node_ptr, *NodePath_py_type)) {
+                    _this->set_lod_node(*lod_node_ptr);
                 }
-            } else if (PyString_Check(models) != 0) {
-                std::string models_str = PyString_ToString(models);
-
-                _this->load_model(models_str, "modelRoot", "lodRoot", _copy, _ok_missing);
+                
+                // Preserve numerical order for lod's
+                // This will make it easier to set ranges
+                PyObject *keys = PyDict_Keys(models);
+                PyList_Sort(keys);
+                
+                // Iterate the list.
+                Py_ssize_t key_size = PyList_Size(keys);
+                for (Py_ssize_t i = 0; i < key_size; i++) {
+                    PyObject *key = PyList_GetItem(keys, i);
+                    
+                    std::string lod_name = PyString_ToString(key);
+                    
+                    // Make a node under the LOD switch
+                    // for each LOD (Just because!)
+                    _this->add_lod(lod_name);
+                    
+                    PyObject *lod_models = PyDict_GetItem(models, key);
+                    PyObject *lod_model_key, *lod_model_value;
+                    Py_ssize_t lod_model_pos = 0;
+                    
+                    // Iterate over the internal dict
+                    while (PyDict_Next(lod_models, &lod_model_pos, &lod_model_key, &lod_model_value)) {
+                        _this->load_model(PyString_ToString(lod_model_value), PyString_ToString(lod_model_key), lod_name, _copy, _ok_missing);
+                    }
+                }
+            } else if (anims != Py_None && PyDict_Check(anim_value)) {
+                while (PyDict_Next(models, &model_pos, &model_key, &model_value)) {
+                    _this->load_model(PyString_ToString(model_value), PyString_ToString(model_key), "lodRoot", _copy, _ok_missing);
+                }
             } else {
-                std::ostringstream stream;
-                stream << "models paramater passed to CActor constructor must be a dict or a str.";
-                std::string str = stream.str();
-                PyErr_SetString(PyExc_TypeError, str.c_str());
-                return;
+                // Get and set our lod node from the python object.
+                NodePath *lod_node_ptr = NULL;
+                if (lod_node != Py_None && DtoolInstance_GetPointer(lod_node, lod_node_ptr, *NodePath_py_type)) {
+                    _this->set_lod_node(*lod_node_ptr);
+                }
+                
+                // Preserve numerical order for lod's
+                // This will make it easier to set ranges
+                PyObject *keys = PyDict_Keys(models);
+                PyList_Sort(keys);
+                
+                // Iterate the list.
+                Py_ssize_t key_size = PyList_Size(keys);
+                for (Py_ssize_t i = 0; i < key_size; i++) {
+                    PyObject *key = PyList_GetItem(keys, i);
+                    
+                    std::string lod_name = PyString_ToString(key);
+                    
+                    // Make a node under the LOD switch
+                    // for each LOD (Just because!)
+                    _this->add_lod(lod_name);
+                    
+                    PyObject *model_value = PyDict_GetItem(models, key);
+                    
+                    _this->load_model(PyString_ToString(model_value), "modelRoot", lod_name, _copy, _ok_missing);
+                }
             }
+        } else if (PyString_Check(models) != 0) {
+            std::string models_str = PyString_ToString(models);
+
+            _this->load_model(models_str, "modelRoot", "lodRoot", _copy, _ok_missing);
+        } else {
+            std::ostringstream stream;
+            stream << "models paramater passed to CActor constructor must be a dict or a str.";
+            std::string str = stream.str();
+            PyErr_SetString(PyExc_TypeError, str.c_str());
+            return;
         }
         
-        if (anims != Py_None) {
+        if (PyDict_Check(anims) != 0) {
 
         }
     } else {
