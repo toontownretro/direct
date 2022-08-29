@@ -2159,6 +2159,9 @@ class ShowBase(HostBase):
 
     def restart(self, clusterSync=False, cluster=None):
         self.shutdown()
+
+        self.taskMgr.add(self.__clearPrepared, 'clearPrepared', sort = -52)
+
         # __resetPrevTransform goes at the very beginning of the frame.
         if self.fixedSimulationStep:
             self.simTaskMgr.add(
@@ -2206,7 +2209,23 @@ class ShowBase(HostBase):
         self.taskMgr.remove('ivalLoop')
         self.taskMgr.remove('garbageCollectStates')
         self.taskMgr.remove('clearCache')
+        self.taskMgr.remove('clearPrepared')
         HostBase.shutdown(self)
+
+    def __clearPrepared(self, task):
+        """
+        Clears the list of enqueued and released graphics objects from the
+        previous frame.
+        """
+
+        if self.win:
+            gsg = self.win.getGsg()
+            if gsg:
+                pgo = gsg.getPreparedObjects()
+                if pgo:
+                    pgo.beginFrameApp()
+
+        return task.cont
 
     def getBackgroundColor(self, win = None):
         """
