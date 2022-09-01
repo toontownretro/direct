@@ -2160,7 +2160,7 @@ class ShowBase(HostBase):
     def restart(self, clusterSync=False, cluster=None):
         self.shutdown()
 
-        self.taskMgr.add(self.__clearPrepared, 'clearPrepared', sort = -52)
+        #self.taskMgr.add(self.__clearPrepared, 'clearPrepared', sort = -52)
 
         # __resetPrevTransform goes at the very beginning of the frame.
         if self.fixedSimulationStep:
@@ -2186,7 +2186,7 @@ class ShowBase(HostBase):
 
         if ConfigVariableBool('garbage-collect-states').value:
             self.taskMgr.add(self.__garbageCollectStates, 'garbageCollectStates', sort = 46)
-        self.taskMgr.add(self.__clearCache, 'clearCache', sort = 47)
+        #self.taskMgr.add(self.__clearCache, 'clearCache', sort = 47)
         # give the igLoop task a reasonably "late" sort,
         # so that it will get run after most tasks
         self.cluster = cluster
@@ -2208,8 +2208,8 @@ class ShowBase(HostBase):
         self.taskMgr.remove('resetPrevTransform')
         self.taskMgr.remove('ivalLoop')
         self.taskMgr.remove('garbageCollectStates')
-        self.taskMgr.remove('clearCache')
-        self.taskMgr.remove('clearPrepared')
+        #self.taskMgr.remove('clearCache')
+        #self.taskMgr.remove('clearPrepared')
         HostBase.shutdown(self)
 
     def __clearPrepared(self, task):
