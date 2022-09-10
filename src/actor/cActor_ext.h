@@ -20,6 +20,8 @@ public:
                 PyObject *lod_node=Py_None, PyObject *flattenable=Py_True, PyObject *set_final=Py_False, PyObject *ok_missing=Py_None);
 
   //PyObject *__reduce__(PyObject *self) const;
+  
+  void load_anims(PyObject *anims=Py_None, PyObject *part_name=Py_None, PyObject *lod_name=Py_None, PyObject *load_now=Py_False);
 };
 
 #endif  // HAVE_PYTHON

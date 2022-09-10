@@ -8,11 +8,27 @@ __all__ = ['Actor']
 
 from panda3d.core import *
 from panda3d.core import Loader as PandaLoader
+from panda3d.direct import CActor
 
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.Loader import Loader
 
+class Actor(CActor):
+    """Actor re-implementation using the new animation system."""
+    
+    def __init__(self, models=None, anims=None, other=None, copy=True,
+                 lodNode=None, flattenable=True, setFinal=False,
+                 okMissing=None):
+        try:
+            self.Actor_initialized
+            return
+        except:
+            self.Actor_initialized = 1
+
+        CActor.__init__(self, models, anims, other, copy, lodNode, flattenable, setFinal, okMissing)
+
+'''
 class Actor(DirectObject, NodePath):
     """Actor re-implementation using the new animation system."""
 
@@ -1156,7 +1172,8 @@ class Actor(DirectObject, NodePath):
             return
         except:
             self.Actor_deleted = 1
-            self.cleanup(removeNode=removeNode)
+
+        self.cleanup(removeNode=removeNode)
 
     def copyActor(self, other, overwrite=False):
         # act like a copy constructor
@@ -1928,3 +1945,4 @@ class Actor(DirectObject, NodePath):
                         print('      Index: %i NumFrames: %d PlayRate: %0.2f' %
                               (index, channel.getNumFrames(), animDef.playRate))
 
+'''

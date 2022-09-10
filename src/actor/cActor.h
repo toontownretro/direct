@@ -7,6 +7,7 @@
 #include "character.h"
 #include "characterNode.h"
 #include "directbase.h"
+#include "extension.h"
 #include "filename.h"
 #include "loader.h"
 #include "loaderOptions.h"
@@ -20,6 +21,7 @@
 #include "pmap.h"
 #include "pointerTo.h"
 #include "pvector.h"
+#include "referenceCount.h"
 #include "weightList.h"
 
 #include "pt_AnimChannelTable.h"
@@ -45,7 +47,7 @@ struct MultipartLODActorDataWPath {
 // Forward declarations.
 class CActor;
 
-class EXPCL_DIRECT_ACTOR CActor : NodePath {
+class EXPCL_DIRECT_ACTOR CActor : public NodePath {
     class EXPCL_DIRECT_ACTOR AnimDef {
         PUBLISHED:
             INLINE AnimDef(Filename filename = Filename(), PT(AnimChannel) channel = nullptr, PT(Character) character = nullptr);
@@ -111,14 +113,17 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
     };
     
     PUBLISHED:
-        CActor(bool flattenable=true, bool set_final=false);
-        CActor(const CActor &other);
+        EXTENSION(CActor(PyObject *self, PyObject *models=Py_None, PyObject *anims=Py_None, PyObject *other=Py_None, PyObject *copy=Py_True,
+                         PyObject *lod_node=Py_None, PyObject *flattenable=Py_True, PyObject *set_final=Py_False, PyObject *ok_missing=Py_None));
+        
         virtual ~CActor();
         
         void CActor::operator=(const CActor &copy);
         
         void load_model(const NodePath &model_node, const std::string &part_name, const std::string &lod_name, bool copy=true, bool ok_missing=false, bool keep_model=false);
         void load_model(const std::string &model_path, const std::string &part_name, const std::string &lod_name, bool copy=true, bool ok_missing=false, bool keep_model=false);
+        
+        EXTENSION(void load_anims(PyObject *anims=Py_None, PyObject *part_name=Py_None, PyObject *lod_name=Py_None, PyObject *load_now=Py_False));
         
         void stop(int layer=1, bool kill=false);
         void stop(const std::string &anim_name, const std::string &part_name, int layer=1, bool kill=false);
@@ -147,25 +152,48 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         INLINE void set_geom_node(const NodePath &node);
         INLINE NodePath &get_geom_node();
         
-        INLINE void set_lod_node();
-        void set_lod_node(const NodePath &node);
+        INLINE void set_LOD_node();
+        void set_LOD_node(const NodePath &node);
         
-        INLINE LODNode *get_lod_node();
+        INLINE LODNode *get_LOD_node();
         
-        INLINE void use_lod(const std::string &lod_name);
-        INLINE void reset_lod();
-        INLINE bool has_lod();
+        INLINE void use_LOD(const std::string &lod_name);
+        INLINE void reset_LOD();
+        INLINE bool has_LOD();
         
-        void add_lod(const std::string &lod_name, int in_dist=0, int out_dist=0);
-        void add_lod(const std::string &lod_name, int in_dist, int out_dist, const LPoint3f &center);
+        void add_LOD(const std::string &lod_name, int in_dist=0, int out_dist=0);
+        void add_LOD(const std::string &lod_name, int in_dist, int out_dist, const LPoint3f &center);
         
-        void set_lod(const std::string &lod_name, int in_dist=0, int out_dist=0);
+        void set_LOD(const std::string &lod_name, int in_dist=0, int out_dist=0);
         
-        int get_lod_index(const std::string &lod_name);
+        int get_LOD_index(const std::string &lod_name);
         
-        NodePath get_lod(const std::string &lod_name);
+        NodePath get_LOD(const std::string &lod_name);
+        NodePath get_LOD(int lod);
         
         void set_center(const LPoint3f center = LPoint3f(0.0, 0.0, 0.0));
+        
+        INLINE NodePath instance(NodePath &path, const std::string &part_name, const std::string &joint_name);
+        NodePath instance(NodePath &path, const std::string &part_name, const std::string &joint_name, const std::string &lod_name);
+        
+        INLINE void attach(const std::string &part_name, const std::string &another_part_name, const std::string &joint_name);
+        void attach(const std::string &part_name, const std::string &another_part_name, const std::string &joint_name, const std::string &lod_name);
+        
+        INLINE void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode);
+        INLINE void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root);
+        void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root, const std::string &lod_name);
+        
+        INLINE NodePath get_part();
+        INLINE NodePath get_part(const std::string &part_name);
+        NodePath get_part(const std::string &part_name, const std::string &lod_name);
+        
+        INLINE NodePath get_part_model();
+        INLINE NodePath get_part_model(const std::string &part_name);
+        NodePath get_part_model(const std::string &part_name, const std::string &lod_name);
+        
+        INLINE PT(Character) get_part_bundle();
+        INLINE PT(Character) get_part_bundle(const std::string &part_name);
+        PT(Character) get_part_bundle(const std::string &part_name, const std::string &lod_name);
         
         std::string get_current_anim(int layer=0);
         std::string get_current_anim(const std::string &part_name, int layer=0);
@@ -226,6 +254,13 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         void release_joint(const std::string &part_name, const std::string &joint_name);
         
     public:
+        //////////////////////////////
+        // Standard Initializers
+        //////////////////////////////
+        
+        CActor(bool flattenable=true, bool set_final=false);
+        CActor(const CActor &other);
+        
         //////////////////////////////
         // Initializers w/o Animations
         //////////////////////////////
@@ -326,6 +361,26 @@ class EXPCL_DIRECT_ACTOR CActor : NodePath {
         pmap<std::string, std::pair<int, int>> _switches;
         
         pvector<std::string> _sorted_LOD_names;
+
+    public:
+        static TypeHandle get_class_type() {
+            return _type_handle;
+        }
+        static void init_type() {
+            NodePath::init_type();
+            register_type(_type_handle, "CActor", NodePath::get_class_type());
+        }
+
+    PUBLISHED:
+        // We define get_type() even though we don't inherit from
+        // TypedObject.  We can't actually inherit from TypedObject because
+        // of the whole multiple-inheritance thing in our derived classes.
+        virtual TypeHandle get_type() const {
+            return get_class_type();
+        }
+
+    private:
+        static TypeHandle _type_handle;
 };
 
 

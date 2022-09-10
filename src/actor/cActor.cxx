@@ -1,16 +1,19 @@
 #include "cActor.h"
 #include "config_actor.h"
 
+#include "decalEffect.h"
 #include "jobSystem.h"
 #include "transformState.h"
 
 #define EMPTY_STR std::string("")
 
+TypeHandle CActor::_type_handle;
+
 //////////////////////////////
 // Initializers w/o Animations
 //////////////////////////////
 
-CActor::CActor(bool flattenable, bool set_final) : NodePath() {
+CActor::CActor(bool flattenable, bool set_final) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     if (set_final) {
@@ -32,7 +35,7 @@ CActor::CActor(bool flattenable, bool set_final) : NodePath() {
     }
 }
 
-CActor::CActor(const std::string &model_path, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const std::string &model_path, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     // Single-part Actor w/o LOD
@@ -57,7 +60,7 @@ CActor::CActor(const std::string &model_path, bool copy, bool flattenable, bool 
     }
 }
 
-CActor::CActor(const NodePath &model_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const NodePath &model_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     // Single-part Actor w/o LOD
@@ -82,7 +85,7 @@ CActor::CActor(const NodePath &model_node, bool copy, bool flattenable, bool set
     }
 }
 
-CActor::CActor(const pmap<std::string, std::string> &models, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, std::string> &models, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     // Multi-part Actor w/o LOD
@@ -112,7 +115,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, bool copy, bool fla
     }
 }
 
-CActor::CActor(const pmap<std::string, NodePath> &models, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, NodePath> &models, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
 
     // Multi-part Actor w/o LOD
@@ -142,7 +145,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, bool copy, bool flatte
     }
 }
 
-CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -153,7 +156,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     }
 
     // Single-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (pmap<std::string, std::string>::const_iterator it = models.begin(); it != models.end(); it++) {
         std::string lod_name = it->first;
         std::string model_path = it->second;
@@ -169,7 +172,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
     }
     
     if (set_final) {
@@ -191,7 +194,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     }
 }
 
-CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -202,7 +205,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bo
     }
 
     // Single-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (pmap<std::string, NodePath>::const_iterator it = models.begin(); it != models.end(); it++) {
         std::string lod_name = it->first;
         const NodePath &model_node = it->second;
@@ -218,7 +221,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bo
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
     }
     
     if (set_final) {
@@ -240,7 +243,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bo
     }
 }
 
-CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -251,7 +254,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     }
     
     // Multi-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
         MultipartLODActorDataWPath data = models[i];
         
@@ -266,7 +269,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
     }
     
     if (set_final) {
@@ -288,7 +291,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     }
 }
 
-CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -299,7 +302,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     }
     
     // Multi-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
         MultipartLODActorData data = models[i];
         
@@ -314,7 +317,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
     }
     
     if (set_final) {
@@ -340,7 +343,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
 // Initializers w/ Animations
 //////////////////////////////
 
-CActor::CActor(const std::string &model_path, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const std::string &model_path, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     // Single-part Actor w/o LOD
@@ -366,7 +369,7 @@ CActor::CActor(const std::string &model_path, const pvector<std::pair<std::strin
     }
 }
 
-CActor::CActor(const NodePath &model_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const NodePath &model_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     // Single-part Actor w/o LOD
@@ -392,7 +395,7 @@ CActor::CActor(const NodePath &model_node, const pvector<std::pair<std::string, 
     }
 }
 
-CActor::CActor(const pmap<std::string, std::string> &models, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, std::string> &models, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
     
     // Multi-part Actor w/o LOD
@@ -429,7 +432,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, const pmap<std::str
     }
 }
 
-CActor::CActor(const pmap<std::string, NodePath> &models, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, NodePath> &models, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     initialize_geom_node(flattenable);
 
     // Multi-part Actor w/o LOD
@@ -466,7 +469,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, const pmap<std::string
     }
 }
 
-CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -477,7 +480,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     }
 
     // Single-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (pmap<std::string, std::string>::const_iterator it = models.begin(); it != models.end(); it++) {
         std::string lod_name = it->first;
         std::string model_path = it->second;
@@ -493,7 +496,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
         load_anims(anims, EMPTY_STR, lod_names[i]);
     }
     
@@ -516,7 +519,7 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     }
 }
 
-CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -527,7 +530,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, co
     }
 
     // Single-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (pmap<std::string, NodePath>::const_iterator it = models.begin(); it != models.end(); it++) {
         std::string lod_name = it->first;
         const NodePath &model_node = it->second;
@@ -543,7 +546,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, co
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
         load_anims(anims, EMPTY_STR, lod_names[i]);
     }
     
@@ -567,7 +570,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, co
 }
 
 CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
-               bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+               bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -578,7 +581,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     }
     
     // Multi-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
         MultipartLODActorDataWPath data = models[i];
         
@@ -593,7 +596,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
         
         for (pmap<std::string, pvector<std::pair<std::string, std::string> > >::const_iterator it = anims.begin(); it != anims.end(); it++) {
             std::string part_name = it->first;
@@ -623,7 +626,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
 }
 
 CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
-               bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath() {
+               bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -634,7 +637,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     }
     
     // Multi-part Actor w/ LOD
-    set_lod_node(lod_node);
+    set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
         MultipartLODActorData data = models[i];
         
@@ -649,7 +652,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     
     for (size_t i = 0; i < lod_names.size(); i++) {
         // Add our new lod to our lods.
-        add_lod(lod_names[i]);
+        add_LOD(lod_names[i]);
         
         for (pmap<std::string, pvector<std::pair<std::string, std::string> > >::const_iterator it = anims.begin(); it != anims.end(); it++) {
             std::string part_name = it->first;
@@ -687,7 +690,8 @@ CActor::CActor(const CActor &other) {
     other_copy.detach_node();
     
     // The C++ equivalent of assign() for a NodePath in Python.
-    NodePath::operator=(other_copy);
+    NodePath *this_path_ptr = (NodePath *)this;
+    this_path_ptr->operator=(other_copy);
     
     // masad: Check if other_copy has a GeomNode as its first child,
     // If CActor is initialized with flattenable, then other_copy, not
@@ -738,21 +742,24 @@ void CActor::initialize_geom_node(bool flattenable) {
         // If we want a flattenable Actor, don't create all
         // those ModelNodes, and the GeomNode is the same as
         // the root.
-        NodePath this_path(this->node());
         PT(PandaNode) root = new PandaNode("actor");
+        NodePath root_path(root);
         
         // The C++ equivalent of assign() for a NodePath in Python.
-        NodePath::operator=(NodePath(root));
+        NodePath *this_path_ptr = (NodePath *)this;
+        this_path_ptr->operator=(root_path);
         
-        set_geom_node(this_path);
+        set_geom_node(*this);
     } else {
         // A standard Actor has a ModelNode at the root, and
         // another ModelNode to protect the GeomNode.
         PT(ModelRoot) root = new ModelRoot("actor");
         root->set_preserve_transform(ModelNode::PreserveTransform::PT_local);
+        NodePath root_path(root);
         
         // The C++ equivalent of assign() for a NodePath in Python.
-        NodePath::operator=(NodePath(root));
+        NodePath *this_path_ptr = (NodePath *)this;
+        this_path_ptr->operator=(root_path);
         
         PT(ModelNode) mNode = new ModelNode("actorGeom");
         NodePath attached_node = attach_new_node(mNode);
@@ -1463,7 +1470,7 @@ void CActor::load_model(const NodePath &model_node, const std::string &part_name
     std::string model_lod_name("lodRoot");
     if (!lod_name.empty()) { model_lod_name = lod_name; }
     
-    actor_cat.debug() << "in loadModel: " << model_node.get_name() << ", part: " << model_part_name << ", lod: " << model_lod_name << ", copy: " << copy << '\n';
+    actor_cat.debug() << "in loadModel: \"" << model_node.get_name() << "\", part: \"" << model_part_name << "\", lod: \"" << model_lod_name << "\", copy: " << copy << '\n';
     
     if (copy) {
         model = model_node.copy_to(NodePath());
@@ -1487,7 +1494,7 @@ void CActor::load_model(const std::string &model_path, const std::string &part_n
     std::string model_lod_name("lodRoot");
     if (!lod_name.empty()) { model_lod_name = lod_name; }
     
-    actor_cat.debug() << "in loadModel: " << model_path << ", part: " << model_part_name << ", lod: " << model_lod_name << ", copy: " << copy << '\n';
+    actor_cat.debug() << "in loadModel: \"" << model_path << "\", part: \"" << model_part_name << "\", lod: \"" << model_lod_name << "\", copy: " << copy << '\n';
     
     LoaderOptions loader_options = LoaderOptions(model_loader_options);
     if (!copy) {
@@ -1517,7 +1524,9 @@ void CActor::load_model(const std::string &model_path, const std::string &part_n
 }
     
 void CActor::load_model_internal(NodePath &model, const std::string &part_name, const std::string &lod_name, bool copy, bool ok_missing, bool keep_model) {
-     NodePath bundle_np, node_to_parent;
+    NodePath bundle_np, node_to_parent;
+     
+    actor_cat.debug() << "in loadModelInternal: \"" << model.get_name() << "\", part: \"" << part_name << "\", lod: \"" << lod_name << "\", copy: " << copy << ", ok_missing: " << ok_missing << ", keep_model: " << keep_model << '\n';
         
     if (model.node()->is_of_type(CharacterNode::get_class_type())) {
         bundle_np = model;
@@ -1615,11 +1624,11 @@ void CActor::prepare_bundle(const NodePath &bundle_np, const NodePath &part_mode
 }
 
 /**
- * set_lod_node(NodePath)
+ * set_LOD_node(NodePath)
  * Set the node that switches actor geometry in and out.
  * If one is not supplied as an argument, make one.
 **/
-void CActor::set_lod_node(const NodePath &node) {
+void CActor::set_LOD_node(const NodePath &node) {
     // Sanity checks
     if (node.is_empty()) {
         actor_cat.warning() << "Failed to set LOD node, Node is empty!\n";
@@ -1643,16 +1652,16 @@ void CActor::set_lod_node(const NodePath &node) {
 }
 
 /**
- * add_lod(std::string, int, int)
+ * add_LOD(std::string, int, int)
  * Add a named node under the LODNode to parent all geometry
  * of a specific LOD under.
 **/
-void CActor::add_lod(const std::string &lod_name, int in_dist, int out_dist) {
+void CActor::add_LOD(const std::string &lod_name, int in_dist, int out_dist) {
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
     // Make sure we haven't already added this lod before.
-    if (!get_lod(lod_name).is_empty()) { return; }
+    if (!get_LOD(lod_name).is_empty()) { return; }
     
     _lod_node.attach_new_node(lod_name);
     // Save the switch distance info
@@ -1663,16 +1672,16 @@ void CActor::add_lod(const std::string &lod_name, int in_dist, int out_dist) {
 }
 
 /**
- * add_lod(std::string, int, int, LPoint3f)
+ * add_LOD(std::string, int, int, LPoint3f)
  * Add a named node under the LODNode to parent all geometry
  * of a specific LOD under.
 **/
-void CActor::add_lod(const std::string &lod_name, int in_dist, int out_dist, const LPoint3f &center) {
+void CActor::add_LOD(const std::string &lod_name, int in_dist, int out_dist, const LPoint3f &center) {
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
     // Make sure we haven't already added this lod before.
-    if (!get_lod(lod_name).is_empty()) { return; }
+    if (!get_LOD(lod_name).is_empty()) { return; }
     
     _lod_node.attach_new_node(lod_name);
     // Save the switch distance info
@@ -1685,10 +1694,10 @@ void CActor::add_lod(const std::string &lod_name, int in_dist, int out_dist, con
 }
 
 /**
- * set_lod(std::string, int, int)
+ * set_LOD(std::string, int, int)
  * Set the switch distance for given LOD
 **/
-void CActor::set_lod(const std::string &lod_name, int in_dist, int out_dist) {
+void CActor::set_LOD(const std::string &lod_name, int in_dist, int out_dist) {
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
@@ -1696,17 +1705,17 @@ void CActor::set_lod(const std::string &lod_name, int in_dist, int out_dist) {
     _switches[lod_name] = std::make_pair(in_dist, out_dist);
     // Add the switch distance info
     LODNode *lod_node = (LODNode *)_lod_node.node();
-    lod_node->set_switch(get_lod_index(lod_name), in_dist, out_dist);
+    lod_node->set_switch(get_LOD_index(lod_name), in_dist, out_dist);
 }
 
 /**
- * get_lod_index(std::string)
+ * get_LOD_index(std::string)
  * Safe method (but expensive) for retrieving the child index.
 **/
-int CActor::get_lod_index(const std::string &lod_name) {
+int CActor::get_LOD_index(const std::string &lod_name) {
     if (_lod_node.is_empty()) { return -1; }
     
-    NodePath lod = get_lod(lod_name);
+    NodePath lod = get_LOD(lod_name);
     if (lod.is_empty()) { return -1; }
     
     NodePathCollection children = _lod_node.get_children();
@@ -1720,17 +1729,33 @@ int CActor::get_lod_index(const std::string &lod_name) {
 }
         
 /**
- * get_lod(std::string)
+ * get_LOD(std::string)
  * Get the named node under the LOD to which we parent all LOD
  * specific geometry to. Returns empty NodePath if not found.
 **/
-NodePath CActor::get_lod(const std::string &lod_name) {
+NodePath CActor::get_LOD(const std::string &lod_name) {
     if (_lod_node.is_empty()) { return NodePath(); }
     
-    NodePath lod = _lod_node.find(lod_name);
-    if (lod.is_empty()) { return NodePath(); }
+    NodePath lod_path = _lod_node.find(lod_name);
+    if (lod_path.is_empty()) { return NodePath(); }
     
-    return lod;
+    return lod_path;
+}
+
+/**
+ * get_LOD(int)
+ * Get the named node under the LOD to which we parent all LOD
+ * specific geometry to. Returns empty NodePath if not found.
+**/
+NodePath CActor::get_LOD(int lod) {
+    std::string lod_name = std::to_string(lod);
+    
+    if (_lod_node.is_empty()) { return NodePath(); }
+    
+    NodePath lod_path = _lod_node.find(lod_name);
+    if (lod_path.is_empty()) { return NodePath(); }
+    
+    return lod_path;
 }
 
 
@@ -1750,10 +1775,222 @@ void CActor::set_center(const LPoint3f center) {
     LODNode *lod_node = (LODNode *)_lod_node.node();
     lod_node->set_center(_lod_center);
     
-    // In Python, set_lod_animation is called after this.
+    // In Python, set_LOD_animation is called after this.
     // But it may as well be unused un-needed code.
     // self.__LODAnimation is completely un-needed
-    // as set_lod_animation can just be called whenever you want.
+    // as set_LOD_animation can just be called whenever you want.
+}
+
+/**
+ * instance(NodePath path, string part_name, string joint_name, string lod_name)
+ * Instance a NodePath to an actor part at a joint called joint_name
+**/
+NodePath CActor::instance(NodePath &path, const std::string &part_name, const std::string &joint_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+    
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return NodePath::fail();
+    }
+    
+    PartDef part_def = it->second;
+    
+    NodePath joint = part_def._character_np.find("**/" + joint_name);
+    if (joint.is_empty()) {
+        actor_cat.warning() << joint_name << " not found!!\n";
+        return NodePath::fail();
+    }
+    
+    return path.instance_to(joint);
+}
+
+/**
+ * attach(string part_name, string another_part_name, string joint_name, string lod_name)
+ * Attach one actor part to another at a joint called joint_name
+**/
+void CActor::attach(const std::string &part_name, const std::string &another_part_name, const std::string &joint_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+    std::string bundle_name2(lod_name + ":" + another_part_name);
+    
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return;
+    }
+    
+    pmap<std::string, PartDef>::iterator it2 = _part_bundle_dict.find(bundle_name2);
+    if (it2 == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << another_part_name << "!\n";
+        return;
+    }
+
+    PartDef part_def = it->second;
+    PartDef part_def2 = it2->second;
+    
+    NodePath joint = part_def2._character_np.find("**/" + joint_name);
+    if (joint.is_empty()) {
+        actor_cat.warning() << joint_name << " not found!!\n";
+        return;
+    }
+    
+    return part_def._character_np.reparent_to(joint);
+}
+
+/**
+ * draw_in_front(string front_part_name, string back_part_name, int mode, string root, string lod_name)
+ * 
+ * Arrange geometry so the front_part(s) are drawn in front of
+ * back_part.
+ * 
+ * If mode == -1, the geometry is simply arranged to be drawn in
+ * the correct order, assuming it is already under a
+ * direct-render scene graph (like the DirectGui system).  That
+ * is, front_part is reparented to back_part, and back_part is
+ * reordered to appear first among its siblings.
+ * 
+ * If mode == -2, the geometry is arranged to be drawn in the
+ * correct order, and depth test/write is turned off for
+ * front_part.
+ * 
+ * If mode == -3, front_part is drawn as a decal onto back_part.
+ * This assumes that front_part is mostly coplanar with and does
+ * not extend beyond back_part, and that back_part is mostly flat
+ * (not self-occluding).
+ * 
+ * If mode > 0, the front_part geometry is placed in the 'fixed'
+ * bin, with the indicated drawing order.  This will cause it to
+ * be drawn after almost all other geometry.  In this case, the
+ * backPartName is actually unused.
+ * 
+ * Takes an optional argument root as the start of the search for the
+ * given parts. Also takes optional lod name to refine search for the
+ * named parts. If root and lod are defined, we search for the given
+ * root under the given lod.
+**/
+void CActor::draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root, const std::string &lod_name) {
+    NodePath root_path;
+    
+    // Check to see if we are working within an LOD
+    if (!lod_name.empty()) {
+        // Find the named LOD node
+        NodePath lod_root = _lod_node.find(lod_name);
+        if (lod_root.is_empty()) {
+            actor_cat.warning() << "No LOD named " << lod_name << "!\n";
+            return;
+        }
+        
+        if (root.empty()) {
+            // No need to look further
+            root_path = lod_root;
+        } else {
+            // Look for root under LOD
+            root_path = lod_root.find("**/" + root);
+            if (root_path.is_empty()) {
+                actor_cat.warning() << "No root named " << root << " found!\n";
+                return;
+            }
+        }
+    } else if (root.empty()) {
+        // Start search from ourself if no root and no LOD given.
+        root_path = *this;
+    }
+    
+    NodePathCollection front_parts = root_path.find_all_matches("**/" + front_part_name);
+    
+    if (mode > 0) {
+        // Use the 'fixed' bin instead of reordering the scene
+        // graph.
+        for (size_t i = 0; i < front_parts.size(); i++) {
+            NodePath front_part = front_parts[i];
+            front_part.set_bin("fixed", mode);
+        }
+        return;
+    }
+    
+    if (mode == -2) {
+        // Turn off depth test/write on the frontParts.
+        for (size_t i = 0; i < front_parts.size(); i++) {
+            NodePath front_part = front_parts[i];
+            front_part.set_depth_write(0);
+            front_part.set_depth_test(0);
+        }
+    }
+    
+    // Find the back part.
+    NodePath back_part = root_path.find("**/" + back_part_name);
+    if (back_part.is_empty()) {
+        actor_cat.warning() << "No part named " << back_part_name << "!\n";
+        return;
+    }
+    
+    if (mode == -3) {
+        // Draw as decal.
+        PT(PandaNode) back_part_node = back_part.node();
+        back_part_node->set_effect(DecalEffect::make());
+    } else {
+        // Reorder the back part to be the first of its siblings.
+        back_part.reparent_to(back_part.get_parent(), -1);
+    }
+    
+    // Reparent all the front parts to the back part.
+    front_parts.reparent_to(back_part);
+}
+
+/**
+ * get_part(string part_name, string lod_name)
+ * 
+ * Find the named part in the optional named lod and return it, or
+ * return a empty NodePath if not present.
+**/
+NodePath CActor::get_part(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+    
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return NodePath::not_found();
+    }
+
+    PartDef part_def = it->second;
+    return part_def._character_np;
+}
+
+/**
+ * get_part(string part_name, string lod_name)
+ * 
+ * Returns a NodePath to the ModelRoot of the indicated part name.
+**/
+NodePath CActor::get_part_model(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+    
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return NodePath::not_found();
+    }
+
+    PartDef part_def = it->second;
+    return part_def._part_model;
+}
+
+/**
+ * get_part_bundle(string part_name, string lod_name)
+ * 
+ * Find the named part in the optional named lod and return its
+ * associated PartBundle, or return NULL if not present.
+**/
+PT(Character) CActor::get_part_bundle(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+    
+    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return nullptr;
+    }
+
+    PartDef part_def = it->second;
+    return part_def._character;
 }
 
 /**
@@ -1802,11 +2039,11 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
 **/
 pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name) {
     bool has_part_name = !part_name.empty();
-    bool has_lod_name = !lod_name.empty();
+    bool has_LOD_name = !lod_name.empty();
     
     // If both strings are empty for some reason, Just call the version that needs no
     // paramaters.
-    if (!has_part_name && !has_lod_name) { return get_anim_defs(anim_name); }
+    if (!has_part_name && !has_LOD_name) { return get_anim_defs(anim_name); }
     
     pvector<AnimDef> anim_defs;
     pvector<PartDef> part_defs = get_part_defs(part_name, lod_name);
@@ -1829,11 +2066,11 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
 **/
 pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name) {
     bool has_part_name = !part_name.empty();
-    bool has_lod_name = !lod_name.empty();
+    bool has_LOD_name = !lod_name.empty();
     
     // If both strings are empty for some reason, Just call the version that needs no
     // paramaters.
-    if (!has_part_name && !has_lod_name) { return get_anim_defs(anim_index); }
+    if (!has_part_name && !has_LOD_name) { return get_anim_defs(anim_index); }
     
     pvector<AnimDef> anim_defs;
     pvector<PartDef> part_defs = get_part_defs(part_name, lod_name);
@@ -1856,11 +2093,11 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string
 **/
 pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name) {
     bool has_part_names = part_names.size() <= 0;
-    bool has_lod_name = !lod_name.empty();
+    bool has_LOD_name = !lod_name.empty();
     
     // If both our part name vector and lod name is empty for some reason, 
     // Just call the version that needs no paramaters.
-    if (!has_part_names && !has_lod_name) { return get_anim_defs(anim_name); }
+    if (!has_part_names && !has_LOD_name) { return get_anim_defs(anim_name); }
     
     pvector<AnimDef> anim_defs;
     pvector<PartDef> part_defs = get_part_defs(part_names, lod_name);
@@ -1883,11 +2120,11 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
 **/
 pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name) {
     bool has_part_names = part_names.size() <= 0;
-    bool has_lod_name = !lod_name.empty();
+    bool has_LOD_name = !lod_name.empty();
     
     // If both our part name vector and lod name is empty for some reason, 
     // Just call the version that needs no paramaters.
-    if (!has_part_names && !has_lod_name) { return get_anim_defs(anim_index); }
+    if (!has_part_names && !has_LOD_name) { return get_anim_defs(anim_index); }
     
     pvector<AnimDef> anim_defs;
     pvector<PartDef> part_defs = get_part_defs(part_names, lod_name);
@@ -1924,11 +2161,11 @@ pvector<CActor::PartDef> CActor::get_part_defs() {
 **/
 pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, const std::string &lod_name) {
     bool has_part_name = !part_name.empty();
-    bool has_lod_name = !lod_name.empty();
+    bool has_LOD_name = !lod_name.empty();
     
     // If both strings are empty for some reason, Just call the version that needs no
     // paramaters.
-    if (!has_part_name && !has_lod_name) { return get_part_defs(); }
+    if (!has_part_name && !has_LOD_name) { return get_part_defs(); }
     pvector<PartDef> part_defs;
     
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
@@ -1943,7 +2180,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
         // The bundle name is now the part name.
         curr_part_name = std::move(bundle_name);
         
-        if (!has_lod_name) { // We want all part defs that match this part name, LOD or not.
+        if (!has_LOD_name) { // We want all part defs that match this part name, LOD or not.
             if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
         } else if (!has_part_name) { // We want all part defs that are under this LOD.
             if (curr_lod_name.compare(lod_name) == 0) { part_defs.push_back(part_def); }
@@ -1960,11 +2197,11 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
 **/
 pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name) {
     bool has_part_names = part_names.size() <= 0;
-    bool has_lod_name = !lod_name.empty();
+    bool has_LOD_name = !lod_name.empty();
     
     // If both our part name vector and lod name is empty for some reason, 
     // Just call the version that needs no paramaters.
-    if (!has_part_names && !has_lod_name) { return get_part_defs(); }
+    if (!has_part_names && !has_LOD_name) { return get_part_defs(); }
     pvector<PartDef> part_defs;
     
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
@@ -1991,7 +2228,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
             std::string part_name = part_names[i];
             
             // If we don't have a lod name, Only check the part name and continue the loop.
-            if (!has_lod_name) { // We want all part defs that match this part name, LOD or not.
+            if (!has_LOD_name) { // We want all part defs that match this part name, LOD or not.
                 if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
                 continue;
             }
@@ -2793,7 +3030,8 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
     // Return current frame of the named animation if it is currently
     // playing on any layer.
     //JobSystem *jsys = JobSystem::get_global_ptr();
-    for (size_t i = 0; i < anim_defs.size(); i++) { // jsys->parallel_process(anim_defs.size(), [&] (size_t i) {
+    //jsys->parallel_process(anim_defs.size(), [&] (size_t i) {
+    for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef anim_def = anim_defs[i];
         
         // Get our character and sanity check our layer.
