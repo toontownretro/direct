@@ -22,6 +22,8 @@ public:
   //PyObject *__reduce__(PyObject *self) const;
   
   void load_anims(PyObject *anims=Py_None, PyObject *part_name=Py_None, PyObject *lod_name=Py_None, PyObject *load_now=Py_False);
+  
+  PyObject *get_LOD_names();
 };
 
 #endif  // HAVE_PYTHON

@@ -125,6 +125,12 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         EXTENSION(void load_anims(PyObject *anims=Py_None, PyObject *part_name=Py_None, PyObject *lod_name=Py_None, PyObject *load_now=Py_False));
         
+        void cleanup(bool remove_node=true);
+        
+        void remove_node(Thread *current_thread = Thread::get_current_thread());
+        
+        void flush();
+        
         void stop(int layer=1, bool kill=false);
         void stop(const std::string &anim_name, const std::string &part_name, int layer=1, bool kill=false);
         
@@ -157,21 +163,28 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         INLINE LODNode *get_LOD_node();
         
+        INLINE void use_LOD(int lod);
         INLINE void use_LOD(const std::string &lod_name);
         INLINE void reset_LOD();
         INLINE bool has_LOD();
         
+        INLINE void add_LOD(int lod, int in_dist=0, int out_dist=0);
+        INLINE void add_LOD(int lod, int in_dist, int out_dist, const LPoint3f &center);
         void add_LOD(const std::string &lod_name, int in_dist=0, int out_dist=0);
         void add_LOD(const std::string &lod_name, int in_dist, int out_dist, const LPoint3f &center);
         
+        INLINE void set_LOD(int lod, int in_dist=0, int out_dist=0);
         void set_LOD(const std::string &lod_name, int in_dist=0, int out_dist=0);
         
+        INLINE int get_LOD_index(int lod);
         int get_LOD_index(const std::string &lod_name);
         
         NodePath get_LOD(const std::string &lod_name);
         NodePath get_LOD(int lod);
         
         void set_center(const LPoint3f center = LPoint3f(0.0, 0.0, 0.0));
+        
+        EXTENSION(PyObject *get_LOD_names());
         
         INLINE NodePath instance(NodePath &path, const std::string &part_name, const std::string &joint_name);
         NodePath instance(NodePath &path, const std::string &part_name, const std::string &joint_name, const std::string &lod_name);
@@ -180,7 +193,7 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         void attach(const std::string &part_name, const std::string &another_part_name, const std::string &joint_name, const std::string &lod_name);
         
         INLINE void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode);
-        INLINE void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root);
+        INLINE void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &lod_name);
         void draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root, const std::string &lod_name);
         
         INLINE NodePath get_part();
@@ -319,6 +332,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         pvector<PT(Character)> get_part_bundles();
         pvector<PT(Character)> get_part_bundles(const std::string &part_name);
+        
+        pvector<std::string> get_LOD_names();
 
         void initialize_geom_node(bool flattenable=true);
         
@@ -326,6 +341,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         NodePath _lod_node = NodePath();
         
     private:
+        void clear_data();
+        
         INLINE const NodePath &get_geom_node() const;
         
         INLINE const pmap<std::string, PartDef> &get_part_bundle_dict() const;
@@ -358,6 +375,7 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         std::string part_prefix = "__Actor_";
         
         pmap<std::string, PartDef> _part_bundle_dict;
+        //pmap<std::string, pmap<std::string, PartDef> > _part_bundle_dict;
         pmap<std::string, std::pair<int, int>> _switches;
         
         pvector<std::string> _sorted_LOD_names;

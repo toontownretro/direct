@@ -55,6 +55,12 @@ INLINE LODNode *CActor::get_LOD_node() {
     return (LODNode *)_lod_node.node();
 }
 
+INLINE void CActor::use_LOD(int lod) {
+    std::string lod_name = std::to_string(lod);
+    
+    use_LOD(lod_name);
+}
+
 INLINE void CActor::use_LOD(const std::string &lod_name) {
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
@@ -85,6 +91,48 @@ INLINE void CActor::reset_LOD() {
 **/
 INLINE bool CActor::has_LOD() {
     return _has_LOD;
+}
+
+/**
+ * add_LOD(int, int, int)
+ * Add a named node under the LODNode to parent all geometry
+ * of a specific LOD under.
+**/
+INLINE void CActor::add_LOD(int lod, int in_dist, int out_dist) {
+    std::string lod_name = std::to_string(lod);
+    
+    add_LOD(lod_name, in_dist, out_dist);
+}
+
+/**
+ * add_LOD(int, int, int, LPoint3f)
+ * Add a named node under the LODNode to parent all geometry
+ * of a specific LOD under.
+**/
+INLINE void CActor::add_LOD(int lod, int in_dist, int out_dist, const LPoint3f &center) {
+    std::string lod_name = std::to_string(lod);
+    
+    add_LOD(lod_name, in_dist, out_dist, center);
+}
+
+/**
+ * set_LOD(int, int, int)
+ * Set the switch distance for given LOD
+**/
+INLINE void CActor::set_LOD(int lod, int in_dist, int out_dist) {
+    std::string lod_name = std::to_string(lod);
+    
+    set_LOD(lod_name, in_dist, out_dist);
+}
+
+/**
+ * get_LOD_index(int)
+ * Safe method (but expensive) for retrieving the child index.
+**/
+INLINE int CActor::get_LOD_index(int lod) {
+    std::string lod_name = std::to_string(lod);
+    
+    return get_LOD_index(lod_name);
 }
 
 /**
@@ -136,6 +184,41 @@ INLINE void CActor::attach(const std::string &part_name, const std::string &anot
 **/
 INLINE void CActor::draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode) {
     draw_in_front(front_part_name, back_part_name, mode, "", "");
+}
+
+/**
+ * draw_in_front(string front_part_name, string back_part_name, int mode, string lod_name)
+ * 
+ * Arrange geometry so the front_part(s) are drawn in front of
+ * back_part.
+ * 
+ * If mode == -1, the geometry is simply arranged to be drawn in
+ * the correct order, assuming it is already under a
+ * direct-render scene graph (like the DirectGui system).  That
+ * is, front_part is reparented to back_part, and back_part is
+ * reordered to appear first among its siblings.
+ * 
+ * If mode == -2, the geometry is arranged to be drawn in the
+ * correct order, and depth test/write is turned off for
+ * front_part.
+ * 
+ * If mode == -3, front_part is drawn as a decal onto back_part.
+ * This assumes that front_part is mostly coplanar with and does
+ * not extend beyond back_part, and that back_part is mostly flat
+ * (not self-occluding).
+ * 
+ * If mode > 0, the front_part geometry is placed in the 'fixed'
+ * bin, with the indicated drawing order.  This will cause it to
+ * be drawn after almost all other geometry.  In this case, the
+ * backPartName is actually unused.
+ * 
+ * Takes an optional argument root as the start of the search for the
+ * given parts. Also takes optional lod name to refine search for the
+ * named parts. If root and lod are defined, we search for the given
+ * root under the given lod.
+**/
+INLINE void CActor::draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &lod_name) {
+    draw_in_front(front_part_name, back_part_name, mode, "", lod_name);
 }
 
 /**
@@ -195,41 +278,6 @@ INLINE PT(Character) CActor::get_part_bundle() {
 **/
 INLINE PT(Character) CActor::get_part_bundle(const std::string &part_name) {
     return get_part_bundle(part_name, "lodRoot");
-}
-
-/**
- * draw_in_front(string front_part_name, string back_part_name, int mode, string root)
- * 
- * Arrange geometry so the front_part(s) are drawn in front of
- * back_part.
- * 
- * If mode == -1, the geometry is simply arranged to be drawn in
- * the correct order, assuming it is already under a
- * direct-render scene graph (like the DirectGui system).  That
- * is, front_part is reparented to back_part, and back_part is
- * reordered to appear first among its siblings.
- * 
- * If mode == -2, the geometry is arranged to be drawn in the
- * correct order, and depth test/write is turned off for
- * front_part.
- * 
- * If mode == -3, front_part is drawn as a decal onto back_part.
- * This assumes that front_part is mostly coplanar with and does
- * not extend beyond back_part, and that back_part is mostly flat
- * (not self-occluding).
- * 
- * If mode > 0, the front_part geometry is placed in the 'fixed'
- * bin, with the indicated drawing order.  This will cause it to
- * be drawn after almost all other geometry.  In this case, the
- * backPartName is actually unused.
- * 
- * Takes an optional argument root as the start of the search for the
- * given parts. Also takes optional lod name to refine search for the
- * named parts. If root and lod are defined, we search for the given
- * root under the given lod.
-**/
-INLINE void CActor::draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root) {
-    draw_in_front(front_part_name, back_part_name, mode, root, "");
 }
 
 INLINE void CActor::face_away_from_viewer() {

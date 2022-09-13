@@ -5,6 +5,8 @@
 #include "jobSystem.h"
 #include "transformState.h"
 
+#include <algorithm>
+
 #define EMPTY_STR std::string("")
 
 TypeHandle CActor::_type_handle;
@@ -711,7 +713,7 @@ CActor::CActor(const CActor &other) {
 }
 
 CActor::~CActor() {
-    
+    cleanup(true);
 }
 
 void CActor::operator=(const CActor &copy) {
@@ -812,7 +814,76 @@ void CActor::copy_part_bundles(const CActor &other) {
         our_part_def._anims_by_name.insert(part_def._anims_by_name.begin(), part_def._anims_by_name.end());
     }
 }
-        
+
+/**
+ * cleanup(remove_node=true)
+ *
+ * This method should be called when intending to destroy the Actor, and
+ * cleans up any additional resources stored on the Actor class before
+ * removing the underlying node using `remove_node()`.
+ * 
+ * Note that `remove_node()` itself is not sufficient to destroy actors,
+ * which is why this method exists.
+**/
+void CActor::cleanup(bool remove_node) {
+    // Stop any and all animations playing.
+    stop();
+    
+    // Flush all of our extra data and make sure we're ready for the rest of cleanup.
+    //clear_data();
+    flush();
+    
+    // Clear up our root geom node.
+    if (!_geom_node.is_empty()) {
+        _geom_node.remove_node();
+        _geom_node = NodePath();
+    }
+    
+    // If remove_node is true, Remove the node on our Actor as well.
+    if (!is_empty() && remove_node) { this->remove_node(); }
+}
+
+/**
+ * remove_node(current_thread = Thread::get_current_thread())
+ *
+ * You should call `cleanup()` for Actor objects instead, since
+ * NodePath::remove_node() is not sufficient for
+ * completely destroying Actor objects.
+**/
+void CActor::remove_node(Thread *current_thread) {
+    if (!_geom_node.is_empty() && _geom_node.get_num_children() > 0) {
+        actor_cat.warning() << "Called CActor::remove_node() on " << get_name() << " without calling cleanup()!\n";
+    }
+    NodePath::remove_node();
+}
+
+void CActor::clear_data() {
+    _part_bundle_dict.clear();
+    _sorted_LOD_names.clear();
+}
+
+/**
+ * flush()
+ *
+ * Actor flush function. Used by `cleanup()`.
+**/
+void CActor::flush() {
+    // Clear our vectors and maps.
+    clear_data();
+    
+    // Clear our LOD node.
+    if (!_lod_node.is_empty()) {
+        _lod_node.remove_node();
+        _lod_node = NodePath();
+    }
+    
+    // Remove all of the children from our geom node.
+    if (!_geom_node.is_empty()) { _geom_node.get_children().detach(); }
+    
+    // We no longer have a LOD, So set it to false.
+    _has_LOD = false;
+}
+
 /**
  * stop(layer=-1, kill=false)
  *
@@ -1362,7 +1433,10 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
         } else {
             // Load the channel into memory immediately and bind it.
             PT(AnimChannel) channel = load_anim(filename);
-            if (channel == nullptr) { continue; }
+            if (channel == nullptr) {
+                actor_cat.warning() << "Failed to load animation '" << anim_name << "' from file: " << filename << '\n';
+                continue;
+            }
             for (size_t i = 0; i < lod_names.size(); i++) {
                 std::string l_name = lod_names[i];
                 CActor::PartDef part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
@@ -1758,6 +1832,38 @@ NodePath CActor::get_LOD(int lod) {
     return lod_path;
 }
 
+
+/**
+ * get_LOD_names()
+ * Return a vector of Actor LOD names. If not an LOD actor, returns 'lodRoot'.
+ * Caution - this returns a reference to the vector - not your own copy.
+**/
+pvector<std::string> CActor::get_LOD_names() {
+    // TODO: Use a pre-loaded LOD name vector when possible.
+    
+    pvector<std::string> lod_names;
+
+    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        // Get back our lod name by splitting the string.
+        std::string curr_lod_name = it->first.substr(0, it->first.find(':'));
+        
+        // Make sure it's not just the base lod root.
+        if (curr_lod_name.compare("lodRoot") == 0) { continue; }
+        
+        // If we already have the LOD name, Continue onward.
+        if (std::find(lod_names.begin(), lod_names.end(), curr_lod_name) != lod_names.end()) { continue; }
+        
+        // Add in the new LOD name.
+        lod_names.emplace_back(curr_lod_name);
+    }
+    
+    // If we found no specfic LOD names, We just return a vector with "lodRoot" in it.
+    if (lod_names.empty()) {
+        lod_names.emplace_back("lodRoot");
+    }
+    
+    return lod_names;
+}
 
 void CActor::set_center(const LPoint3f center) {
     _lod_center = center;

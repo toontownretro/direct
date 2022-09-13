@@ -188,9 +188,14 @@ void Extension<CActor>::__init__(PyObject *self, PyObject *models, PyObject *ani
             std::string models_str = PyString_ToString(models);
 
             _this->load_model(models_str, "modelRoot", "lodRoot", _copy, _ok_missing);
+        } else if (models != Py_None && DtoolInstance_Check(models) && DtoolInstance_TYPE(models) == NodePath_py_type) {
+            NodePath *model_node_ptr = NULL;
+            if (!DtoolInstance_GetPointer(models, model_node_ptr, *NodePath_py_type)) { return; }
+                
+            _this->load_model(*model_node_ptr, "modelRoot", "lodRoot", _copy, _ok_missing);
         } else if (models != Py_None) {
             std::ostringstream stream;
-            stream << "models paramater passed to CActor constructor must be a dict or a str.";
+            stream << "models paramater passed to CActor constructor must be a dict, str, or NodePath";
             std::string str = stream.str();
             PyErr_SetString(PyExc_TypeError, str.c_str());
             return;
@@ -395,6 +400,27 @@ void Extension<CActor>::load_anims(PyObject *anims, PyObject *part_name, PyObjec
     }
     
     _this->load_anims(_anims, _part_name, _lod_name, _load_now);
+}
+
+PyObject *Extension<CActor>::get_LOD_names() {
+    // Get all of our lod names.
+    pvector<std::string> lod_names = _this->get_LOD_names();
+    
+    // Create our list to append the string objects to.
+    PyObject *lod_name_list = PyList_New(0);
+    
+    for (size_t i = 0; i < lod_names.size(); i++) {
+        std::string lod_name = lod_names[i];
+        
+        // Create a unicode string object from the string.
+        PyObject *str_object = PyUnicode_FromStringAndSize(lod_name.data(), lod_name.size());
+        if (str_object == nullptr) { continue; }
+        
+        // Add the string item to our list.
+        int error = PyList_Append(lod_name_list, str_object);
+    }
+    
+    return lod_name_list;
 }
 
 #endif // HAVE_PYTHON
