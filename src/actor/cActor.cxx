@@ -92,8 +92,8 @@ CActor::CActor(const pmap<std::string, std::string> &models, bool copy, bool fla
     
     // Multi-part Actor w/o LOD
     for (pmap<std::string, std::string>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string part_name = it->first;
-        std::string model_path = it->second;
+        const std::string &part_name = it->first;
+        const std::string &model_path = it->second;
         load_model(model_path, part_name, EMPTY_STR, copy, ok_missing);
         
     }
@@ -122,7 +122,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, bool copy, bool flatte
 
     // Multi-part Actor w/o LOD
     for (pmap<std::string, NodePath>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string part_name = it->first;
+        const std::string &part_name = it->first;
         const NodePath &model_node = it->second;
         load_model(model_node, part_name, EMPTY_STR, copy, ok_missing);
         
@@ -160,11 +160,11 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     // Single-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (pmap<std::string, std::string>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string lod_name = it->first;
-        std::string model_path = it->second;
+        const std::string &lod_name = it->first;
+        const std::string &model_path = it->second;
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(lod_name);
+        lod_names.emplace_back(lod_name);
         load_model(model_path, EMPTY_STR, lod_name, copy, ok_missing);
     }
     
@@ -209,11 +209,11 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bo
     // Single-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (pmap<std::string, NodePath>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string lod_name = it->first;
+        const std::string &lod_name = it->first;
         const NodePath &model_node = it->second;
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(lod_name);
+        lod_names.emplace_back(lod_name);
         load_model(model_node, EMPTY_STR, lod_name, copy, ok_missing);
     }
     
@@ -258,10 +258,10 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        MultipartLODActorDataWPath data = models[i];
+        const MultipartLODActorDataWPath &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(data.lod_name);
+        lod_names.emplace_back(data.lod_name);
         load_model(data.model_path, data.part_name, data.lod_name, copy, ok_missing);
     }
     
@@ -306,10 +306,10 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        MultipartLODActorData data = models[i];
+        const MultipartLODActorData &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(data.lod_name);
+        lod_names.emplace_back(data.lod_name);
         load_model(data.model_node, data.part_name, data.lod_name, copy, ok_missing);
     }
     
@@ -402,15 +402,15 @@ CActor::CActor(const pmap<std::string, std::string> &models, const pmap<std::str
     
     // Multi-part Actor w/o LOD
     for (pmap<std::string, std::string>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string part_name = it->first;
-        std::string model_path = it->second;
+        const std::string &part_name = it->first;
+        const std::string &model_path = it->second;
         load_model(model_path, part_name, EMPTY_STR, copy, ok_missing);
         
     }
     
     for (pmap<std::string, pvector<std::pair<std::string, std::string> > >::const_iterator it = anims.begin(); it != anims.end(); it++) {
-        std::string part_name = it->first;
-        pvector<std::pair<std::string, std::string> > part_anims = it->second;
+        const std::string &part_name = it->first;
+        const pvector<std::pair<std::string, std::string> > &part_anims = it->second;
         
         load_anims(part_anims, part_name, EMPTY_STR);
     }
@@ -439,15 +439,15 @@ CActor::CActor(const pmap<std::string, NodePath> &models, const pmap<std::string
 
     // Multi-part Actor w/o LOD
     for (pmap<std::string, NodePath>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string part_name = it->first;
+        const std::string &part_name = it->first;
         const NodePath &model_node = it->second;
         load_model(model_node, part_name, EMPTY_STR, copy, ok_missing);
         
     }
     
     for (pmap<std::string, pvector<std::pair<std::string, std::string> > >::const_iterator it = anims.begin(); it != anims.end(); it++) {
-        std::string part_name = it->first;
-        pvector<std::pair<std::string, std::string> > part_anims = it->second;
+        const std::string &part_name = it->first;
+        const pvector<std::pair<std::string, std::string> > &part_anims = it->second;
         
         load_anims(part_anims, part_name, EMPTY_STR);
     }
@@ -484,11 +484,11 @@ CActor::CActor(const pmap<std::string, std::string> &models, NodePath &lod_node,
     // Single-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (pmap<std::string, std::string>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string lod_name = it->first;
-        std::string model_path = it->second;
+        const std::string &lod_name = it->first;
+        const std::string &model_path = it->second;
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(lod_name);
+        lod_names.emplace_back(lod_name);
         load_model(model_path, EMPTY_STR, lod_name, copy, ok_missing);
     }
     
@@ -534,11 +534,11 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, co
     // Single-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (pmap<std::string, NodePath>::const_iterator it = models.begin(); it != models.end(); it++) {
-        std::string lod_name = it->first;
+        const std::string &lod_name = it->first;
         const NodePath &model_node = it->second;
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(lod_name);
+        lod_names.emplace_back(lod_name);
         load_model(model_node, EMPTY_STR, lod_name, copy, ok_missing);
     }
     
@@ -585,10 +585,10 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        MultipartLODActorDataWPath data = models[i];
+        const MultipartLODActorDataWPath &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(data.lod_name);
+        lod_names.emplace_back(data.lod_name);
         load_model(data.model_path, data.part_name, data.lod_name, copy, ok_missing);
     }
     
@@ -601,8 +601,8 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
         add_LOD(lod_names[i]);
         
         for (pmap<std::string, pvector<std::pair<std::string, std::string> > >::const_iterator it = anims.begin(); it != anims.end(); it++) {
-            std::string part_name = it->first;
-            pvector<std::pair<std::string, std::string> > part_anims = it->second;
+            const std::string &part_name = it->first;
+            const pvector<std::pair<std::string, std::string> > &part_anims = it->second;
             
             load_anims(part_anims, part_name, lod_names[i]);
         }
@@ -641,10 +641,10 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        MultipartLODActorData data = models[i];
+        const MultipartLODActorData &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
-        lod_names.push_back(data.lod_name);
+        lod_names.emplace_back(data.lod_name);
         load_model(data.model_node, data.part_name, data.lod_name, copy, ok_missing);
     }
     
@@ -657,8 +657,8 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
         add_LOD(lod_names[i]);
         
         for (pmap<std::string, pvector<std::pair<std::string, std::string> > >::const_iterator it = anims.begin(); it != anims.end(); it++) {
-            std::string part_name = it->first;
-            pvector<std::pair<std::string, std::string> > part_anims = it->second;
+            const std::string &part_name = it->first;
+            const pvector<std::pair<std::string, std::string> > &part_anims = it->second;
             
             load_anims(part_anims, part_name, lod_names[i]);
         }
@@ -780,7 +780,7 @@ void CActor::copy_part_bundles(const CActor &other) {
         NodePath part_lod;
         
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        const PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         std::string lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -896,7 +896,7 @@ void CActor::stop(int layer, bool kill) {
     
     // Stopping all layers or a specific layer
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         PT(Character) character = part_def._character;
         if (character == nullptr) { continue; }
         if (layer == -1 || layer < character->get_num_anim_layers()) { character->stop(layer, kill); }
@@ -920,7 +920,7 @@ void CActor::stop(const std::string &anim_name, const std::string &part_name, in
     pvector<PartDef> part_defs = get_part_defs(part_name, EMPTY_STR);
     
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         PT(Character) character = part_def._character;
         if (character == nullptr) { continue; }
         
@@ -954,7 +954,7 @@ void CActor::play(const std::string &anim_name, int from_frame, int to_frame, in
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -983,7 +983,7 @@ void CActor::play(int channel, int from_frame, int to_frame, int layer, PN_stdfl
     pvector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1012,7 +1012,7 @@ void CActor::play(const std::string &anim_name, const std::string &part_name, in
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1041,7 +1041,7 @@ void CActor::play(int channel, const std::string &part_name, int from_frame, int
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1071,7 +1071,7 @@ void CActor::loop(const std::string &anim_name, bool restart, int from_frame, in
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1101,7 +1101,7 @@ void CActor::loop(int channel, bool restart, int from_frame, int to_frame, int l
     pvector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1131,7 +1131,7 @@ void CActor::loop(const std::string &anim_name, const std::string &part_name, bo
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1161,7 +1161,7 @@ void CActor::loop(int channel, const std::string &part_name, bool restart, int f
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1189,7 +1189,7 @@ void CActor::pingpong(const std::string &anim_name, bool restart, int from_frame
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1217,7 +1217,7 @@ void CActor::pingpong(int channel, bool restart, int from_frame, int to_frame, i
     pvector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1245,7 +1245,7 @@ void CActor::pingpong(const std::string &anim_name, const std::string &part_name
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1273,7 +1273,7 @@ void CActor::pingpong(int channel, const std::string &part_name, bool restart, i
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1304,7 +1304,7 @@ void CActor::pose(const std::string &anim_name, const std::string &part_name, co
     if (frame <= -1) { frame = 0; }
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1325,7 +1325,7 @@ void CActor::pose(int channel, const std::string &part_name, const std::string &
     if (frame <= -1) { frame = 0; }
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(Character) character = anim_def.get_character();
         if (character == nullptr) { continue; }
         
@@ -1342,7 +1342,7 @@ void CActor::set_transition(const std::string &anim_name, const std::string &par
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(AnimChannel) channel = anim_def.get_animation_channel();
         if (channel == nullptr) { continue; }
         
@@ -1363,7 +1363,7 @@ void CActor::set_transition(int channel, const std::string &part_name, const std
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         PT(AnimChannel) channel = anim_def.get_animation_channel();
         if (channel == nullptr) { continue; }
         
@@ -1405,25 +1405,25 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
     
     if (anim_lod_name.compare("all") == 0) {
         for (pmap<std::string, std::pair<int, int>>::iterator it = _switches.begin(); it != _switches.end(); it++) {
-            lod_names.push_back(it->first);
+            lod_names.emplace_back(it->first);
         }
     } else {
-        lod_names.push_back(anim_lod_name);
+        lod_names.emplace_back(anim_lod_name);
     }
     
     actor_cat.debug() << "in loadAnim: " << anims[0].first << ", part: " << anim_part_name << ", lod: " << lod_names[0] << '\n';
     
     for (size_t i = 0; i < anims.size(); i++) {
         std::pair<std::string, std::string> it = anims[i];
-        std::string anim_name = it.first;
-        std::string filename = it.second;
+        std::string &anim_name = it.first;
+        std::string &filename = it.second;
         
         if (!load_now) {
             // Just create an AnimDef that references no channel.
             // When we try to access the AnimDef it will load the channel
             // then and bind it.
             for (size_t i = 0; i < lod_names.size(); i++) {
-                std::string l_name = lod_names[i];
+                std::string &l_name = lod_names[i];
                 CActor::PartDef &part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
                 PT(Character) character = part_def._character;
                 CActor::AnimDef anim_def(filename, nullptr, character);
@@ -1438,7 +1438,7 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
                 continue;
             }
             for (size_t i = 0; i < lod_names.size(); i++) {
-                std::string l_name = lod_names[i];
+                std::string &l_name = lod_names[i];
                 CActor::PartDef &part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
                 PT(Character) character = part_def._character;
                 CActor::AnimDef anim_def(filename, channel, character);
@@ -2059,7 +2059,7 @@ NodePath CActor::get_part(const std::string &part_name, const std::string &lod_n
         return NodePath::not_found();
     }
 
-    PartDef part_def = it->second;
+    PartDef &part_def = it->second;
     return part_def._character_np;
 }
 
@@ -2077,7 +2077,7 @@ NodePath CActor::get_part_model(const std::string &part_name, const std::string 
         return NodePath::not_found();
     }
 
-    PartDef part_def = it->second;
+    PartDef &part_def = it->second;
     return part_def._part_model;
 }
 
@@ -2096,7 +2096,7 @@ PT(Character) CActor::get_part_bundle(const std::string &part_name, const std::s
         return nullptr;
     }
 
-    PartDef part_def = it->second;
+    PartDef &part_def = it->second;
     return part_def._character;
 }
 
@@ -2110,10 +2110,10 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name) {
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         AnimDef *anim_def = part_def.get_anim_def(anim_name);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.push_back(*anim_def);
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2130,10 +2130,10 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         AnimDef *anim_def = part_def.get_anim_def(anim_index);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.push_back(*anim_def);
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2157,10 +2157,10 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         AnimDef *anim_def = part_def.get_anim_def(anim_name);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.push_back(*anim_def);
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2184,10 +2184,10 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         AnimDef *anim_def = part_def.get_anim_def(anim_index);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.push_back(*anim_def);
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2211,10 +2211,10 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         AnimDef *anim_def = part_def.get_anim_def(anim_name);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.push_back(*anim_def);
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2238,10 +2238,10 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef part_def = part_defs[i];
+        PartDef &part_def = part_defs[i];
         AnimDef *anim_def = part_def.get_anim_def(anim_index);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.push_back(*anim_def);
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2256,8 +2256,8 @@ pvector<CActor::PartDef> CActor::get_part_defs() {
     
     // Just iterate the entire map and get all of our PartDefs.
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
-        PartDef part_def = it->second;
-        part_defs.push_back(part_def);
+        PartDef &part_def = it->second;
+        part_defs.emplace_back(part_def);
     }
     
     return part_defs;
@@ -2278,7 +2278,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2288,11 +2288,11 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
         curr_part_name = std::move(bundle_name);
         
         if (!has_LOD_name) { // We want all part defs that match this part name, LOD or not.
-            if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+            if (curr_part_name.compare(part_name) == 0) { part_defs.emplace_back(part_def); }
         } else if (!has_part_name) { // We want all part defs that are under this LOD.
-            if (curr_lod_name.compare(lod_name) == 0) { part_defs.push_back(part_def); }
+            if (curr_lod_name.compare(lod_name) == 0) { part_defs.emplace_back(part_def); }
         } else { // We want all part defs that match this part name, and are under the specified LOD.
-            if (curr_lod_name.compare(lod_name) == 0 && curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+            if (curr_lod_name.compare(lod_name) == 0 && curr_part_name.compare(part_name) == 0) { part_defs.emplace_back(part_def); }
         }
     }
     
@@ -2314,7 +2314,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2326,22 +2326,22 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
         // If we don't have any part names, Then just check the lod name,
         // and continue the loop.
         if (!has_part_names) { // We want all part defs that are under this LOD.
-            if (curr_lod_name.compare(lod_name) == 0) { part_defs.push_back(part_def); }
+            if (curr_lod_name.compare(lod_name) == 0) { part_defs.emplace_back(part_def); }
             continue;
         }
         
         // We have part names, So we need to iterate them all.
         for (size_t i = 0; i < part_names.size(); i++) {
-            std::string part_name = part_names[i];
+            const std::string &part_name = part_names[i];
             
             // If we don't have a lod name, Only check the part name and continue the loop.
             if (!has_LOD_name) { // We want all part defs that match this part name, LOD or not.
-                if (curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+                if (curr_part_name.compare(part_name) == 0) { part_defs.emplace_back(part_def); }
                 continue;
             }
             
             // We want all part defs that match this part name, and are under the specified LOD.
-            if (curr_lod_name.compare(lod_name) == 0 && curr_part_name.compare(part_name) == 0) { part_defs.push_back(part_def); }
+            if (curr_lod_name.compare(lod_name) == 0 && curr_part_name.compare(part_name) == 0) { part_defs.emplace_back(part_def); }
         }
     }
     
@@ -2361,7 +2361,7 @@ std::string CActor::get_current_anim(int layer) {
     
     std::string curr_lod_name, curr_part_name;
     std::string bundle_name(it->first);
-    PartDef part_def = it->second;
+    PartDef &part_def = it->second;
     
     // Get back both our lod name and our part name by splitting the string.
     curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2379,7 +2379,7 @@ std::string CActor::get_current_anim(int layer) {
     
     // Return the name associated with the channel index the layer is
     // playing.
-    AnimDef anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
+    AnimDef &anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
     return anim_def.get_name();
 }
 
@@ -2394,7 +2394,7 @@ std::string CActor::get_current_anim(const std::string &part_name, int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2416,7 +2416,7 @@ std::string CActor::get_current_anim(const std::string &part_name, int layer) {
         
         // Return the name associated with the channel index the layer is
         // playing.
-        AnimDef anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
+        AnimDef &anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
         return anim_def.get_name();
     }
     
@@ -2437,7 +2437,7 @@ int CActor::get_current_channel(int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2477,7 +2477,7 @@ int CActor::get_current_channel(const std::string &part_name, int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2511,7 +2511,7 @@ PN_stdfloat CActor::get_channel_length(int channel) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2546,7 +2546,7 @@ PN_stdfloat CActor::get_channel_length(const std::string &part_name, int channel
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2580,7 +2580,7 @@ int CActor::get_channel_activity(int channel, int index) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2615,7 +2615,7 @@ int CActor::get_channel_activity(const std::string &part_name, int channel, int 
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2650,7 +2650,7 @@ int CActor::get_channel_for_activity(int activity, int seed, int layer) {
         int curr_channel = -1;
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2688,7 +2688,7 @@ int CActor::get_channel_for_activity(const std::string &part_name, int activity,
         int curr_channel = -1;
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2727,7 +2727,7 @@ int CActor::get_current_activity(int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2765,7 +2765,7 @@ int CActor::get_current_activity(const std::string &part_name, int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2803,7 +2803,7 @@ bool CActor::is_current_channel_finished(int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2842,7 +2842,7 @@ bool CActor::is_current_channel_finished(const std::string &part_name, int layer
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2880,7 +2880,7 @@ bool CActor::is_channel_playing(int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2919,7 +2919,7 @@ bool CActor::is_channel_playing(const std::string &part_name, int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2957,7 +2957,7 @@ PN_stdfloat CActor::get_cycle(int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -2996,7 +2996,7 @@ PN_stdfloat CActor::get_cycle(const std::string &part_name, int layer) {
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -3037,7 +3037,7 @@ int CActor::get_current_frame(int layer) {
     if (it == _part_bundle_dict.end()) { return 0; }
     
     // Get the part definition from our iterator.
-    PartDef part_def = it->second;
+    PartDef &part_def = it->second;
     
     // Get our character and sanity check our layer.
     PT(Character) character = part_def._character;
@@ -3078,7 +3078,7 @@ int CActor::get_current_frame(const std::string &part_name, int layer) {
         std::string bundle_name(it->first);
         
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -3139,7 +3139,7 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
     //JobSystem *jsys = JobSystem::get_global_ptr();
     //jsys->parallel_process(anim_defs.size(), [&] (size_t i) {
     for (size_t i = 0; i < anim_defs.size(); i++) {
-        AnimDef anim_def = anim_defs[i];
+        AnimDef &anim_def = anim_defs[i];
         
         // Get our character and sanity check our layer.
         PT(Character) character = anim_def.get_character();
@@ -3280,13 +3280,13 @@ pvector<PT(Character)> CActor::get_part_bundles() {
     
     for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get our character, and if it's a nullptr; Continue as if nothing happened.
         PT(Character) character = part_def._character;
         if (character == nullptr) { continue; }
         
-        part_bundles.push_back(character);
+        part_bundles.emplace_back(character);
     }
     
     return part_bundles;
@@ -3309,7 +3309,7 @@ pvector<PT(Character)> CActor::get_part_bundles(const std::string &part_name) {
         std::string bundle_name(it->first);
         
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -3326,7 +3326,7 @@ pvector<PT(Character)> CActor::get_part_bundles(const std::string &part_name) {
         PT(Character) character = part_def._character;
         if (character == nullptr) { continue; }
         
-        part_bundles.push_back(character);
+        part_bundles.emplace_back(character);
     }
     
     // We couldn't find the specified part.
@@ -3349,7 +3349,7 @@ void CActor::list_joints(const std::string &part_name, const std::string &lod_na
         std::string bundle_name(it->first);
         
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -3399,7 +3399,7 @@ const Filename CActor::get_anim_filename(const std::string &anim_name, const std
         std::string bundle_name(it->first);
         
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -3453,7 +3453,7 @@ NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, co
         std::string bundle_name(it->first);
         
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
@@ -3503,7 +3503,7 @@ void CActor::release_joint(const std::string &part_name, const std::string &join
         std::string bundle_name(it->first);
         
         // Get the part definition from our iterator.
-        PartDef part_def = it->second;
+        PartDef &part_def = it->second;
         
         // Get back both our lod name and our part name by splitting the string.
         curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
