@@ -1424,7 +1424,7 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
             // then and bind it.
             for (size_t i = 0; i < lod_names.size(); i++) {
                 std::string l_name = lod_names[i];
-                CActor::PartDef part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
+                CActor::PartDef &part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
                 PT(Character) character = part_def._character;
                 CActor::AnimDef anim_def(filename, nullptr, character);
                 anim_def.set_name(anim_name);
@@ -1439,7 +1439,7 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
             }
             for (size_t i = 0; i < lod_names.size(); i++) {
                 std::string l_name = lod_names[i];
-                CActor::PartDef part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
+                CActor::PartDef &part_def = _part_bundle_dict[l_name + ":" + anim_part_name];
                 PT(Character) character = part_def._character;
                 CActor::AnimDef anim_def(filename, channel, character);
                 anim_def.set_name(anim_name);
@@ -1514,7 +1514,8 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
     
     anim_def.set_index(channel_index);
     anim_def.set_animation_channel(channel);
-    part_def._anims_by_index[channel_index] = anim_def;
+    pvector<AnimDef> &anims_by_index = part_def._anims_by_index;
+    anims_by_index.insert(anims_by_index.begin() + channel_index, anim_def);
     
     return true;
 }

@@ -314,6 +314,24 @@ INLINE CActor::AnimDef::AnimDef(Filename filename, PT(AnimChannel) channel, PT(C
     _character = character;
 }
 
+INLINE CActor::AnimDef::AnimDef(const CActor::AnimDef &other)  {
+    _channel = other._channel;
+    _character = other._character;
+    _index = other._index;
+    _play_rate = other._play_rate;
+    set_name(other.get_name());
+    set_filename(other.get_filename());
+}
+
+INLINE void CActor::AnimDef::operator=(const CActor::AnimDef &copy) {
+    _channel = copy._channel;
+    _character = copy._character;
+    _index = copy._index;
+    _play_rate = copy._play_rate;
+    set_name(copy.get_name());
+    set_filename(copy.get_filename());
+}
+
 INLINE void CActor::AnimDef::set_filename(const std::string &filename) {
     _filename = Filename(filename);
 }
@@ -322,7 +340,7 @@ INLINE void CActor::AnimDef::set_filename(const Filename &filename) {
     _filename = filename;
 }
 
-INLINE const Filename &CActor::AnimDef::get_filename() {
+INLINE const Filename &CActor::AnimDef::get_filename() const {
     return _filename;
 }
 
@@ -346,7 +364,7 @@ INLINE void CActor::AnimDef::set_name(const std::string &name) {
     _name = name;
 }
 
-INLINE std::string CActor::AnimDef::get_name() {
+INLINE std::string CActor::AnimDef::get_name() const {
     return _name;
 }
 

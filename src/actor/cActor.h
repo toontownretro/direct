@@ -51,11 +51,14 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
     class EXPCL_DIRECT_ACTOR AnimDef {
         PUBLISHED:
             INLINE AnimDef(Filename filename = Filename(), PT(AnimChannel) channel = nullptr, PT(Character) character = nullptr);
+            INLINE AnimDef(const AnimDef &other);
             INLINE ~AnimDef() = default;
+            
+            INLINE void AnimDef::operator=(const AnimDef &copy);
             
             INLINE void set_filename(const std::string &filename);
             INLINE void set_filename(const Filename &filename);
-            INLINE const Filename &get_filename();
+            INLINE const Filename &get_filename() const;
             
             INLINE void set_animation_channel(AnimChannel *channel);
             INLINE PT(AnimChannel) get_animation_channel();
@@ -64,7 +67,7 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
             INLINE PT(Character) get_character();
             
             INLINE void set_name(const std::string &name);
-            INLINE std::string get_name();
+            INLINE std::string get_name() const;
             
             INLINE void set_index(int index);
             INLINE int get_index();
