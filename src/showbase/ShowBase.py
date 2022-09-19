@@ -1876,10 +1876,10 @@ class ShowBase(HostBase):
         the ShowBase constructor.
         """
         self.sfxPlayer = SfxPlayer.SfxPlayer()
-        sfxManager = AudioManager.createAudioManager()
+        sfxManager = AudioManager.createAudioManager("sfx")
         self.addSfxManager(sfxManager)
 
-        self.musicManager = AudioManager.createAudioManager()
+        self.musicManager = AudioManager.createAudioManager("music")
         self.musicManagerIsValid = self.musicManager is not None \
             and self.musicManager.isValid()
         if self.musicManagerIsValid:
