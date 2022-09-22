@@ -143,6 +143,7 @@ class ShowBase(HostBase):
         self.wantRender2dp = ConfigVariableBool('want-render2dp', True).value
 
         self.screenshotExtension = ConfigVariableString('screenshot-extension', 'jpg').value
+        self.audioEngine = None
         self.musicManager = None
         self.musicManagerIsValid = None
         self.sfxManagerList = []
@@ -529,12 +530,10 @@ class ShowBase(HostBase):
             allowAccessibilityShortcutKeys(True)
             self.__disabledStickyKeys = False
 
-        if getattr(self, 'musicManager', None):
-            self.musicManager.shutdown()
-            self.musicManager = None
-            for sfxManager in self.sfxManagerList:
-                sfxManager.shutdown()
-            self.sfxManagerList = []
+        self.audioEngine = None
+        self.musicManager = None
+        self.sfxManagerList = []
+
         if getattr(self, 'graphicsEngine', None):
             self.graphicsEngine.removeAllWindows()
 
@@ -1875,11 +1874,13 @@ class ShowBase(HostBase):
         Creates the default SFX and music manager.  Called automatically from
         the ShowBase constructor.
         """
+        self.audioEngine = AudioEngine.makeEngine()
+
         self.sfxPlayer = SfxPlayer.SfxPlayer()
-        sfxManager = AudioManager.createAudioManager("sfx")
+        sfxManager = self.audioEngine.makeManager("sfx")
         self.addSfxManager(sfxManager)
 
-        self.musicManager = AudioManager.createAudioManager("music")
+        self.musicManager = self.audioEngine.makeManager("music")
         self.musicManagerIsValid = self.musicManager is not None \
             and self.musicManager.isValid()
         if self.musicManagerIsValid:
@@ -2046,10 +2047,8 @@ class ShowBase(HostBase):
         return Task.cont
 
     def __audioLoop(self, state):
-        if self.musicManager is not None:
-            self.musicManager.update()
-        for x in self.sfxManagerList:
-            x.update()
+        if self.audioEngine is not None:
+            self.audioEngine.update()
         return Task.cont
 
     def __garbageCollectStates(self, state):
