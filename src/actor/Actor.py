@@ -1156,7 +1156,7 @@ class Actor(DirectObject, NodePath):
             return
         except:
             self.Actor_deleted = 1
-            self.cleanup(removeNode=removeNode)
+            Actor.cleanup(self, removeNode=removeNode)
 
     def copyActor(self, other, overwrite=False):
         # act like a copy constructor
