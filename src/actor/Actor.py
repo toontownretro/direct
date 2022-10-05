@@ -1260,8 +1260,7 @@ class Actor(DirectObject, NodePath):
         # the same node is still different from the Actor.
         if self is other:
             return 0
-        else:
-            return 1
+        return 1
 
     def delete(self, removeNode=True):
         try:
@@ -1270,7 +1269,7 @@ class Actor(DirectObject, NodePath):
         except:
             self.Actor_deleted = 1
 
-        self.cleanup(removeNode=removeNode)
+        Actor.cleanup(self, removeNode=removeNode)
 
     def copyActor(self, other, overwrite=False):
         # act like a copy constructor

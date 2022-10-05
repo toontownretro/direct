@@ -14,3 +14,14 @@
 #include "frameSnapshot.h"
 
 TypeHandle FrameSnapshot::_type_handle;
+
+/**
+ *
+ */
+FrameSnapshot::
+~FrameSnapshot() {
+  if (_entries != nullptr) {
+    delete[] _entries;
+    _entries = nullptr;
+  }
+}

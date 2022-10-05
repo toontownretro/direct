@@ -1958,24 +1958,24 @@ class ShowBase(HostBase):
     # This function should only be in the loader but is here for
     # backwards compatibility. Please do not add code here, add
     # it to the loader.
-    def loadSfx(self, name):
+    def loadSfx(self, name, stream=False):
         """
         :deprecated: Use `.Loader.Loader.loadSfx()` instead.
         """
         if __debug__:
             warnings.warn("base.loadSfx is deprecated, use base.loader.loadSfx instead.", DeprecationWarning, stacklevel=2)
-        return self.loader.loadSfx(name)
+        return self.loader.loadSfx(name, stream=stream)
 
     # This function should only be in the loader but is here for
     # backwards compatibility. Please do not add code here, add
     # it to the loader.
-    def loadMusic(self, name):
+    def loadMusic(self, name, stream=False):
         """
         :deprecated: Use `.Loader.Loader.loadMusic()` instead.
         """
         if __debug__:
             warnings.warn("base.loadMusic is deprecated, use base.loader.loadMusic instead.", DeprecationWarning, stacklevel=2)
-        return self.loader.loadMusic(name)
+        return self.loader.loadMusic(name, stream=stream)
 
     def playSfx(
             self, sfx, looping = 0, interrupt = 1, volume = None,
