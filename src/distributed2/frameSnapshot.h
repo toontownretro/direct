@@ -26,7 +26,7 @@ PUBLISHED:
   ALLOC_DELETED_CHAIN(FrameSnapshot);
 
   INLINE FrameSnapshot(int tick_count, int num_entries);
-  INLINE ~FrameSnapshot();
+  virtual ~FrameSnapshot() override;
 
   INLINE void set_tick_count(int tick);
   INLINE int get_tick_count() const;

@@ -19,6 +19,20 @@
 TypeHandle PackedObject::_type_handle;
 
 /**
+ *
+ */
+PackedObject::
+~PackedObject() {
+#ifndef NDEBUG
+  if (distributed2_cat.is_debug()) {
+    distributed2_cat.debug()
+      << "Destructing PackedObject " << this << ", _data: " << (void *)_data << "\n";
+  }
+#endif
+  clear_data();
+}
+
+/**
  * Calculates which fields have different packed values between this
  * PackedObject and the specified data.
  *

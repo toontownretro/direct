@@ -47,7 +47,7 @@ PUBLISHED:
   ALLOC_DELETED_CHAIN(PackedObject);
 
   INLINE PackedObject();
-  INLINE ~PackedObject();
+  virtual ~PackedObject() override;
 
   INLINE void set_data(char *data, size_t length);
   INLINE void clear_data();

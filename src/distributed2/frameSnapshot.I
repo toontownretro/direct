@@ -27,17 +27,6 @@ FrameSnapshot(int tick_count, int num_entries) {
 /**
  *
  */
-INLINE FrameSnapshot::
-~FrameSnapshot() {
-  if (_entries != nullptr) {
-    delete[] _entries;
-    _entries = nullptr;
-  }
-}
-
-/**
- *
- */
 INLINE void FrameSnapshot::
 set_tick_count(int tick_count) {
   _tick_count = tick_count;

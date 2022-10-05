@@ -31,14 +31,6 @@ PackedObject() {
 /**
  *
  */
-INLINE PackedObject::
-~PackedObject() {
-  clear_data();
-}
-
-/**
- *
- */
 INLINE void PackedObject::
 set_data(char *data, size_t length) {
   clear_data();
@@ -51,7 +43,7 @@ set_data(char *data, size_t length) {
  */
 INLINE void PackedObject::
 clear_data() {
-  if (_data) {
+  if (_data != nullptr) {
     delete[] _data;
     _data = nullptr;
   }
