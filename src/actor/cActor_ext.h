@@ -24,6 +24,10 @@ public:
   void load_anims(PyObject *anims=Py_None, PyObject *part_name=Py_None, PyObject *lod_name=Py_None, PyObject *load_now=Py_False);
   
   PyObject *get_LOD_names();
+  
+  PyObject *get_anim_defs(PyObject *anim=Py_None, PyObject *parts=Py_None, PyObject *lod=Py_None);
+  
+  PyObject *get_part_bundle_dict();
 };
 
 #endif  // HAVE_PYTHON

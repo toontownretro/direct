@@ -22,6 +22,7 @@
 #include "pointerTo.h"
 #include "pvector.h"
 #include "referenceCount.h"
+#include "typedReferenceCount.h"
 #include "weightList.h"
 
 #include "pt_AnimChannelTable.h"
@@ -48,74 +49,135 @@ struct MultipartLODActorDataWPath {
 class CActor;
 
 class EXPCL_DIRECT_ACTOR CActor : public NodePath {
-    class EXPCL_DIRECT_ACTOR AnimDef {
-        PUBLISHED:
-            INLINE AnimDef(Filename filename = Filename(), PT(AnimChannel) channel = nullptr, PT(Character) character = nullptr);
-            INLINE AnimDef(const AnimDef &other);
-            INLINE ~AnimDef() = default;
-            
-            INLINE void AnimDef::operator=(const AnimDef &copy);
-            
-            INLINE void set_filename(const std::string &filename);
-            INLINE void set_filename(const Filename &filename);
-            INLINE const Filename &get_filename() const;
-            
-            INLINE void set_animation_channel(AnimChannel *channel);
-            INLINE PT(AnimChannel) get_animation_channel();
-            
-            INLINE void set_character(Character *character);
-            INLINE PT(Character) get_character();
-            
-            INLINE void set_name(const std::string &name);
-            INLINE std::string get_name() const;
-            
-            INLINE void set_index(int index);
-            INLINE int get_index();
-            
-            INLINE void set_play_rate(PN_stdfloat play_rate);
-            INLINE PN_stdfloat get_play_rate();
-            
-            INLINE bool is_bound();
-            
-        private:
-            Filename _filename;
-            
-            PT(AnimChannel) _channel;
-            PT(Character) _character;
-            
-            std::string _name = "";
-            
-            int _index = -1;
-            PN_stdfloat _play_rate = 1.0;
-    };
+    // Internal Forward declarations.
+    public:
+        class AnimDef;
+        class PartDef;
     
-    class EXPCL_DIRECT_ACTOR PartDef {
-        friend class CActor;
-        
-        PUBLISHED:
-            INLINE PartDef();
-            INLINE PartDef(const NodePath &char_np, PT(Character) character, const NodePath &part_model);
-            INLINE PartDef(const PartDef &other);
-            INLINE ~PartDef() = default;
-            
-            INLINE void PartDef::operator=(const PartDef &copy);
-            
-            int get_channel_index(const std::string &anim_name);
+    typedef pmap<std::string, PartDef> PartBundleDict;
+    //typedef pmap<std::string, pmap<std::string, PartDef> > PartBundleDict;
+    
+    typedef pmap<std::string, std::pair<int, int> > Switches;
 
-            AnimDef *get_anim_def(int index);
-            AnimDef *get_anim_def(const std::string &anim_name);
-            
-        protected:
-            NodePath _character_np = NodePath();
-            PT(Character) _character = nullptr;
-            NodePath _part_model = NodePath();
-            
-            pmap<std::string, AnimDef> _anims_by_name;
-            pvector<AnimDef> _anims_by_index;
-            pmap<std::string, WeightList> _weight_list;
-    };
-    
     PUBLISHED:
+        class EXPCL_DIRECT_ACTOR AnimDef : public TypedReferenceCount {
+            PUBLISHED:
+                INLINE AnimDef(Filename filename = Filename());
+                INLINE AnimDef(Filename filename, PT(AnimChannel) channel);
+                INLINE AnimDef(Filename filename, PT(AnimChannel) channel, PT(Character) character);
+                INLINE AnimDef(const AnimDef &other);
+                INLINE virtual ~AnimDef() = default;
+                
+                INLINE void AnimDef::operator=(const AnimDef &copy);
+                
+                INLINE void set_name(const std::string &name);
+                INLINE const std::string &get_name() const;
+                
+                INLINE void set_filename(const std::string &filename);
+                INLINE void set_filename(const Filename &filename);
+                INLINE const Filename &get_filename() const;
+                
+                INLINE void set_animation_channel(AnimChannel *channel);
+                INLINE void set_animation_channel(PT(AnimChannel) channel);
+                INLINE PT(AnimChannel) get_animation_channel() const;
+                INLINE bool has_animation_channel() const;
+                
+                INLINE void set_character(Character *character);
+                INLINE void set_character(PT(Character) character);
+                INLINE PT(Character) get_character() const;
+                
+                INLINE void set_index(int index);
+                INLINE int get_index() const;
+                
+                INLINE void set_play_rate(PN_stdfloat play_rate);
+                INLINE PN_stdfloat get_play_rate() const;
+                
+                INLINE bool is_bound() const;
+                
+                void output(std::ostream &out) const;
+                
+            private:
+                Filename _filename;
+                
+                PT(AnimChannel) _channel = nullptr;
+                PT(Character) _character = nullptr;
+                
+                std::string _name;
+                
+                int _index = -1;
+                PN_stdfloat _play_rate = 1.0;
+                
+            public:
+                static TypeHandle get_class_type() {
+                    return _type_handle;
+                }
+                static void init_type() {
+                    TypedReferenceCount::init_type();
+                    register_type(_type_handle, "CActor::AnimDef", TypedReferenceCount::get_class_type());
+                }
+
+            PUBLISHED:
+                // We define get_type() even though we don't inherit from
+                // TypedObject.  We can't actually inherit from TypedObject because
+                // of the whole multiple-inheritance thing in our derived classes.
+                virtual TypeHandle get_type() const {
+                    return get_class_type();
+                }
+
+            private:
+                static TypeHandle _type_handle;
+        };
+        
+        class EXPCL_DIRECT_ACTOR PartDef : public TypedReferenceCount {
+            friend class CActor;
+            
+            PUBLISHED:
+                INLINE PartDef();
+                INLINE PartDef(const NodePath &char_np, PT(Character) character, const NodePath &part_model);
+                INLINE PartDef(const PartDef &other);
+                INLINE virtual ~PartDef() = default;
+                
+                INLINE void PartDef::operator=(const PartDef &copy);
+                
+                int get_channel_index(const std::string &anim_name);
+                
+                PT(Character) get_character() const;
+                
+                const NodePath &get_character_nodepath() const;
+
+                AnimDef *get_anim_def(int index);
+                AnimDef *get_anim_def(const std::string &anim_name);
+                
+            protected:
+                NodePath _character_np = NodePath();
+                PT(Character) _character = nullptr;
+                NodePath _part_model = NodePath();
+                
+                pmap<std::string, AnimDef> _anims_by_name;
+                pvector<AnimDef> _anims_by_index;
+                pmap<std::string, WeightList> _weight_list;
+                
+            public:
+                static TypeHandle get_class_type() {
+                    return _type_handle;
+                }
+                static void init_type() {
+                    TypedReferenceCount::init_type();
+                    register_type(_type_handle, "CActor::PartDef", TypedReferenceCount::get_class_type());
+                }
+
+            PUBLISHED:
+                // We define get_type() even though we don't inherit from
+                // TypedObject.  We can't actually inherit from TypedObject because
+                // of the whole multiple-inheritance thing in our derived classes.
+                virtual TypeHandle get_type() const {
+                    return get_class_type();
+                }
+
+            private:
+                static TypeHandle _type_handle;
+        };
+    
         EXTENSION(CActor(PyObject *self, PyObject *models=Py_None, PyObject *anims=Py_None, PyObject *other=Py_None, PyObject *copy=Py_True,
                          PyObject *lod_node=Py_None, PyObject *flattenable=Py_True, PyObject *set_final=Py_False, PyObject *ok_missing=Py_None));
         
@@ -189,6 +251,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         EXTENSION(PyObject *get_LOD_names());
         
+        EXTENSION(PyObject *get_anim_defs(PyObject *anim=Py_None, PyObject *parts=Py_None, PyObject *lod=Py_None));
+        
         INLINE NodePath instance(NodePath &path, const std::string &part_name, const std::string &joint_name);
         NodePath instance(NodePath &path, const std::string &part_name, const std::string &joint_name, const std::string &lod_name);
         
@@ -210,6 +274,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         INLINE PT(Character) get_part_bundle();
         INLINE PT(Character) get_part_bundle(const std::string &part_name);
         PT(Character) get_part_bundle(const std::string &part_name, const std::string &lod_name);
+        
+        EXTENSION(PyObject *get_part_bundle_dict());
         
         std::string get_current_anim(int layer=0);
         std::string get_current_anim(const std::string &part_name, int layer=0);
@@ -336,6 +402,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         pvector<PT(Character)> get_part_bundles();
         pvector<PT(Character)> get_part_bundles(const std::string &part_name);
         
+        INLINE const PartBundleDict &get_part_bundle_dict() const;
+        
         pvector<std::string> get_LOD_names();
 
         void initialize_geom_node(bool flattenable=true);
@@ -347,8 +415,6 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         void clear_data();
         
         INLINE const NodePath &get_geom_node() const;
-        
-        INLINE const pmap<std::string, PartDef> &get_part_bundle_dict() const;
         
         void do_list_joints(std::stringstream &ss, PT(Character) character, int indent_level, int joint);
         
@@ -377,9 +443,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         std::string part_prefix = "__Actor_";
         
-        pmap<std::string, PartDef> _part_bundle_dict;
-        //pmap<std::string, pmap<std::string, PartDef> > _part_bundle_dict;
-        pmap<std::string, std::pair<int, int>> _switches;
+        PartBundleDict _part_bundle_dict;
+        Switches _switches;
         
         pvector<std::string> _sorted_LOD_names;
 

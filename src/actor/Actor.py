@@ -49,6 +49,9 @@ class Actor(DirectObject, CActor):
     def loadModel(self, modelPath, partName="modelRoot", lodName="lodRoot", copy = True, okMissing = None, autoBindAnims = True, keepModel = False):
         CActor.loadModel(self, modelPath, partName, lodName, copy, okMissing, keepModel)
         
+    def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot", loadNow = False):
+        CActor.loadAnims(self, anims, partName, lodName, loadNow)
+        
     def loop(self, animName=None, restart=True, partName=None, fromFrame=None, toFrame=None, layer=0, playRate=1.0, blendIn=0.0, channel=None):
         if not animName and not channel:
             return
@@ -108,6 +111,42 @@ class Actor(DirectObject, NodePath):
             # Have to store play rate here because the character does not
             # remember play rates of channels as they are set on layers.
             self.playRate = 1.0
+            
+        def setName(self, name):
+            self.name = str(name)
+            
+        def getName(self):
+            return self.name
+            
+        def setFilename(self, filename):
+            self.filename = Filename(filename)
+            
+        def getFilename(self):
+            return self.filename
+            
+        def setAnimationChannel(self, channel):
+            self.channel = channel
+            
+        def getAnimationChannel(self):
+            return self.channel
+            
+        def setCharacter(self, character):
+            self.char = character
+            
+        def getCharacter(self):
+            return self.char
+            
+        def setIndex(self, index):
+            self.index = index
+            
+        def getIndex(self):
+            return self.index
+            
+        def setPlayRate(self, playRate):
+            self.playRate = playRate
+            
+        def getPlayRate(self):
+            return self.playRate
 
         def isBound(self):
             return self.index >= 0
@@ -146,6 +185,12 @@ class Actor(DirectObject, NodePath):
             if not animDef:
                 return -1
             return animDef.index
+            
+        def getCharacter(self):
+            return self.char
+            
+        def getCharacterNodepath(self):
+            return self.charNP
 
         def getAnimDef(self, animName):
             if isinstance(animName, str):

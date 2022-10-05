@@ -290,7 +290,7 @@ INLINE void CActor::face_towards_viewer() {
     geom_node.set_h(0);
 }
 
-INLINE const pmap<std::string, CActor::PartDef> &CActor::get_part_bundle_dict() const {
+INLINE const CActor::PartBundleDict &CActor::get_part_bundle_dict() const {
     return _part_bundle_dict;
 }
 
@@ -309,27 +309,43 @@ INLINE NodePath *CActor::control_joint(NodePath *node, const std::string &part_n
 
 /* Animation Defitition */
 
-INLINE CActor::AnimDef::AnimDef(Filename filename, PT(AnimChannel) channel, PT(Character) character) : _filename(filename) {
-    _channel = channel;
-    _character = character;
+INLINE CActor::AnimDef::AnimDef(Filename filename) : _name("default"), _filename(filename) {
+
+}
+
+INLINE CActor::AnimDef::AnimDef(Filename filename, PT(AnimChannel) channel) : _name("default"), _filename(filename) {
+    set_animation_channel(channel);
+}
+
+INLINE CActor::AnimDef::AnimDef(Filename filename, PT(AnimChannel) channel, PT(Character) character) : _name("default"), _filename(filename) {
+    set_animation_channel(channel);
+    set_character(character);
 }
 
 INLINE CActor::AnimDef::AnimDef(const CActor::AnimDef &other)  {
-    _channel = other._channel;
-    _character = other._character;
-    _index = other._index;
-    _play_rate = other._play_rate;
+    set_animation_channel(other.get_animation_channel());
+    set_character(other.get_character());
+    set_index(other.get_index());
+    set_play_rate(other.get_play_rate());
     set_name(other.get_name());
     set_filename(other.get_filename());
 }
 
 INLINE void CActor::AnimDef::operator=(const CActor::AnimDef &copy) {
-    _channel = copy._channel;
-    _character = copy._character;
-    _index = copy._index;
-    _play_rate = copy._play_rate;
+    set_animation_channel(copy.get_animation_channel());
+    set_character(copy.get_character());
+    set_index(copy.get_index());
+    set_play_rate(copy.get_play_rate());
     set_name(copy.get_name());
     set_filename(copy.get_filename());
+}
+
+INLINE void CActor::AnimDef::set_name(const std::string &name) {
+    _name = std::string(name);
+}
+
+INLINE const std::string &CActor::AnimDef::get_name() const {
+    return _name;
 }
 
 INLINE void CActor::AnimDef::set_filename(const std::string &filename) {
@@ -337,7 +353,7 @@ INLINE void CActor::AnimDef::set_filename(const std::string &filename) {
 }
 
 INLINE void CActor::AnimDef::set_filename(const Filename &filename) {
-    _filename = filename;
+    _filename = Filename(filename);
 }
 
 INLINE const Filename &CActor::AnimDef::get_filename() const {
@@ -348,31 +364,35 @@ INLINE void CActor::AnimDef::set_animation_channel(AnimChannel *channel) {
     _channel = channel;
 }
 
-INLINE PT(AnimChannel) CActor::AnimDef::get_animation_channel() {
+INLINE void CActor::AnimDef::set_animation_channel(PT(AnimChannel) channel) {
+    _channel = channel;
+}
+
+INLINE PT(AnimChannel) CActor::AnimDef::get_animation_channel() const {
     return _channel;
+}
+
+INLINE bool CActor::AnimDef::has_animation_channel() const {
+    return _channel.p() != nullptr;
 }
 
 INLINE void CActor::AnimDef::set_character(Character *character) {
     _character = character;
 }
 
-INLINE PT(Character) CActor::AnimDef::get_character() {
+INLINE void CActor::AnimDef::set_character(PT(Character) character) {
+    _character = character;
+}
+
+INLINE PT(Character) CActor::AnimDef::get_character() const {
     return _character;
-}
-
-INLINE void CActor::AnimDef::set_name(const std::string &name) {
-    _name = name;
-}
-
-INLINE std::string CActor::AnimDef::get_name() const {
-    return _name;
 }
 
 INLINE void CActor::AnimDef::set_index(int index) {
     _index = index;
 }
 
-INLINE int CActor::AnimDef::get_index() {
+INLINE int CActor::AnimDef::get_index() const {
     return _index;
 }
 
@@ -380,11 +400,11 @@ INLINE void CActor::AnimDef::set_play_rate(PN_stdfloat play_rate) {
     _play_rate = play_rate;
 }
 
-INLINE PN_stdfloat CActor::AnimDef::get_play_rate() {
+INLINE PN_stdfloat CActor::AnimDef::get_play_rate() const {
     return _play_rate;
 }
 
-INLINE bool CActor::AnimDef::is_bound() {
+INLINE bool CActor::AnimDef::is_bound() const {
     return _index >= 0;
 }
 
@@ -422,4 +442,12 @@ INLINE void CActor::PartDef::operator=(const CActor::PartDef &copy) {
     _anims_by_name.insert(copy._anims_by_name.begin(), copy._anims_by_name.end());
     _anims_by_index = copy._anims_by_index;
     _weight_list.insert(copy._weight_list.begin(), copy._weight_list.end());
+}
+
+INLINE PT(Character) CActor::PartDef::get_character() const {
+    return _character;
+}
+
+INLINE const NodePath &CActor::PartDef::get_character_nodepath() const {
+    return _character_np;
 }

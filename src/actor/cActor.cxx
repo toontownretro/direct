@@ -10,6 +10,8 @@
 #define EMPTY_STR std::string("")
 
 TypeHandle CActor::_type_handle;
+TypeHandle CActor::AnimDef::_type_handle;
+TypeHandle CActor::PartDef::_type_handle;
 
 //////////////////////////////
 // Initializers w/o Animations
@@ -776,7 +778,7 @@ void CActor::initialize_geom_node(bool flattenable) {
  * instances own. NOTE: This method does not actually copy geometry!
 **/
 void CActor::copy_part_bundles(const CActor &other) {
-    for (pmap<std::string, PartDef>::const_iterator it = other._part_bundle_dict.begin(); it != other._part_bundle_dict.end(); it++) {
+    for (PartBundleDict::const_iterator it = other._part_bundle_dict.begin(); it != other._part_bundle_dict.end(); it++) {
         NodePath part_lod;
         
         std::string bundle_name(it->first);
@@ -854,7 +856,7 @@ void CActor::remove_node(Thread *current_thread) {
     if (!_geom_node.is_empty() && _geom_node.get_num_children() > 0) {
         actor_cat.warning() << "Called CActor::remove_node() on " << get_name() << " without calling cleanup()!\n";
     }
-    NodePath::remove_node();
+    NodePath::remove_node(current_thread);
 }
 
 void CActor::clear_data() {
@@ -1404,7 +1406,7 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
     }
     
     if (anim_lod_name.compare("all") == 0) {
-        for (pmap<std::string, std::pair<int, int>>::iterator it = _switches.begin(); it != _switches.end(); it++) {
+        for (Switches::iterator it = _switches.begin(); it != _switches.end(); it++) {
             lod_names.emplace_back(it->first);
         }
     } else {
@@ -1460,7 +1462,6 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
 AnimChannel *CActor::load_anim(const Filename &filename) {
     PT(PandaNode) anim_model = loader->load_sync(filename, LoaderOptions());
     if (anim_model == nullptr) {
-        actor_cat.warning() << "Failed to load animation file " << filename << '\n';
         return nullptr;
     }
     
@@ -1492,7 +1493,10 @@ AnimChannel *CActor::load_anim(const Filename &filename) {
 **/
 bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(AnimChannel) channel) {
     PT(Character) character = part_def._character;
-    if (character == nullptr) { return false; }
+    if (character == nullptr) { 
+        actor_cat.warning() << "Failed to bind animation '" << anim_def.get_name() << "' because the character is NULL!\n";
+        return false; 
+    }
     
     AnimChannelTable *animation_table = (AnimChannelTable *)channel.p();
     if (!character->bind_anim(animation_table)) {
@@ -1500,6 +1504,7 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
         if (it != part_def._anims_by_name.end()) {
             part_def._anims_by_name.erase(it);
         }
+        actor_cat.warning() << "Failed to bind animation '" << anim_def.get_name() << "' to the character!\n";
         return false;
     }
     
@@ -1509,6 +1514,7 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
         if (it != part_def._anims_by_name.end()) {
             part_def._anims_by_name.erase(it);
         }
+        actor_cat.warning() << "Failed to add channel from animation '" << anim_def.get_name() << "' to the character!\n";
         return false;
     }
     
@@ -1526,8 +1532,12 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
  * false if the animation could not be loaded or bound.
 **/
 bool CActor::load_and_bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def) {
-    PT(AnimChannel) channel = load_anim(anim_def.get_filename());
-    if (channel == nullptr) { return false; }
+    const Filename &filename = anim_def.get_filename();
+    PT(AnimChannel) channel = load_anim(filename);
+    if (channel == nullptr) { 
+        actor_cat.warning() << "Failed to load animation '" << anim_def.get_name() << "' from file: " << filename << "!\n";
+        return false; 
+    }
     
     return bind_anim(part_def, anim_def, channel);
 }
@@ -1658,8 +1668,7 @@ void CActor::load_model_internal(NodePath &model, const std::string &part_name, 
     for (int i = 0; i < num_channels; i++) {
         PT(AnimChannel) channel = character->get_channel(i);
         AnimDef anim_def = AnimDef(Filename(), channel, character);
-        std::string channel_name = std::string(channel->get_name());
-        anim_def.set_name(channel_name);
+        anim_def.set_name(channel->get_name());
         anim_def.set_index(i);
         part_def._anims_by_name[anim_def.get_name()] = anim_def;
         part_def._anims_by_index[i] = anim_def;
@@ -1844,7 +1853,7 @@ pvector<std::string> CActor::get_LOD_names() {
     
     pvector<std::string> lod_names;
 
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         // Get back our lod name by splitting the string.
         std::string curr_lod_name = it->first.substr(0, it->first.find(':'));
         
@@ -1895,13 +1904,13 @@ void CActor::set_center(const LPoint3f center) {
 NodePath CActor::instance(NodePath &path, const std::string &part_name, const std::string &joint_name, const std::string &lod_name) {
     std::string bundle_name(lod_name + ":" + part_name);
     
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
     if (it == _part_bundle_dict.end()) {
         actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
         return NodePath::fail();
     }
     
-    PartDef part_def = it->second;
+    PartDef &part_def = it->second;
     
     NodePath joint = part_def._character_np.find("**/" + joint_name);
     if (joint.is_empty()) {
@@ -1920,20 +1929,20 @@ void CActor::attach(const std::string &part_name, const std::string &another_par
     std::string bundle_name(lod_name + ":" + part_name);
     std::string bundle_name2(lod_name + ":" + another_part_name);
     
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
     if (it == _part_bundle_dict.end()) {
         actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
         return;
     }
     
-    pmap<std::string, PartDef>::iterator it2 = _part_bundle_dict.find(bundle_name2);
+    PartBundleDict::iterator it2 = _part_bundle_dict.find(bundle_name2);
     if (it2 == _part_bundle_dict.end()) {
         actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << another_part_name << "!\n";
         return;
     }
 
-    PartDef part_def = it->second;
-    PartDef part_def2 = it2->second;
+    PartDef &part_def = it->second;
+    PartDef &part_def2 = it2->second;
     
     NodePath joint = part_def2._character_np.find("**/" + joint_name);
     if (joint.is_empty()) {
@@ -2053,7 +2062,7 @@ void CActor::draw_in_front(const std::string &front_part_name, const std::string
 NodePath CActor::get_part(const std::string &part_name, const std::string &lod_name) {
     std::string bundle_name(lod_name + ":" + part_name);
     
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
     if (it == _part_bundle_dict.end()) {
         actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
         return NodePath::not_found();
@@ -2071,7 +2080,7 @@ NodePath CActor::get_part(const std::string &part_name, const std::string &lod_n
 NodePath CActor::get_part_model(const std::string &part_name, const std::string &lod_name) {
     std::string bundle_name(lod_name + ":" + part_name);
     
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
     if (it == _part_bundle_dict.end()) {
         actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
         return NodePath::not_found();
@@ -2090,7 +2099,7 @@ NodePath CActor::get_part_model(const std::string &part_name, const std::string 
 PT(Character) CActor::get_part_bundle(const std::string &part_name, const std::string &lod_name) {
     std::string bundle_name(lod_name + ":" + part_name);
     
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.find(bundle_name);
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
     if (it == _part_bundle_dict.end()) {
         actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
         return nullptr;
@@ -2255,7 +2264,7 @@ pvector<CActor::PartDef> CActor::get_part_defs() {
     pvector<PartDef> part_defs;
     
     // Just iterate the entire map and get all of our PartDefs.
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         PartDef &part_def = it->second;
         part_defs.emplace_back(part_def);
     }
@@ -2275,7 +2284,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
     if (!has_part_name && !has_LOD_name) { return get_part_defs(); }
     pvector<PartDef> part_defs;
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2311,7 +2320,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
     if (!has_part_names && !has_LOD_name) { return get_part_defs(); }
     pvector<PartDef> part_defs;
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2356,7 +2365,7 @@ pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_
 std::string CActor::get_current_anim(int layer) {
     if (_part_bundle_dict.empty()) { return EMPTY_STR; }
     
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin();
+    PartBundleDict::iterator it = _part_bundle_dict.begin();
     if (it == _part_bundle_dict.end()) { return EMPTY_STR; }
     
     std::string curr_lod_name, curr_part_name;
@@ -2391,7 +2400,7 @@ std::string CActor::get_current_anim(int layer) {
 std::string CActor::get_current_anim(const std::string &part_name, int layer) {
     if (_part_bundle_dict.empty()) { return EMPTY_STR; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2434,7 +2443,7 @@ int CActor::get_current_channel(int layer) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2474,7 +2483,7 @@ int CActor::get_current_channel(const std::string &part_name, int layer) {
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2508,7 +2517,7 @@ PN_stdfloat CActor::get_channel_length(int channel) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2543,7 +2552,7 @@ PN_stdfloat CActor::get_channel_length(const std::string &part_name, int channel
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2577,7 +2586,7 @@ int CActor::get_channel_activity(int channel, int index) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2612,7 +2621,7 @@ int CActor::get_channel_activity(const std::string &part_name, int channel, int 
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2646,7 +2655,7 @@ int CActor::get_channel_for_activity(int activity, int seed, int layer) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         int curr_channel = -1;
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
@@ -2684,7 +2693,7 @@ int CActor::get_channel_for_activity(const std::string &part_name, int activity,
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         int curr_channel = -1;
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
@@ -2724,7 +2733,7 @@ int CActor::get_current_activity(int layer) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2762,7 +2771,7 @@ int CActor::get_current_activity(const std::string &part_name, int layer) {
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2800,7 +2809,7 @@ bool CActor::is_current_channel_finished(int layer) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2839,7 +2848,7 @@ bool CActor::is_current_channel_finished(const std::string &part_name, int layer
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2877,7 +2886,7 @@ bool CActor::is_channel_playing(int layer) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2916,7 +2925,7 @@ bool CActor::is_channel_playing(const std::string &part_name, int layer) {
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2954,7 +2963,7 @@ PN_stdfloat CActor::get_cycle(int layer) {
     
     std::string working_part_name("modelRoot");
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -2993,7 +3002,7 @@ PN_stdfloat CActor::get_cycle(const std::string &part_name, int layer) {
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         std::string bundle_name(it->first);
         PartDef &part_def = it->second;
@@ -3033,7 +3042,7 @@ int CActor::get_current_frame(int layer) {
     if (_part_bundle_dict.empty()) { return 0; }
     
     // Get the first entry.
-    pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin();
+    PartBundleDict::iterator it = _part_bundle_dict.begin();
     if (it == _part_bundle_dict.end()) { return 0; }
     
     // Get the part definition from our iterator.
@@ -3071,7 +3080,7 @@ int CActor::get_current_frame(const std::string &part_name, int layer) {
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
         // Get the bundle name from our iterator.
@@ -3278,7 +3287,7 @@ void CActor::set_blend(const std::string &part_name, bool frame_blend, bool tran
 pvector<PT(Character)> CActor::get_part_bundles() {
     pvector<PT(Character)> part_bundles;
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         // Get the part definition from our iterator.
         PartDef &part_def = it->second;
         
@@ -3302,7 +3311,7 @@ pvector<PT(Character)> CActor::get_part_bundles(const std::string &part_name) {
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
         // Get the bundle name from our iterator.
@@ -3342,7 +3351,7 @@ void CActor::list_joints(const std::string &part_name, const std::string &lod_na
     std::string working_lod_name("lodRoot");
     if (!lod_name.empty()) { working_lod_name = lod_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
         // Get the bundle name from our iterator.
@@ -3392,7 +3401,7 @@ const Filename CActor::get_anim_filename(const std::string &anim_name, const std
     std::string working_part_name("modelRoot");
     if (!part_name.empty()) { working_part_name = part_name; }
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
         // Get the bundle name from our iterator.
@@ -3446,7 +3455,7 @@ void CActor::post_flatten() {
 NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name, const std::string &lod_name) {
     bool any_good = false;
     
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
         // Get the bundle name from our iterator.
@@ -3496,7 +3505,7 @@ NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, co
  * and restores the named joint to its normal animation. 
 **/
 void CActor::release_joint(const std::string &part_name, const std::string &joint_name) {
-    for (pmap<std::string, PartDef>::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
         // Get the bundle name from our iterator.
@@ -3527,6 +3536,26 @@ void CActor::release_joint(const std::string &part_name, const std::string &join
     }
 }
 
+/* Animation Defitition */
+
+/**
+ * Writes a sensible description of the AnimDef to the indicated output
+ * stream.
+ */
+void CActor::AnimDef::output(std::ostream &out) const {
+    const std::string &name = get_name();
+    const Filename &filename = get_filename();
+    PT(AnimChannel) channel = get_animation_channel();
+    
+    out << "<AnimDef";
+    if (!name.empty()) { // For some reason, This is will crash is the name is empty.
+        out << " " << name;
+    }
+    out << ":\n  ";
+    out << "Filename: " << filename << "\n  ";
+    out << "Animation Channel: " << channel.p() << "\n  ";
+    out << "\n>";
+}
 
 /* Part Defitition */
 
