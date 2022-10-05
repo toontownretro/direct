@@ -19,6 +19,9 @@ FrameSnapshot(int tick_count, int num_entries) {
   _tick_count = tick_count;
   _num_entries = num_entries;
   _entries = new FrameSnapshotEntry[num_entries];
+#ifdef DO_MEMORY_USAGE
+  MemoryUsage::update_type(this, this);
+#endif
 }
 
 /**
@@ -26,7 +29,7 @@ FrameSnapshot(int tick_count, int num_entries) {
  */
 INLINE FrameSnapshot::
 ~FrameSnapshot() {
-  if (_entries) {
+  if (_entries != nullptr) {
     delete[] _entries;
     _entries = nullptr;
   }

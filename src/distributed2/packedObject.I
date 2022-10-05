@@ -23,6 +23,9 @@ PackedObject() {
   _change_frame_list = nullptr;
   _creation_tick = 0;
   _should_check_creation_tick = false;
+#ifdef DO_MEMORY_USAGE
+  MemoryUsage::update_type(this, this);
+#endif
 }
 
 /**

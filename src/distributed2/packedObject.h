@@ -21,6 +21,7 @@
 #include "typedReferenceCount.h"
 #include "deletedChain.h"
 #include "datagram.h"
+#include "memoryUsage.h"
 
 class DCClass;
 

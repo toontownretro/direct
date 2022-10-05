@@ -19,6 +19,7 @@
 #include "frameSnapshotEntry.h"
 #include "vector_int.h"
 #include "deletedChain.h"
+#include "memoryUsage.h"
 
 class EXPCL_DIRECT_DISTRIBUTED2 FrameSnapshot : public TypedReferenceCount {
 PUBLISHED:
