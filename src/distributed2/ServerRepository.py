@@ -365,9 +365,16 @@ class ServerRepository(BaseObjectManager):
                 self.handleClientSetInterest(client, dgi)
             elif type == NetMessages.B_ObjectMessage:
                 self.handleObjectMessage(client, dgi)
+            elif type == NetMessages.CL_Ping:
+                self.handleClientPing(client)
             else:
                 self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in verified state" % (client.connection, type))
                 self.closeClientConnection(client)
+
+    def handleClientPing(self, client):
+        dg = PyDatagram()
+        dg.addUint16(NetMessages.SV_Ping_Resp)
+        self.sendDatagram(dg, client.connection)
 
     def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
