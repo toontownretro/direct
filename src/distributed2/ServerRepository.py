@@ -43,8 +43,12 @@ class ServerRepository(BaseObjectManager):
             self.cmdRate = 0
             self.cmdInterval = 0
 
-            # Current estimate round-trip time.
+            # Last instantaneous RTT value from client.
             self.currentRtt = 0
+            # Sliding window average.
+            self.averageRtt = 0
+            self.rttWindowSize = 16
+            self.rttSlidingWindow = [0] * self.rttWindowSize
 
             self.interpAmount = 0.0
 
@@ -384,7 +388,18 @@ class ServerRepository(BaseObjectManager):
         self.sendDatagram(dg, client.connection)
 
     def handleClientInformPing(self, client, dgi):
-        client.currentRtt = dgi.getUint32()
+        rtt = dgi.getUint32()
+        client.currentRtt = rtt
+        if client.averageRtt == 0:
+            # First rtt report, duplicate to entire window.
+            client.rttSlidingWindow = [rtt] * client.rttWindowSize
+        else:
+            client.rttSlidingWindow = [rtt] + client.rttSlidingWindow[:client.rttWindowSize - 1]
+        total = 0
+        for rtt in client.rttSlidingWindow:
+            total += rtt
+        client.averageRtt = total / client.rttWindowSize
+        #print("Avg rtt", client.averageRtt)
 
     def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
