@@ -57,3 +57,5 @@ class NetMessages:
     # On response, client measures time elapsed.
     CL_Ping = 17
     SV_Ping_Resp = 18
+    # Inform the server about our current ping.
+    CL_InformPing = 19

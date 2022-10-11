@@ -59,7 +59,9 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         if self.pendingPing:
             return
         self.pendingPing = True
+
         self.pingSendOutTime = globalClock.real_time
+        #print("Send ping at", self.pingSendOutTime)
         dg = PyDatagram()
         dg.addUint16(NetMessages.CL_Ping)
         self.sendDatagram(dg)
@@ -70,10 +72,17 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.pendingPing = False
         now = globalClock.real_time
         # Seconds to milliseconds.
-        self.pingLatency = int((now - self.pingSendOutTime) * 1000.0)
+        #print("recv ping resp at", now)
+        self.pingLatency = max(0, int((now - self.pingSendOutTime) * 1000.0))
         if cl_report_ping.value:
             self.notify.info("Current ping: %i ms" % self.pingLatency)
         self.nextPingTime = now + cl_ping_interval.value
+
+        # Now inform the server of our ping.
+        dg = PyDatagram()
+        dg.addUint16(NetMessages.CL_InformPing)
+        dg.addUint32(self.pingLatency)
+        self.sendDatagram(dg)
 
     #def simObjects(self, task):
     #    for do in self.doId2do.values():
@@ -185,6 +194,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         dg.addUint32(self.hashVal)
         dg.addUint8(cl_updaterate.getValue())
         dg.addUint8(cl_cmdrate.getValue())
+        dg.addFloat32(getClientInterpAmount())
         self.sendDatagram(dg)
 
     def __handleServerHelloResp(self, dgi):
