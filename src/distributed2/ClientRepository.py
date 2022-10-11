@@ -206,7 +206,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.serverIntervalPerTick = 1.0 / self.serverTickRate
             # Use the same simulation rate as the server!
             base.setTickRate(self.serverTickRate)
-            base.tickCount = dgi.getUint32()
+            tickCount = dgi.getUint32()
+            base.resetSimulation(tickCount)
 
             self.notify.info("Verified with server")
             messenger.send('serverHelloSuccess')
