@@ -47,7 +47,7 @@ class ServerRepository(BaseObjectManager):
             self.currentRtt = 0
             # Sliding window average.
             self.averageRtt = 0
-            self.rttWindowSize = 16
+            self.rttWindowSize = 5
             self.rttSlidingWindow = [0] * self.rttWindowSize
 
             self.interpAmount = 0.0
