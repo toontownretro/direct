@@ -11,6 +11,87 @@ INLINE AnimChannel *CActor::load_anim(const std::string &filename) {
 }
 
 /**
+ * set_play_rate(float rate)
+ * Set the play rate of given anim for a given part.
+ * If no part is given, set for all parts in dictionary.
+ * 
+ * It used to be legal to let the animation name default to the
+ * currently-playing anim, but this was confusing and could lead
+ * to the wrong anim's play rate getting set.  Better to insist
+ * on this parameter.
+ * NOTE: sets play rate on all LODs
+**/
+INLINE void CActor::set_play_rate(PN_stdfloat rate) {
+    set_play_rate(rate, EMPTY_STR, EMPTY_STR, 0);
+}
+
+/**
+ * set_play_rate(float rate, string anim)
+ * Set the play rate of given anim for a given part.
+ * If no part is given, set for all parts in dictionary.
+ * 
+ * It used to be legal to let the animation name default to the
+ * currently-playing anim, but this was confusing and could lead
+ * to the wrong anim's play rate getting set.  Better to insist
+ * on this parameter.
+ * NOTE: sets play rate on all LODs
+**/
+INLINE void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim) {
+    set_play_rate(rate, anim, EMPTY_STR, 0);
+}
+
+/**
+ * set_play_rate(float rate, string anim, string part_name)
+ * Set the play rate of given anim for a given part.
+ * If no part is given, set for all parts in dictionary.
+ * 
+ * It used to be legal to let the animation name default to the
+ * currently-playing anim, but this was confusing and could lead
+ * to the wrong anim's play rate getting set.  Better to insist
+ * on this parameter.
+ * NOTE: sets play rate on all LODs
+**/
+INLINE void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name) {
+    set_play_rate(rate, anim, part_name, 0);
+}
+
+/**
+ * get_play_rate()
+ * 
+ * Return the play rate of given anim for a given part.
+ * If no part is given, assume first part in map.
+ * If no anim is given, find the current anim for the part.
+ * NOTE: Returns info only for an arbitrary LOD
+**/
+PN_stdfloat CActor::get_play_rate() {
+    return get_play_rate(EMPTY_STR, EMPTY_STR, 0);
+}
+
+/**
+ * get_play_rate(string anim_name)
+ * 
+ * Return the play rate of given anim for a given part.
+ * If no part is given, assume first part in map.
+ * If no anim is given, find the current anim for the part.
+ * NOTE: Returns info only for an arbitrary LOD
+**/
+PN_stdfloat CActor::get_play_rate(const std::string &anim_name) {
+    return get_play_rate(anim_name, EMPTY_STR, 0);
+}
+
+/**
+ * get_play_rate(string anim_name, string part_name)
+ * 
+ * Return the play rate of given anim for a given part.
+ * If no part is given, assume first part in map.
+ * If no anim is given, find the current anim for the part.
+ * NOTE: Returns info only for an arbitrary LOD
+**/
+PN_stdfloat CActor::get_play_rate(const std::string &anim_name, const std::string &part_name) {
+    return get_play_rate(anim_name, part_name, 0);
+}
+
+/**
  * set_geom_node()
 **/
 INLINE void CActor::set_geom_node(const NodePath &node) {
@@ -41,6 +122,8 @@ INLINE const NodePath &CActor::get_geom_node() const {
  * If one is not supplied as an argument, make one.
 **/
 INLINE void CActor::set_LOD_node() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     PT(LODNode) node = LODNode::make_default_lod("lod");
     NodePath nodepath(node);
     set_LOD_node(nodepath);
@@ -62,6 +145,8 @@ INLINE void CActor::use_LOD(int lod) {
 }
 
 INLINE void CActor::use_LOD(const std::string &lod_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+        
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
@@ -78,6 +163,8 @@ INLINE void CActor::use_LOD(const std::string &lod_name) {
  * Restore all switch distance info (usually after a use_LOD call)
 **/
 INLINE void CActor::reset_LOD() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
@@ -281,11 +368,15 @@ INLINE PT(Character) CActor::get_part_bundle(const std::string &part_name) {
 }
 
 INLINE void CActor::face_away_from_viewer() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     NodePath &geom_node = get_geom_node();
     geom_node.set_h(180);
 }
 
 INLINE void CActor::face_towards_viewer() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     NodePath &geom_node = get_geom_node();
     geom_node.set_h(0);
 }
@@ -323,8 +414,8 @@ INLINE CActor::AnimDef::AnimDef(Filename filename, PT(AnimChannel) channel, PT(C
 }
 
 INLINE CActor::AnimDef::AnimDef(const CActor::AnimDef &other)  {
-    set_animation_channel(other.get_animation_channel());
-    set_character(other.get_character());
+    if (other._channel != nullptr) { set_animation_channel(other.get_animation_channel()); }
+    if (other._character != nullptr) { set_character(other.get_character()); }
     set_index(other.get_index());
     set_play_rate(other.get_play_rate());
     set_name(other.get_name());
@@ -332,8 +423,8 @@ INLINE CActor::AnimDef::AnimDef(const CActor::AnimDef &other)  {
 }
 
 INLINE void CActor::AnimDef::operator=(const CActor::AnimDef &copy) {
-    set_animation_channel(copy.get_animation_channel());
-    set_character(copy.get_character());
+    if (copy._channel != nullptr) { set_animation_channel(copy.get_animation_channel()); }
+    if (copy._character != nullptr) { set_character(copy.get_character()); }
     set_index(copy.get_index());
     set_play_rate(copy.get_play_rate());
     set_name(copy.get_name());
@@ -341,6 +432,8 @@ INLINE void CActor::AnimDef::operator=(const CActor::AnimDef &copy) {
 }
 
 INLINE void CActor::AnimDef::set_name(const std::string &name) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _name = std::string(name);
 }
 
@@ -349,10 +442,14 @@ INLINE const std::string &CActor::AnimDef::get_name() const {
 }
 
 INLINE void CActor::AnimDef::set_filename(const std::string &filename) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _filename = Filename(filename);
 }
 
 INLINE void CActor::AnimDef::set_filename(const Filename &filename) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _filename = Filename(filename);
 }
 
@@ -361,10 +458,14 @@ INLINE const Filename &CActor::AnimDef::get_filename() const {
 }
 
 INLINE void CActor::AnimDef::set_animation_channel(AnimChannel *channel) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _channel = channel;
 }
 
 INLINE void CActor::AnimDef::set_animation_channel(PT(AnimChannel) channel) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _channel = channel;
 }
 
@@ -377,10 +478,14 @@ INLINE bool CActor::AnimDef::has_animation_channel() const {
 }
 
 INLINE void CActor::AnimDef::set_character(Character *character) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _character = character;
 }
 
 INLINE void CActor::AnimDef::set_character(PT(Character) character) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _character = character;
 }
 
@@ -389,6 +494,8 @@ INLINE PT(Character) CActor::AnimDef::get_character() const {
 }
 
 INLINE void CActor::AnimDef::set_index(int index) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _index = index;
 }
 
@@ -397,6 +504,8 @@ INLINE int CActor::AnimDef::get_index() const {
 }
 
 INLINE void CActor::AnimDef::set_play_rate(PN_stdfloat play_rate) {
+    LightReMutexHolder holder(_cactor_animdef_thread_lock);
+    
     _play_rate = play_rate;
 }
 

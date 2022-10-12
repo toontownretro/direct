@@ -7,11 +7,13 @@
 
 #include <algorithm>
 
-#define EMPTY_STR std::string("")
-
 TypeHandle CActor::_type_handle;
 TypeHandle CActor::AnimDef::_type_handle;
 TypeHandle CActor::PartDef::_type_handle;
+
+LightReMutex CActor::_cactor_thread_lock("cactor-thread-lock");
+LightReMutex CActor::AnimDef::_cactor_animdef_thread_lock("cactor-animdef-thread-lock");
+LightReMutex CActor::PartDef::_cactor_partdef_thread_lock("cactor-partdef-thread-lock");
 
 //////////////////////////////
 // Initializers w/o Animations
@@ -742,6 +744,8 @@ void CActor::operator=(const CActor &copy) {
 }
 
 void CActor::initialize_geom_node(bool flattenable) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     if (flattenable) {
         // If we want a flattenable Actor, don't create all
         // those ModelNodes, and the GeomNode is the same as
@@ -778,6 +782,8 @@ void CActor::initialize_geom_node(bool flattenable) {
  * instances own. NOTE: This method does not actually copy geometry!
 **/
 void CActor::copy_part_bundles(const CActor &other) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     for (PartBundleDict::const_iterator it = other._part_bundle_dict.begin(); it != other._part_bundle_dict.end(); it++) {
         NodePath part_lod;
         
@@ -828,6 +834,8 @@ void CActor::copy_part_bundles(const CActor &other) {
  * which is why this method exists.
 **/
 void CActor::cleanup(bool remove_node) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Stop any and all animations playing.
     stop();
     
@@ -860,6 +868,8 @@ void CActor::remove_node(Thread *current_thread) {
 }
 
 void CActor::clear_data() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     _part_bundle_dict.clear();
     _sorted_LOD_names.clear();
 }
@@ -870,6 +880,8 @@ void CActor::clear_data() {
  * Actor flush function. Used by `cleanup()`.
 **/
 void CActor::flush() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Clear our vectors and maps.
     clear_data();
     
@@ -894,6 +906,8 @@ void CActor::flush() {
  * NOTE: Stops all LODs.
 **/
 void CActor::stop(int layer, bool kill) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PartDef> part_defs = get_part_defs();
     
     // Stopping all layers or a specific layer
@@ -913,6 +927,8 @@ void CActor::stop(int layer, bool kill) {
  * NOTE: Stops all LODs.
 **/
 void CActor::stop(const std::string &anim_name, const std::string &part_name, int layer, bool kill) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     bool has_anim_name = !anim_name.empty();
     
     // If both strings are empty for some reason, Just call the version that needs no
@@ -953,6 +969,8 @@ void CActor::stop(const std::string &anim_name, const std::string &part_name, in
  * NOTE: Plays over ALL LODs.
 **/
 void CActor::play(const std::string &anim_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -982,6 +1000,8 @@ void CActor::play(const std::string &anim_name, int from_frame, int to_frame, in
  * NOTE: Plays over ALL LODs.
 **/
 void CActor::play(int channel, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1011,6 +1031,8 @@ void CActor::play(int channel, int from_frame, int to_frame, int layer, PN_stdfl
  * NOTE: Plays over ALL LODs.
 **/
 void CActor::play(const std::string &anim_name, const std::string &part_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1040,6 +1062,8 @@ void CActor::play(const std::string &anim_name, const std::string &part_name, in
  * NOTE: Plays over ALL LODs.
 **/
 void CActor::play(int channel, const std::string &part_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1070,6 +1094,8 @@ void CActor::play(int channel, const std::string &part_name, int from_frame, int
  * NOTE: Loops on all LODs.
 **/
 void CActor::loop(const std::string &anim_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1100,6 +1126,8 @@ void CActor::loop(const std::string &anim_name, bool restart, int from_frame, in
  * NOTE: Loops on all LODs.
 **/
 void CActor::loop(int channel, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1130,6 +1158,8 @@ void CActor::loop(int channel, bool restart, int from_frame, int to_frame, int l
  * NOTE: Loops on all LODs.
 **/
 void CActor::loop(const std::string &anim_name, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1160,6 +1190,8 @@ void CActor::loop(const std::string &anim_name, const std::string &part_name, bo
  * NOTE: Loops on all LODs.
 **/
 void CActor::loop(int channel, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1188,6 +1220,8 @@ void CActor::loop(int channel, const std::string &part_name, bool restart, int f
  * repeatedly.
 **/
 void CActor::pingpong(const std::string &anim_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1216,6 +1250,8 @@ void CActor::pingpong(const std::string &anim_name, bool restart, int from_frame
  * repeatedly.
 **/
 void CActor::pingpong(int channel, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1244,6 +1280,8 @@ void CActor::pingpong(int channel, bool restart, int from_frame, int to_frame, i
  * repeatedly.
 **/
 void CActor::pingpong(const std::string &anim_name, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1272,6 +1310,8 @@ void CActor::pingpong(const std::string &anim_name, const std::string &part_name
  * repeatedly.
 **/
 void CActor::pingpong(int channel, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1301,6 +1341,8 @@ void CActor::pingpong(int channel, const std::string &part_name, bool restart, i
  * to apply pose to all parts.
 **/
 void CActor::pose(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, int frame, int layer, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
     
     if (frame <= -1) { frame = 0; }
@@ -1322,6 +1364,8 @@ void CActor::pose(const std::string &anim_name, const std::string &part_name, co
  * to apply pose to all parts.
 **/
 void CActor::pose(int channel, const std::string &part_name, const std::string &lod_name, int frame, int layer, PN_stdfloat blend_in, PN_stdfloat blend_out) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
     
     if (frame <= -1) { frame = 0; }
@@ -1341,6 +1385,8 @@ void CActor::pose(int channel, const std::string &part_name, const std::string &
  * Enables or disables transitions into the indicated animation.
 **/
 void CActor::set_transition(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, bool flag) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1362,6 +1408,8 @@ void CActor::set_transition(const std::string &anim_name, const std::string &par
  * Enables or disables transitions into the indicated animation.
 **/
 void CActor::set_transition(int channel, const std::string &part_name, const std::string &lod_name, bool flag) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1375,6 +1423,113 @@ void CActor::set_transition(int channel, const std::string &part_name, const std
             channel->set_flags(AnimChannel::F_snap);
         }
     }
+}
+
+/**
+ * set_play_rate(float rate, string anim, string part_name, int layer)
+ * Set the play rate of given anim for a given part.
+ * If no part is given, set for all parts in dictionary.
+ * 
+ * It used to be legal to let the animation name default to the
+ * currently-playing anim, but this was confusing and could lead
+ * to the wrong anim's play rate getting set.  Better to insist
+ * on this parameter.
+ * NOTE: sets play rate on all LODs
+**/
+void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name, int layer) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
+    // Pre-declare this.
+    pvector<PartDef> part_defs;
+    
+    if (anim.empty()) {
+        part_defs = get_part_defs(part_name, EMPTY_STR);
+        
+        // Set play rate of layer for duration of currently playing channel.
+        for (size_t i = 0; i < part_defs.size(); i++) {
+            PartDef &part_def = part_defs[i];
+            // Get the character for our PartDef and make sure it's not a nullptr.
+            PT(Character) character = part_def.get_character();
+            if (character == nullptr) { continue; }
+            // Make sure the provided layer is valid before doing anything else.
+            if (!character->is_valid_layer_index(layer)) { continue; }
+            // Get the animation layer and make sure it isn't a nullptr.
+            AnimLayer *anim_layer = character->get_anim_layer(i);
+            if (anim_layer == nullptr) { continue; }
+            // Set the play rate of the animation layer.
+            anim_layer->_play_rate = rate;
+        }
+        return;
+    }
+    
+    pvector<AnimDef> anim_defs = get_anim_defs(anim, part_name, "lodRoot");
+    
+    // Store permanent play rate on channel
+    for (size_t i = 0; i < anim_defs.size(); i++) {
+        AnimDef &anim_def = anim_defs[i];
+        // Get the character for our AnimDef and make sure it's not a nullptr.
+        PT(Character) character = anim_def.get_character();
+        if (character == nullptr) { continue; }
+        // Set the play rate of our AnimDef.
+        anim_def.set_play_rate(rate);
+        
+        // If it's playing adjust the layer play rate.
+        for (int i = 0; i < character->get_num_anim_layers(); i++) {
+            AnimLayer *anim_layer = character->get_anim_layer(i);
+            if (anim_layer == nullptr || anim_layer->_sequence != anim_def.get_index()) { continue; }
+            anim_layer->_play_rate = rate;
+        }
+    }
+}
+
+/**
+ * get_play_rate(string anim_name, string part_name, int layer)
+ * 
+ * Return the play rate of given anim for a given part.
+ * If no part is given, assume first part in map.
+ * If no anim is given, find the current anim for the part.
+ * NOTE: Returns info only for an arbitrary LOD
+**/
+PN_stdfloat CActor::get_play_rate(const std::string &anim_name, const std::string &part_name, int layer) {
+    if (!anim_name.empty()) {
+        // Return stored play rate of a channel.
+        pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, "lodRoot");
+        if (anim_defs.empty()) { return 1.0; }
+        return anim_defs[0].get_play_rate();
+    }
+    
+    if (_part_bundle_dict.empty()) { return 1.0; }
+    
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef &part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match, skip this part def.
+        if (curr_part_name.compare(part_name) != 0) { continue; }
+        
+        // Return play rate of layer.
+        //
+        // Get the character for our PartDef and make sure it's not a nullptr.
+        PT(Character) character = part_def.get_character();
+        if (character == nullptr) { continue; }
+        // Make sure the provided layer is valid before doing anything else.
+        if (!character->is_valid_layer_index(layer)) { return 1.0; }
+        // Get the animation layer and make sure it isn't a nullptr.
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { continue; }
+        // Get the play rate of the animation layer.
+        return anim_layer->_play_rate;
+    }
+    
+    return 1.0;
 }
 
 
@@ -1392,6 +1547,8 @@ void CActor::set_transition(int channel, const std::string &part_name, const std
  * first time they are accessed through the Actor.
 **/
 void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &anims, const std::string &part_name, const std::string &lod_name, bool load_now) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<std::string> lod_names;
     
     std::string anim_part_name("modelRoot");
@@ -1460,6 +1617,8 @@ void CActor::load_anims(const pvector<std::pair<std::string, std::string> > &ani
  * If the file contains multiple channels, it only returns the first one.
 **/
 AnimChannel *CActor::load_anim(const Filename &filename) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     PT(PandaNode) anim_model = loader->load_sync(filename, LoaderOptions());
     if (anim_model == nullptr) {
         return nullptr;
@@ -1492,8 +1651,15 @@ AnimChannel *CActor::load_anim(const Filename &filename) {
  * added to the part character, or false if there was an error.
 **/
 bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(AnimChannel) channel) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
+    if (channel == nullptr) {
+        actor_cat.warning() << "Failed to bind animation '" << anim_def.get_name() << "' because the channel is NULL!\n";
+        return false; 
+    }
+    
     PT(Character) character = part_def._character;
-    if (character == nullptr) { 
+    if (character == nullptr) {
         actor_cat.warning() << "Failed to bind animation '" << anim_def.get_name() << "' because the character is NULL!\n";
         return false; 
     }
@@ -1532,6 +1698,8 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
  * false if the animation could not be loaded or bound.
 **/
 bool CActor::load_and_bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     const Filename &filename = anim_def.get_filename();
     PT(AnimChannel) channel = load_anim(filename);
     if (channel == nullptr) { 
@@ -1547,6 +1715,8 @@ bool CActor::load_and_bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim
  * name(defaults to "modelRoot") and an lod name(defaults to "lodRoot").
 **/
 void CActor::load_model(const NodePath &model_node, const std::string &part_name, const std::string &lod_name, bool copy, bool ok_missing, bool keep_model) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     NodePath model;
     
     std::string model_part_name("modelRoot");
@@ -1571,6 +1741,8 @@ void CActor::load_model(const NodePath &model_node, const std::string &part_name
  * name(defaults to "modelRoot") and an lod name(defaults to "lodRoot").
 **/
 void CActor::load_model(const std::string &model_path, const std::string &part_name, const std::string &lod_name, bool copy, bool ok_missing, bool keep_model) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     NodePath model;
     
     std::string model_part_name("modelRoot");
@@ -1676,6 +1848,8 @@ void CActor::load_model_internal(NodePath &model, const std::string &part_name, 
 }
 
 void CActor::prepare_bundle(const NodePath &bundle_np, const NodePath &part_model, const std::string &part_name, const std::string &lod_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+
     std::string bundle_name = lod_name + ":" + part_name;
     
     // Sanity check here just in case!
@@ -1713,6 +1887,8 @@ void CActor::prepare_bundle(const NodePath &bundle_np, const NodePath &part_mode
  * If one is not supplied as an argument, make one.
 **/
 void CActor::set_LOD_node(const NodePath &node) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Sanity checks
     if (node.is_empty()) {
         actor_cat.warning() << "Failed to set LOD node, Node is empty!\n";
@@ -1741,6 +1917,8 @@ void CActor::set_LOD_node(const NodePath &node) {
  * of a specific LOD under.
 **/
 void CActor::add_LOD(const std::string &lod_name, int in_dist, int out_dist) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
@@ -1761,6 +1939,8 @@ void CActor::add_LOD(const std::string &lod_name, int in_dist, int out_dist) {
  * of a specific LOD under.
 **/
 void CActor::add_LOD(const std::string &lod_name, int in_dist, int out_dist, const LPoint3f &center) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
@@ -1782,6 +1962,8 @@ void CActor::add_LOD(const std::string &lod_name, int in_dist, int out_dist, con
  * Set the switch distance for given LOD
 **/
 void CActor::set_LOD(const std::string &lod_name, int in_dist, int out_dist) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     // Sanity check
     if (_lod_node.is_empty() || !_lod_node.node()->is_of_type(LODNode::get_class_type())) { return; }
     
@@ -1876,6 +2058,8 @@ pvector<std::string> CActor::get_LOD_names() {
 }
 
 void CActor::set_center(const LPoint3f center) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     _lod_center = center;
     
     // If we have no LOD node, Return.
@@ -1902,6 +2086,8 @@ void CActor::set_center(const LPoint3f center) {
  * Instance a NodePath to an actor part at a joint called joint_name
 **/
 NodePath CActor::instance(NodePath &path, const std::string &part_name, const std::string &joint_name, const std::string &lod_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     std::string bundle_name(lod_name + ":" + part_name);
     
     PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
@@ -1926,6 +2112,8 @@ NodePath CActor::instance(NodePath &path, const std::string &part_name, const st
  * Attach one actor part to another at a joint called joint_name
 **/
 void CActor::attach(const std::string &part_name, const std::string &another_part_name, const std::string &joint_name, const std::string &lod_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+        
     std::string bundle_name(lod_name + ":" + part_name);
     std::string bundle_name2(lod_name + ":" + another_part_name);
     
@@ -1985,6 +2173,8 @@ void CActor::attach(const std::string &part_name, const std::string &another_par
  * root under the given lod.
 **/
 void CActor::draw_in_front(const std::string &front_part_name, const std::string &back_part_name, int mode, const std::string &root, const std::string &lod_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+        
     NodePath root_path;
     
     // Check to see if we are working within an LOD
@@ -2167,7 +2357,7 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        AnimDef *anim_def = part_def.get_anim_def(anim_name);
+        PT(AnimDef) anim_def = part_def.get_anim_def(anim_name);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
             anim_defs.emplace_back(*anim_def);
         }
@@ -2194,7 +2384,7 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        AnimDef *anim_def = part_def.get_anim_def(anim_index);
+        PT(AnimDef) anim_def = part_def.get_anim_def(anim_index);
         if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
             anim_defs.emplace_back(*anim_def);
         }
@@ -3183,6 +3373,8 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
  * parts if no part is specified.
 **/
 void CActor::advance() {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PT(Character)> bundles = get_part_bundles();
     
     JobSystem *jsys = JobSystem::get_global_ptr();
@@ -3197,6 +3389,8 @@ void CActor::advance() {
  * parts if no part is specified.
 **/
 void CActor::advance(const std::string &part_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PT(Character)> bundles = get_part_bundles(part_name);
     
     JobSystem *jsys = JobSystem::get_global_ptr();
@@ -3207,6 +3401,8 @@ void CActor::advance(const std::string &part_name) {
 }
 
 void CActor::set_auto_advance(bool flag) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PT(Character)> bundles = get_part_bundles();
     
     JobSystem *jsys = JobSystem::get_global_ptr();
@@ -3217,6 +3413,8 @@ void CActor::set_auto_advance(bool flag) {
 }
 
 void CActor::set_auto_advance(const std::string &part_name, bool flag) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PT(Character)> bundles = get_part_bundles(part_name);
     
     JobSystem *jsys = JobSystem::get_global_ptr();
@@ -3243,6 +3441,8 @@ void CActor::set_auto_advance(const std::string &part_name, bool flag) {
  * variable.
 **/
 void CActor::set_blend(bool frame_blend, bool transition_blend) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PT(Character)> bundles = get_part_bundles();
     
     JobSystem *jsys = JobSystem::get_global_ptr();
@@ -3270,6 +3470,8 @@ void CActor::set_blend(bool frame_blend, bool transition_blend) {
  * variable.
 **/
 void CActor::set_blend(const std::string &part_name, bool frame_blend, bool transition_blend) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     pvector<PT(Character)> bundles = get_part_bundles(part_name);
     
     JobSystem *jsys = JobSystem::get_global_ptr();
@@ -3453,6 +3655,8 @@ void CActor::post_flatten() {
  * have been loaded and bound, but that is no longer so.
 **/
 NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name, const std::string &lod_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     bool any_good = false;
     
     for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
@@ -3505,6 +3709,8 @@ NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, co
  * and restores the named joint to its normal animation. 
 **/
 void CActor::release_joint(const std::string &part_name, const std::string &joint_name) {
+    LightReMutexHolder holder(_cactor_thread_lock);
+    
     for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
         
@@ -3562,7 +3768,7 @@ void CActor::AnimDef::output(std::ostream &out) const {
 int CActor::PartDef::get_channel_index(const std::string &anim_name) {
     pmap<std::string, AnimDef>::iterator g = _anims_by_name.find(anim_name);
     if (g == _anims_by_name.end()) {
-        actor_cat.warning() << "No animation named: " << anim_name << '\n';
+        actor_cat.warning() << "Couldn't find animation named: " << anim_name << '\n';
         return -1;
     }
     return g->second.get_index();

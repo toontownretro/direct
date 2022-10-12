@@ -9,6 +9,7 @@
 #include "directbase.h"
 #include "extension.h"
 #include "filename.h"
+#include "lightReMutex.h"
 #include "loader.h"
 #include "loaderOptions.h"
 #include "lodNode.h"
@@ -107,6 +108,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 int _index = -1;
                 PN_stdfloat _play_rate = 1.0;
                 
+                static LightReMutex _cactor_animdef_thread_lock;
+                
             public:
                 static TypeHandle get_class_type() {
                     return _type_handle;
@@ -156,6 +159,9 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 pmap<std::string, AnimDef> _anims_by_name;
                 pvector<AnimDef> _anims_by_index;
                 pmap<std::string, WeightList> _weight_list;
+                
+            private:
+                static LightReMutex _cactor_partdef_thread_lock;
                 
             public:
                 static TypeHandle get_class_type() {
@@ -219,6 +225,13 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         void set_transition(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, bool flag=false);
         void set_transition(int channel, const std::string &part_name, const std::string &lod_name, bool flag=false);
+        
+        EXTENSION(void set_play_rate(PyObject *rate, PyObject *anim=Py_None, PyObject *part_name=Py_None, PyObject *layer=Py_None));
+        
+        INLINE PN_stdfloat get_play_rate();
+        INLINE PN_stdfloat get_play_rate(const std::string &anim_name);
+        INLINE PN_stdfloat get_play_rate(const std::string &anim_name, const std::string &part_name);
+        PN_stdfloat get_play_rate(const std::string &anim_name, const std::string &part_name, int layer);
         
         INLINE void set_geom_node(const NodePath &node);
         INLINE NodePath &get_geom_node();
@@ -388,6 +401,11 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         
         void load_anims(const pvector<std::pair<std::string, std::string> > &anims, const std::string &part_name, const std::string &lod_name, bool load_now=false);
         
+        INLINE void set_play_rate(PN_stdfloat rate);
+        INLINE void set_play_rate(PN_stdfloat rate, const std::string &anim);
+        INLINE void set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name);
+        void set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name, int layer);
+        
         pvector<AnimDef> get_anim_defs(const std::string &anim_name);
         pvector<AnimDef> get_anim_defs(int anim_index);
         pvector<AnimDef> get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name);
@@ -447,6 +465,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         Switches _switches;
         
         pvector<std::string> _sorted_LOD_names;
+        
+        static LightReMutex _cactor_thread_lock;
 
     public:
         static TypeHandle get_class_type() {
@@ -469,5 +489,6 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         static TypeHandle _type_handle;
 };
 
+#define EMPTY_STR std::string("")
 
 #include "cActor.I"
