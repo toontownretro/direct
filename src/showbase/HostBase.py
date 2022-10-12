@@ -272,8 +272,13 @@ class HostBase(DirectObject):
             self.globalClock.frame_time = self.frameTime
             self.globalClock.dt = self.deltaTime
 
+            self.simInterrupted = False
+
             # Step all simulation-bound tasks
             self.simTaskMgr.step()
+
+            if self.simInterrupted:
+                break
 
             self.oldTickCount = self.tickCount
 
@@ -289,6 +294,10 @@ class HostBase(DirectObject):
 
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
+
+    def resetSimulation(self, tick):
+        self.tickCount = tick
+        self.simInterrupted = True
 
     def getRenderTime(self):
         return self.tickCount * self.intervalPerTick + self.remainder

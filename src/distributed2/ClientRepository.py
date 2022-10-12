@@ -39,8 +39,50 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.lastServerTickTime = 0
         self.interestHandle = 0
 
+        # Estimated "ping" time, since the ping query from the client and
+        # response from the server.  In milliseconds.
+        self.pingLatency = 0
+        self.pendingPing = False
+        self.pingSendOutTime = 0.0
+        self.nextPingTime = 0.0
+
         self.predictionRandomSeed = 0
         self.predictionPlayer = None
+
+    def sendPing(self):
+        """
+        Issues a ping query to the server.  The client sends the server a
+        "ping" message, and when the server gets the message, it immediately
+        sends a response back.  When the client receives the response, it
+        measures the total time elapsed.
+        """
+        if self.pendingPing:
+            return
+        self.pendingPing = True
+
+        self.pingSendOutTime = globalClock.real_time
+        #print("Send ping at", self.pingSendOutTime)
+        dg = PyDatagram()
+        dg.addUint16(NetMessages.CL_Ping)
+        self.sendDatagram(dg)
+
+    def handlePingResponse(self):
+        if not self.pendingPing:
+            return
+        self.pendingPing = False
+        now = globalClock.real_time
+        # Seconds to milliseconds.
+        #print("recv ping resp at", now)
+        self.pingLatency = max(0, int((now - self.pingSendOutTime) * 1000.0))
+        if cl_report_ping.value:
+            self.notify.info("Current ping: %i ms" % self.pingLatency)
+        self.nextPingTime = now + cl_ping_interval.value
+
+        # Now inform the server of our ping.
+        dg = PyDatagram()
+        dg.addUint16(NetMessages.CL_InformPing)
+        dg.addUint32(self.pingLatency)
+        self.sendDatagram(dg)
 
     #def simObjects(self, task):
     #    for do in self.doId2do.values():
@@ -57,6 +99,11 @@ class ClientRepository(BaseObjectManager, CClientRepository):
     def runFrame(self, task):
         self.readerPollUntilEmpty()
         self.runCallbacks()
+
+        # Handle automatic pinging for latency measuring.
+        if self.connected and cl_ping.value:
+            if globalClock.real_time >= self.nextPingTime:
+                self.sendPing()
 
         return task.cont
 
@@ -147,6 +194,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         dg.addUint32(self.hashVal)
         dg.addUint8(cl_updaterate.getValue())
         dg.addUint8(cl_cmdrate.getValue())
+        dg.addFloat32(getClientInterpAmount())
         self.sendDatagram(dg)
 
     def __handleServerHelloResp(self, dgi):
@@ -158,7 +206,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.serverIntervalPerTick = 1.0 / self.serverTickRate
             # Use the same simulation rate as the server!
             base.setTickRate(self.serverTickRate)
-            base.tickCount = dgi.getUint32()
+            tickCount = dgi.getUint32()
+            base.resetSimulation(tickCount)
 
             self.notify.info("Verified with server")
             messenger.send('serverHelloSuccess')
@@ -375,6 +424,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.netSys.closeConnection(self.connectionHandle)
             self.connectionHandle = None
         self.connected = False
+        self.pendingPing = False
         self.clientId = 0
         self.serverTickRate = 0
         self.serverIntervalPerTick = 0
@@ -463,6 +513,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             messenger.send('connectionLost')
             self.serverAddress = None
             self.connectionHandle = None
+            self.pendingPing = False
             self.stopClientLoop()
             self.deleteAllObjects()
 
@@ -481,6 +532,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.__handleDeleteObject(dgi)
         elif self.msgType == NetMessages.B_ObjectMessage:
             self.__handleObjectMessage(dgi)
+        elif self.msgType == NetMessages.SV_Ping_Resp:
+            self.handlePingResponse()
 
     def sendUpdate(self, do, name, args):
         if not do:
