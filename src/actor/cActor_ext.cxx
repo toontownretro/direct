@@ -401,6 +401,37 @@ void Extension<CActor>::load_anims(PyObject *anims, PyObject *part_name, PyObjec
     _this->load_anims(_anims, _part_name, _lod_name, _load_now);
 }
 
+void Extension<CActor>::set_play_rate(PyObject *rate, PyObject *anim, PyObject *part_name, PyObject *layer) {
+    PN_stdfloat _rate = 1.0;
+    std::string _part_name("modelRoot");
+    std::string _anim_name("");
+    int _layer = 0;
+        
+    // The play rate is a required paramater.
+    if (rate == nullptr || rate == Py_None || !PyFloat_Check(rate)) {
+        std::ostringstream stream;
+        stream << "rate paramater passed to set_play_rate is required and must be a float!";
+        std::string str = stream.str();
+        PyErr_SetString(PyExc_TypeError, str.c_str());
+        return; 
+    }
+    
+    // Get our play rate.
+    _rate = (PN_stdfloat)PyFloat_AsDouble(rate);
+    
+    // Check if our animation name is valid for use, If so. Extract it from the PyObject.
+    if (PyString_Check(anim)) { _anim_name = PyString_ToString(anim); }
+    
+    // Check if our part name is valid for use, If so. Extract it from the PyObject.
+    if (PyString_Check(part_name)) { _part_name = PyString_ToString(part_name); }
+    
+    // Check if our layer is valid for use, If so. Extract it from the PyObject.
+    if (PyLong_Check(layer)) { _layer = PyLong_AsLong(layer); }
+    
+    // Now we set our own play rate.
+    _this->set_play_rate(_rate, _anim_name, _part_name, _layer);
+}
+
 PyObject *Extension<CActor>::get_LOD_names() {
     // Get all of our lod names.
     pvector<std::string> lod_names = _this->get_LOD_names();
