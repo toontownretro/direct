@@ -101,6 +101,10 @@ class BaseDistributedObject(DirectObject):
             if removeFromTable:
                 del self._tasks[name]
 
+    def hasTask(self, name):
+        task = self._tasks.get(name)
+        return task is not None and task[0].isAlive()
+
     def removeAllTasks(self):
         """
         Removes all tasks that have been created for this object.
