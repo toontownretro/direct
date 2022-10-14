@@ -908,7 +908,7 @@ void CActor::flush() {
 void CActor::stop(int layer, bool kill) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<PartDef> part_defs = get_part_defs();
+    std::vector<PartDef> part_defs = get_part_defs();
     
     // Stopping all layers or a specific layer
     for (size_t i = 0; i < part_defs.size(); i++) {
@@ -935,7 +935,7 @@ void CActor::stop(const std::string &anim_name, const std::string &part_name, in
     // paramaters.
     if (!has_anim_name && part_name.empty()) { stop(layer, kill); return; }
     
-    pvector<PartDef> part_defs = get_part_defs(part_name, EMPTY_STR);
+    std::vector<PartDef> part_defs = get_part_defs(part_name, EMPTY_STR);
     
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
@@ -971,7 +971,7 @@ void CActor::stop(const std::string &anim_name, const std::string &part_name, in
 void CActor::play(const std::string &anim_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1002,7 +1002,7 @@ void CActor::play(const std::string &anim_name, int from_frame, int to_frame, in
 void CActor::play(int channel, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1033,7 +1033,7 @@ void CActor::play(int channel, int from_frame, int to_frame, int layer, PN_stdfl
 void CActor::play(const std::string &anim_name, const std::string &part_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1064,7 +1064,7 @@ void CActor::play(const std::string &anim_name, const std::string &part_name, in
 void CActor::play(int channel, const std::string &part_name, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, bool auto_kill, PN_stdfloat blend_in, PN_stdfloat blend_out) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1096,7 +1096,7 @@ void CActor::play(int channel, const std::string &part_name, int from_frame, int
 void CActor::loop(const std::string &anim_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1128,7 +1128,7 @@ void CActor::loop(const std::string &anim_name, bool restart, int from_frame, in
 void CActor::loop(int channel, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1160,7 +1160,7 @@ void CActor::loop(int channel, bool restart, int from_frame, int to_frame, int l
 void CActor::loop(const std::string &anim_name, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1192,7 +1192,7 @@ void CActor::loop(const std::string &anim_name, const std::string &part_name, bo
 void CActor::loop(int channel, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1222,7 +1222,7 @@ void CActor::loop(int channel, const std::string &part_name, bool restart, int f
 void CActor::pingpong(const std::string &anim_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1252,7 +1252,7 @@ void CActor::pingpong(const std::string &anim_name, bool restart, int from_frame
 void CActor::pingpong(int channel, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1282,7 +1282,7 @@ void CActor::pingpong(int channel, bool restart, int from_frame, int to_frame, i
 void CActor::pingpong(const std::string &anim_name, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1312,7 +1312,7 @@ void CActor::pingpong(const std::string &anim_name, const std::string &part_name
 void CActor::pingpong(int channel, const std::string &part_name, bool restart, int from_frame, int to_frame, int layer, PN_stdfloat play_rate, PN_stdfloat blend_in) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel, part_name, EMPTY_STR);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1343,7 +1343,7 @@ void CActor::pingpong(int channel, const std::string &part_name, bool restart, i
 void CActor::pose(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, int frame, int layer, PN_stdfloat blend_in, PN_stdfloat blend_out) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
     
     if (frame <= -1) { frame = 0; }
     
@@ -1366,7 +1366,7 @@ void CActor::pose(const std::string &anim_name, const std::string &part_name, co
 void CActor::pose(int channel, const std::string &part_name, const std::string &lod_name, int frame, int layer, PN_stdfloat blend_in, PN_stdfloat blend_out) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
     
     if (frame <= -1) { frame = 0; }
     
@@ -1387,7 +1387,7 @@ void CActor::pose(int channel, const std::string &part_name, const std::string &
 void CActor::set_transition(const std::string &anim_name, const std::string &part_name, const std::string &lod_name, bool flag) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, lod_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1410,7 +1410,7 @@ void CActor::set_transition(const std::string &anim_name, const std::string &par
 void CActor::set_transition(int channel, const std::string &part_name, const std::string &lod_name, bool flag) {
     LightReMutexHolder holder(_cactor_thread_lock);
     
-    pvector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
+    std::vector<AnimDef> anim_defs = get_anim_defs(channel, part_name, lod_name);
     
     for (size_t i = 0; i < anim_defs.size(); i++) {
         AnimDef &anim_def = anim_defs[i];
@@ -1440,7 +1440,7 @@ void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim, const std:
     LightReMutexHolder holder(_cactor_thread_lock);
     
     // Pre-declare this.
-    pvector<PartDef> part_defs;
+    std::vector<PartDef> part_defs;
     
     if (anim.empty()) {
         part_defs = get_part_defs(part_name, EMPTY_STR);
@@ -1462,7 +1462,7 @@ void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim, const std:
         return;
     }
     
-    pvector<AnimDef> anim_defs = get_anim_defs(anim, part_name, "lodRoot");
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim, part_name, "lodRoot");
     
     // Store permanent play rate on channel
     for (size_t i = 0; i < anim_defs.size(); i++) {
@@ -1493,7 +1493,7 @@ void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim, const std:
 PN_stdfloat CActor::get_play_rate(const std::string &anim_name, const std::string &part_name, int layer) {
     if (!anim_name.empty()) {
         // Return stored play rate of a channel.
-        pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, "lodRoot");
+        std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, "lodRoot");
         if (anim_defs.empty()) { return 1.0; }
         return anim_defs[0].get_play_rate();
     }
@@ -1686,8 +1686,19 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
     
     anim_def.set_index(channel_index);
     anim_def.set_animation_channel(channel);
-    pvector<AnimDef> &anims_by_index = part_def._anims_by_index;
-    anims_by_index.insert(anims_by_index.begin() + channel_index, anim_def);
+
+    // Add in our animation def to the index vector.
+    std::vector<AnimDef> &anims_by_index = part_def._anims_by_index;
+    // Make sure the vector has enough space to store the index.
+    if (anims_by_index.capacity() <= channel_index) {
+        anims_by_index.reserve(channel_index + 1);
+    }
+    // Insert our Animation Definiton.
+    std::vector<AnimDef>::iterator position = anims_by_index.begin() + channel_index;
+    anims_by_index.emplace(position, anim_def);
+    // Shrink our vector down to it's minimum possible size.
+    anims_by_index.shrink_to_fit();
+
     
     return true;
 }
@@ -1702,7 +1713,7 @@ bool CActor::load_and_bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim
     
     const Filename &filename = anim_def.get_filename();
     PT(AnimChannel) channel = load_anim(filename);
-    if (channel == nullptr) { 
+    if (channel == nullptr) {
         actor_cat.warning() << "Failed to load animation '" << anim_def.get_name() << "' from file: " << filename << "!\n";
         return false; 
     }
@@ -2303,16 +2314,17 @@ PT(Character) CActor::get_part_bundle(const std::string &part_name, const std::s
  * Returns a vector of AnimDefs for each part and lod combination for
  * the indicated anim_name (may also be a channel index).
 **/
-pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name) {
-    pvector<AnimDef> anim_defs;
-    pvector<PartDef> part_defs = get_part_defs();
+std::vector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name) {
+    std::vector<AnimDef> anim_defs;
+    std::vector<PartDef> part_defs = get_part_defs();
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        AnimDef *anim_def = part_def.get_anim_def(anim_name);
-        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.emplace_back(*anim_def);
+        if (!part_def.has_anim_def(anim_name)) { continue; }
+        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
+            anim_defs.emplace_back(anim_def);
         }
     }
     
@@ -2323,16 +2335,17 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name) {
  * Returns a vector of AnimDefs for each part and lod combination for
  * the indicated anim_name (may also be a channel index).
 **/
-pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
-    pvector<AnimDef> anim_defs;
-    pvector<PartDef> part_defs = get_part_defs();
+std::vector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
+    std::vector<AnimDef> anim_defs;
+    std::vector<PartDef> part_defs = get_part_defs();
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        AnimDef *anim_def = part_def.get_anim_def(anim_index);
-        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.emplace_back(*anim_def);
+        if (!part_def.has_anim_def(anim_index)) { continue; }
+        AnimDef &anim_def = part_def.get_anim_def(anim_index);
+        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
+            anim_defs.emplace_back(anim_def);
         }
     }
     
@@ -2343,7 +2356,7 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
  * Returns a vector of AnimDefs for each part and lod combination for
  * the indicated anim_name (may also be a channel index).
 **/
-pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name) {
+std::vector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name) {
     bool has_part_name = !part_name.empty();
     bool has_LOD_name = !lod_name.empty();
     
@@ -2351,15 +2364,16 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
     // paramaters.
     if (!has_part_name && !has_LOD_name) { return get_anim_defs(anim_name); }
     
-    pvector<AnimDef> anim_defs;
-    pvector<PartDef> part_defs = get_part_defs(part_name, lod_name);
+    std::vector<AnimDef> anim_defs;
+    std::vector<PartDef> part_defs = get_part_defs(part_name, lod_name);
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        PT(AnimDef) anim_def = part_def.get_anim_def(anim_name);
-        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.emplace_back(*anim_def);
+        if (!part_def.has_anim_def(anim_name)) { continue; }
+        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
+            anim_defs.emplace_back(anim_def);
         }
     }
     
@@ -2370,7 +2384,7 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
  * Returns a vector of AnimDefs for each part and lod combination for
  * the indicated anim_name (may also be a channel index).
 **/
-pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name) {
+std::vector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name) {
     bool has_part_name = !part_name.empty();
     bool has_LOD_name = !lod_name.empty();
     
@@ -2378,15 +2392,16 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string
     // paramaters.
     if (!has_part_name && !has_LOD_name) { return get_anim_defs(anim_index); }
     
-    pvector<AnimDef> anim_defs;
-    pvector<PartDef> part_defs = get_part_defs(part_name, lod_name);
+    std::vector<AnimDef> anim_defs;
+    std::vector<PartDef> part_defs = get_part_defs(part_name, lod_name);
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        PT(AnimDef) anim_def = part_def.get_anim_def(anim_index);
-        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.emplace_back(*anim_def);
+        if (!part_def.has_anim_def(anim_index)) { continue; }
+        AnimDef &anim_def = part_def.get_anim_def(anim_index);
+        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
+            anim_defs.emplace_back(anim_def);
         }
     }
     
@@ -2397,7 +2412,7 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::string
  * Returns a vector of AnimDefs for each part and lod combination for
  * the indicated anim_name (may also be a channel index).
 **/
-pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name) {
+std::vector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name) {
     bool has_part_names = part_names.size() <= 0;
     bool has_LOD_name = !lod_name.empty();
     
@@ -2405,15 +2420,16 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
     // Just call the version that needs no paramaters.
     if (!has_part_names && !has_LOD_name) { return get_anim_defs(anim_name); }
     
-    pvector<AnimDef> anim_defs;
-    pvector<PartDef> part_defs = get_part_defs(part_names, lod_name);
+    std::vector<AnimDef> anim_defs;
+    std::vector<PartDef> part_defs = get_part_defs(part_names, lod_name);
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        AnimDef *anim_def = part_def.get_anim_def(anim_name);
-        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.emplace_back(*anim_def);
+        if (!part_def.has_anim_def(anim_name)) { continue; }
+        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
+            anim_defs.emplace_back(anim_def);
         }
     }
     
@@ -2424,7 +2440,7 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name, con
  * Returns a vector of AnimDefs for each part and lod combination for
  * the indicated anim_name (may also be a channel index).
 **/
-pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name) {
+std::vector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name) {
     bool has_part_names = part_names.size() <= 0;
     bool has_LOD_name = !lod_name.empty();
     
@@ -2432,15 +2448,16 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std
     // Just call the version that needs no paramaters.
     if (!has_part_names && !has_LOD_name) { return get_anim_defs(anim_index); }
     
-    pvector<AnimDef> anim_defs;
-    pvector<PartDef> part_defs = get_part_defs(part_names, lod_name);
+    std::vector<AnimDef> anim_defs;
+    std::vector<PartDef> part_defs = get_part_defs(part_names, lod_name);
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
         PartDef &part_def = part_defs[i];
-        AnimDef *anim_def = part_def.get_anim_def(anim_index);
-        if (anim_def != nullptr && (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def))) {
-            anim_defs.emplace_back(*anim_def);
+        if (!part_def.has_anim_def(anim_index)) { continue; }
+        AnimDef &anim_def = part_def.get_anim_def(anim_index);
+        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
+            anim_defs.emplace_back(anim_def);
         }
     }
     
@@ -2450,8 +2467,8 @@ pvector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector<std
 /**
  * Returns a vector of PartDefs for each part and lod combination.
 **/
-pvector<CActor::PartDef> CActor::get_part_defs() {
-    pvector<PartDef> part_defs;
+std::vector<CActor::PartDef> CActor::get_part_defs() {
+    std::vector<PartDef> part_defs;
     
     // Just iterate the entire map and get all of our PartDefs.
     for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
@@ -2465,14 +2482,14 @@ pvector<CActor::PartDef> CActor::get_part_defs() {
 /**
  * Returns a vector of PartDefs for each part and lod combination.
 **/
-pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, const std::string &lod_name) {
+std::vector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, const std::string &lod_name) {
     bool has_part_name = !part_name.empty();
     bool has_LOD_name = !lod_name.empty();
     
     // If both strings are empty for some reason, Just call the version that needs no
     // paramaters.
     if (!has_part_name && !has_LOD_name) { return get_part_defs(); }
-    pvector<PartDef> part_defs;
+    std::vector<PartDef> part_defs;
     
     for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
@@ -2501,14 +2518,14 @@ pvector<CActor::PartDef> CActor::get_part_defs(const std::string &part_name, con
 /**
  * Returns a vector of PartDefs for each part and lod combination.
 **/
-pvector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name) {
+std::vector<CActor::PartDef> CActor::get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name) {
     bool has_part_names = part_names.size() <= 0;
     bool has_LOD_name = !lod_name.empty();
     
     // If both our part name vector and lod name is empty for some reason, 
     // Just call the version that needs no paramaters.
     if (!has_part_names && !has_LOD_name) { return get_part_defs(); }
-    pvector<PartDef> part_defs;
+    std::vector<PartDef> part_defs;
     
     for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
         std::string curr_lod_name, curr_part_name;
@@ -3330,7 +3347,7 @@ int CActor::get_current_frame(const std::string &anim_name, const std::string &p
     if (anim_name.empty()) { return get_current_frame(part_name, 0); }
     
     // Get all of our animation definitions.
-    pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+    std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
     if (anim_defs.empty()) { return 0; }
     
     // Return current frame of the named animation if it is currently
@@ -3623,11 +3640,11 @@ const Filename CActor::get_anim_filename(const std::string &anim_name, const std
         // If it doesn't exist at all, The loop will break out.
         if (curr_part_name.compare(working_part_name) != 0) { continue; }
         
-        // Get our animation definition.
-        AnimDef *anim_def = part_def.get_anim_def(anim_name);
-        if (anim_def == nullptr) { return Filename(); }
+        if (!part_def.has_anim_def(anim_name)) { return Filename(); }
         
-        return anim_def->get_filename();
+        // Get our animation definition.
+        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        return anim_def.get_filename();
     }
     
     return Filename();
@@ -3774,19 +3791,20 @@ int CActor::PartDef::get_channel_index(const std::string &anim_name) {
     return g->second.get_index();
 }
 
-CActor::AnimDef *CActor::PartDef::get_anim_def(int index) {
-    if (index >= _anims_by_index.size() || index <= -1) {
-        actor_cat.warning() << "Invalid animation index: " << index << '\n';
-        return nullptr;
-    }
-    return &_anims_by_index[index];
+bool CActor::PartDef::has_anim_def(int index) {
+    return !(index >= _anims_by_index.size() || index <= -1);
 }
 
-CActor::AnimDef *CActor::PartDef::get_anim_def(const std::string &anim_name) {
+bool CActor::PartDef::has_anim_def(const std::string &anim_name) {
     pmap<std::string, AnimDef>::iterator g = _anims_by_name.find(anim_name);
-    if (g == _anims_by_name.end()) {
-        actor_cat.warning() << "No animation named: " << anim_name << '\n';
-        return nullptr;
-    }
-    return &g->second;
+    return g != _anims_by_name.end();
+}
+
+CActor::AnimDef &CActor::PartDef::get_anim_def(int index) { 
+    return _anims_by_index.at(index);
+}
+
+CActor::AnimDef &CActor::PartDef::get_anim_def(const std::string &anim_name) {
+    pmap<std::string, AnimDef>::iterator g = _anims_by_name.find(anim_name);
+    return g->second;
 }

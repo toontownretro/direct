@@ -24,6 +24,7 @@
 #include "pvector.h"
 #include "referenceCount.h"
 #include "typedReferenceCount.h"
+#include "typedObject.h"
 #include "weightList.h"
 
 #include "pt_AnimChannelTable.h"
@@ -33,6 +34,7 @@
 #include <functional>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 struct MultipartLODActorData {
     std::string lod_name;
@@ -55,13 +57,13 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         class AnimDef;
         class PartDef;
     
-    typedef pmap<std::string, PartDef> PartBundleDict;
+    typedef std::map<std::string, PartDef> PartBundleDict;
     //typedef pmap<std::string, pmap<std::string, PartDef> > PartBundleDict;
     
     typedef pmap<std::string, std::pair<int, int> > Switches;
 
     PUBLISHED:
-        class EXPCL_DIRECT_ACTOR AnimDef : public TypedReferenceCount {
+        class EXPCL_DIRECT_ACTOR AnimDef : public TypedObject {
             PUBLISHED:
                 INLINE AnimDef(Filename filename = Filename());
                 INLINE AnimDef(Filename filename, PT(AnimChannel) channel);
@@ -80,12 +82,12 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 
                 INLINE void set_animation_channel(AnimChannel *channel);
                 INLINE void set_animation_channel(PT(AnimChannel) channel);
-                INLINE PT(AnimChannel) get_animation_channel() const;
+                INLINE AnimChannel *get_animation_channel() const;
                 INLINE bool has_animation_channel() const;
                 
                 INLINE void set_character(Character *character);
                 INLINE void set_character(PT(Character) character);
-                INLINE PT(Character) get_character() const;
+                INLINE Character *get_character() const;
                 
                 INLINE void set_index(int index);
                 INLINE int get_index() const;
@@ -100,8 +102,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
             private:
                 Filename _filename;
                 
-                PT(AnimChannel) _channel = nullptr;
-                PT(Character) _character = nullptr;
+                AnimChannel *_channel = nullptr;
+                Character *_character = nullptr;
                 
                 std::string _name;
                 
@@ -115,8 +117,13 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                     return _type_handle;
                 }
                 static void init_type() {
-                    TypedReferenceCount::init_type();
-                    register_type(_type_handle, "CActor::AnimDef", TypedReferenceCount::get_class_type());
+                    TypedObject::init_type();
+                    register_type(_type_handle, "CActor::AnimDef", TypedObject::get_class_type());
+                }
+                
+                virtual TypeHandle force_init_type() { 
+                    init_type(); 
+                    return get_class_type();
                 }
 
             PUBLISHED:
@@ -131,7 +138,7 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 static TypeHandle _type_handle;
         };
         
-        class EXPCL_DIRECT_ACTOR PartDef : public TypedReferenceCount {
+        class EXPCL_DIRECT_ACTOR PartDef : public TypedObject {
             friend class CActor;
             
             PUBLISHED:
@@ -147,17 +154,20 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 PT(Character) get_character() const;
                 
                 const NodePath &get_character_nodepath() const;
+                
+                bool has_anim_def(int index);
+                bool has_anim_def(const std::string &anim_name);
 
-                AnimDef *get_anim_def(int index);
-                AnimDef *get_anim_def(const std::string &anim_name);
+                AnimDef &get_anim_def(int index);
+                AnimDef &get_anim_def(const std::string &anim_name);
                 
             protected:
                 NodePath _character_np = NodePath();
                 PT(Character) _character = nullptr;
                 NodePath _part_model = NodePath();
                 
-                pmap<std::string, AnimDef> _anims_by_name;
-                pvector<AnimDef> _anims_by_index;
+                std::map<std::string, AnimDef> _anims_by_name;
+                std::vector<AnimDef> _anims_by_index;
                 pmap<std::string, WeightList> _weight_list;
                 
             private:
@@ -168,8 +178,13 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                     return _type_handle;
                 }
                 static void init_type() {
-                    TypedReferenceCount::init_type();
-                    register_type(_type_handle, "CActor::PartDef", TypedReferenceCount::get_class_type());
+                    TypedObject::init_type();
+                    register_type(_type_handle, "CActor::PartDef", TypedObject::get_class_type());
+                }
+                
+                virtual TypeHandle force_init_type() { 
+                    init_type(); 
+                    return get_class_type();
                 }
 
             PUBLISHED:
@@ -406,16 +421,16 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         INLINE void set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name);
         void set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name, int layer);
         
-        pvector<AnimDef> get_anim_defs(const std::string &anim_name);
-        pvector<AnimDef> get_anim_defs(int anim_index);
-        pvector<AnimDef> get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name);
-        pvector<AnimDef> get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name);
-        pvector<AnimDef> get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name);
-        pvector<AnimDef> get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name);
+        std::vector<AnimDef> get_anim_defs(const std::string &anim_name);
+        std::vector<AnimDef> get_anim_defs(int anim_index);
+        std::vector<AnimDef> get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name);
+        std::vector<AnimDef> get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name);
+        std::vector<AnimDef> get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name);
+        std::vector<AnimDef> get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name);
         
-        pvector<PartDef> get_part_defs();
-        pvector<PartDef> get_part_defs(const std::string &part_name, const std::string &lod_name);
-        pvector<PartDef> get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name);
+        std::vector<PartDef> get_part_defs();
+        std::vector<PartDef> get_part_defs(const std::string &part_name, const std::string &lod_name);
+        std::vector<PartDef> get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name);
         
         pvector<PT(Character)> get_part_bundles();
         pvector<PT(Character)> get_part_bundles(const std::string &part_name);

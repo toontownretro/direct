@@ -466,15 +466,15 @@ INLINE void CActor::AnimDef::set_animation_channel(AnimChannel *channel) {
 INLINE void CActor::AnimDef::set_animation_channel(PT(AnimChannel) channel) {
     LightReMutexHolder holder(_cactor_animdef_thread_lock);
     
-    _channel = channel;
+    _channel = channel.p();
 }
 
-INLINE PT(AnimChannel) CActor::AnimDef::get_animation_channel() const {
+INLINE AnimChannel *CActor::AnimDef::get_animation_channel() const {
     return _channel;
 }
 
 INLINE bool CActor::AnimDef::has_animation_channel() const {
-    return _channel.p() != nullptr;
+    return _channel != nullptr;
 }
 
 INLINE void CActor::AnimDef::set_character(Character *character) {
@@ -486,10 +486,10 @@ INLINE void CActor::AnimDef::set_character(Character *character) {
 INLINE void CActor::AnimDef::set_character(PT(Character) character) {
     LightReMutexHolder holder(_cactor_animdef_thread_lock);
     
-    _character = character;
+    _character = character.p();
 }
 
-INLINE PT(Character) CActor::AnimDef::get_character() const {
+INLINE Character *CActor::AnimDef::get_character() const {
     return _character;
 }
 
