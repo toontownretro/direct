@@ -1532,6 +1532,56 @@ PN_stdfloat CActor::get_play_rate(const std::string &anim_name, const std::strin
     return 1.0;
 }
 
+int CActor::get_num_frames(const std::string &anim_name, const std::string &part_name, int layer) {
+    if (!anim_name.empty()) {
+        // Return num frames of a specific channel.
+        std::vector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, "lodRoot");
+        if (anim_defs.empty()) { return 1; }
+        AnimDef &anim_def = anim_defs[0];
+        if (!anim_def.has_animation_channel()) { return 1; }
+        AnimChannel *channel = anim_def.get_animation_channel();
+        return channel->get_num_frames();
+    }
+    
+    if (_part_bundle_dict.empty()) { return 1; }
+    
+    for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+        std::string curr_lod_name, curr_part_name;
+        std::string bundle_name(it->first);
+        PartDef &part_def = it->second;
+        
+        // Get back both our lod name and our part name by splitting the string.
+        curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+        // Erase the lod name and the delimiter.
+        bundle_name.erase(0, bundle_name.find(':') + 1);
+        // The bundle name is now the part name.
+        curr_part_name = std::move(bundle_name);
+        
+        // If the part name doesn't match, skip this part def.
+        if (curr_part_name.compare(part_name) != 0) { continue; }
+        
+        // Return num frames of a layer.
+        //
+        // Get the character for our PartDef and make sure it's not a nullptr.
+        PT(Character) character = part_def.get_character();
+        if (character == nullptr) { continue; }
+        // Make sure the provided layer is valid before doing anything else.
+        if (!character->is_valid_layer_index(layer)) { continue; }
+        // Get the animation layer and make sure it isn't a nullptr.
+        AnimLayer *anim_layer = character->get_anim_layer(layer);
+        if (anim_layer == nullptr) { continue; }
+        // Make sure the channel index is valid.
+        if (!character->is_valid_channel_index(anim_layer->_sequence)) { continue; }
+        // Get our animation channel from our channel index.
+        AnimChannel *channel = character->get_channel(anim_layer->_sequence);
+        if (channel == nullptr) { continue; }
+        // Return how many frames we have in the animation from the channel.
+        return channel->get_num_frames();
+    }
+    
+    return 1;
+}
+
 
 /**
  * load_anims(pvector<pair<string, string> >, string='modelRoot',

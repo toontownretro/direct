@@ -91,6 +91,18 @@ PN_stdfloat CActor::get_play_rate(const std::string &anim_name, const std::strin
     return get_play_rate(anim_name, part_name, 0);
 }
 
+int CActor::get_num_frames() {
+    return get_num_frames(EMPTY_STR, EMPTY_STR, 0);
+}
+
+int CActor::get_num_frames(const std::string &anim_name) {
+    return get_num_frames(anim_name, EMPTY_STR, 0);
+}
+
+int CActor::get_num_frames(const std::string &anim_name, const std::string &part_name) {
+    return get_num_frames(anim_name, part_name, 0);
+}
+
 /**
  * set_geom_node()
 **/
@@ -422,6 +434,17 @@ INLINE CActor::AnimDef::AnimDef(const CActor::AnimDef &other)  {
     set_filename(other.get_filename());
 }
 
+INLINE CActor::AnimDef::AnimDef(CActor::AnimDef &&other) noexcept {
+    // Since this is a move constructor, We reference the members directly.
+    
+    _channel = std::exchange(other._channel, nullptr);
+    _character = std::exchange(other._character, nullptr);
+    _index = std::exchange(other._index, -1);
+    _play_rate = std::exchange(other._play_rate, 1.0);
+    _name = std::move(other._name);
+    _filename = std::move(other._filename);
+}
+
 INLINE void CActor::AnimDef::operator=(const CActor::AnimDef &copy) {
     if (copy._channel != nullptr) { set_animation_channel(copy.get_animation_channel()); }
     if (copy._character != nullptr) { set_character(copy.get_character()); }
@@ -429,6 +452,21 @@ INLINE void CActor::AnimDef::operator=(const CActor::AnimDef &copy) {
     set_play_rate(copy.get_play_rate());
     set_name(copy.get_name());
     set_filename(copy.get_filename());
+}
+
+INLINE CActor::AnimDef &CActor::AnimDef::operator=(CActor::AnimDef &&other) noexcept {
+    // If we're assigning to ourself. Do nothing.
+    if (this == &other) { return *this; }
+    
+    // Since this is a move assignment operation, We reference the members directly.
+    
+    _channel = std::exchange(other._channel, nullptr);
+    _character = std::exchange(other._character, nullptr);
+    _index = std::exchange(other._index, -1);
+    _play_rate = std::exchange(other._play_rate, 1.0);
+    _name = std::move(other._name);
+    _filename = std::move(other._filename);
+    return *this;
 }
 
 INLINE void CActor::AnimDef::set_name(const std::string &name) {
@@ -535,7 +573,7 @@ INLINE CActor::PartDef::PartDef(const CActor::PartDef &other) {
     _part_model = other._part_model;
     
     _anims_by_name.insert(other._anims_by_name.begin(), other._anims_by_name.end());
-    _anims_by_index = other._anims_by_index;
+    _anims_by_index.assign(other._anims_by_index.begin(), other._anims_by_index.end());
     _weight_list.insert(other._weight_list.begin(), other._weight_list.end());
 }
 
@@ -544,12 +582,15 @@ INLINE void CActor::PartDef::operator=(const CActor::PartDef &copy) {
     _character = copy._character;
     _part_model = copy._part_model;
     
+    // Free all of our vectors contents, and shrink them back down.
     _anims_by_name.clear();
     _anims_by_index.clear();
+    _anims_by_index.shrink_to_fit();
     _weight_list.clear();
     
+    // Copy over the other vectors.
     _anims_by_name.insert(copy._anims_by_name.begin(), copy._anims_by_name.end());
-    _anims_by_index = copy._anims_by_index;
+    _anims_by_index.assign(copy._anims_by_index.begin(), copy._anims_by_index.end());
     _weight_list.insert(copy._weight_list.begin(), copy._weight_list.end());
 }
 

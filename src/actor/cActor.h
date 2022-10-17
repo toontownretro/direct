@@ -58,9 +58,9 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         class PartDef;
     
     typedef std::map<std::string, PartDef> PartBundleDict;
-    //typedef pmap<std::string, pmap<std::string, PartDef> > PartBundleDict;
+    //typedef std::map<std::string, pmap<std::string, PartDef> > PartBundleDict;
     
-    typedef pmap<std::string, std::pair<int, int> > Switches;
+    typedef std::map<std::string, std::pair<int, int> > Switches;
 
     PUBLISHED:
         class EXPCL_DIRECT_ACTOR AnimDef : public TypedObject {
@@ -69,9 +69,11 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 INLINE AnimDef(Filename filename, PT(AnimChannel) channel);
                 INLINE AnimDef(Filename filename, PT(AnimChannel) channel, PT(Character) character);
                 INLINE AnimDef(const AnimDef &other);
+                INLINE AnimDef(AnimDef &&other) noexcept;
                 INLINE virtual ~AnimDef() = default;
                 
-                INLINE void AnimDef::operator=(const AnimDef &copy);
+                INLINE void operator=(const AnimDef &copy);
+                INLINE AnimDef &operator=(AnimDef &&other) noexcept;
                 
                 INLINE void set_name(const std::string &name);
                 INLINE const std::string &get_name() const;
@@ -145,9 +147,11 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 INLINE PartDef();
                 INLINE PartDef(const NodePath &char_np, PT(Character) character, const NodePath &part_model);
                 INLINE PartDef(const PartDef &other);
+                INLINE PartDef(PartDef &&other) noexcept = default;
                 INLINE virtual ~PartDef() = default;
                 
-                INLINE void PartDef::operator=(const PartDef &copy);
+                INLINE void operator=(const PartDef &copy);
+                INLINE PartDef &operator=(PartDef &&other) noexcept = default;
                 
                 int get_channel_index(const std::string &anim_name);
                 
@@ -247,6 +251,11 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         INLINE PN_stdfloat get_play_rate(const std::string &anim_name);
         INLINE PN_stdfloat get_play_rate(const std::string &anim_name, const std::string &part_name);
         PN_stdfloat get_play_rate(const std::string &anim_name, const std::string &part_name, int layer);
+        
+        INLINE int get_num_frames();
+        INLINE int get_num_frames(const std::string &anim_name);
+        INLINE int get_num_frames(const std::string &anim_name, const std::string &part_name);
+        int get_num_frames(const std::string &anim_name, const std::string &part_name, int layer);
         
         INLINE void set_geom_node(const NodePath &node);
         INLINE NodePath &get_geom_node();

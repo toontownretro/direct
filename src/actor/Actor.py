@@ -8,11 +8,13 @@ __all__ = ['Actor']
 
 from panda3d.core import *
 from panda3d.core import Loader as PandaLoader
-from panda3d.direct import CActor
 
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.Loader import Loader
+
+'''
+from panda3d.direct import CActor
 
 class Actor(DirectObject, CActor):
     """Actor re-implementation using the new animation system."""
@@ -80,10 +82,14 @@ class Actor(DirectObject, CActor):
             return
         CActor.setBlend(self, frameBlend, transitionBlend)
         
+    def setPlayRate(self, rate, anim=None, partName=None, layer=0):
+        return # This function currently crashes... No clue why.
+        CActor.setPlayRate(self, rate, anim, partName, layer)
+        
     def drawInFront(self, frontPartName, backPartName, mode, root="", lodName=""):
         CActor.drawInFront(self, frontPartName, backPartName, mode, root, lodName)
-
 '''
+
 class Actor(DirectObject, NodePath):
     """Actor re-implementation using the new animation system."""
 
@@ -2040,5 +2046,3 @@ class Actor(DirectObject, NodePath):
                         channel = animDef.channel
                         print('      Index: %i NumFrames: %d PlayRate: %0.2f' %
                               (index, channel.getNumFrames(), animDef.playRate))
-
-'''
