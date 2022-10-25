@@ -108,8 +108,8 @@ encode_object_state(PyObject *dist_obj, DCClass *dclass, DCPacker &packer,
         Py_DECREF(args);
         return false;
       }
+      Py_DECREF(args);
       if (!packer.end_pack()) {
-        Py_DECREF(args);
         return false;
       }
 

@@ -19,6 +19,9 @@ ClientFrame(FrameSnapshot *snapshot) {
   _snapshot = snapshot;
   _tick_count = snapshot->get_tick_count();
   _next = nullptr;
+#ifdef DO_MEMORY_USAGE
+  MemoryUsage::update_type(this, this);
+#endif
 }
 
 /**
@@ -29,6 +32,9 @@ ClientFrame(int tick_count) {
   _snapshot = nullptr;
   _tick_count = tick_count;
   _next = nullptr;
+#ifdef DO_MEMORY_USAGE
+  MemoryUsage::update_type(this, this);
+#endif
 }
 
 /**
@@ -39,6 +45,9 @@ ClientFrame() {
   _snapshot = nullptr;
   _tick_count = 0;
   _next = nullptr;
+#ifdef DO_MEMORY_USAGE
+  MemoryUsage::update_type(this, this);
+#endif
 }
 
 /**

@@ -18,6 +18,7 @@
 #include "frameSnapshot.h"
 #include "deletedChain.h"
 #include "pointerTo.h"
+#include "memoryUsage.h"
 
 /**
  * This class represents a single frame of a client. It contains the snapshot
