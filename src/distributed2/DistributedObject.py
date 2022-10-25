@@ -6,6 +6,8 @@ from panda3d.core import *
 from .ClientConfig import *
 from .DOState import DOState
 
+import math
+
 class InterpVarEntry:
 
     def __init__(self, var, getter, setter, flags, arrayIndex):
@@ -204,10 +206,20 @@ class DistributedObject(BaseDistributedObject):
                 done = False
 
             if ret != -1:
-                if entry.arrayIndex != -1:
-                    entry.setter(entry.arrayIndex, entry.var.getInterpolatedValue())
-                else:
-                    entry.setter(entry.var.getInterpolatedValue())
+                val = entry.var.getInterpolatedValue()
+
+                # FIXME: Bad hack to work around NaN interps.
+                good = True
+                if isinstance(val, (VBase4, VBase3, VBase2)):
+                    good = not val.isNan()
+                elif isinstance(val, float):
+                    good = not math.isnan(val)
+
+                if good:
+                    if entry.arrayIndex != -1:
+                        entry.setter(entry.arrayIndex, val)
+                    else:
+                        entry.setter(val)
 
         if done:
             DistributedObject.InterpolateList.remove(self)
