@@ -15,7 +15,7 @@
 #define USE_PACKAGES native_net
 
 #define COMPONENT_LIBS \
-  directbase dcparser showbase deadrec directd interval distributed motiontrail http \
+  actor directbase dcparser showbase deadrec directd interval distributed motiontrail http \
   distributed2 foundry
 
 #define OTHER_LIBS \
