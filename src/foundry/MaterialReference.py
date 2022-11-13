@@ -1,5 +1,5 @@
 #from panda3d.bsp import BSPMaterial
-from panda3d.core import LVector2i, PNMImage, VirtualFileSystem, TexturePool, PNMImage, StringStream
+from panda3d.core import *
 
 from PyQt5 import QtGui, QtCore
 
@@ -11,16 +11,20 @@ class MaterialReference:
     def __init__(self, filename):
         vfs = VirtualFileSystem.getGlobalPtr()
         #self.material = BSPMaterial.getFromFile(filename)
-        self.material = TexturePool.loadTexture(filename)
+        self.material = MaterialPool.loadMaterial(filename)
         self.filename = filename
-        if self.material:#.hasKeyvalue("$basetexture"):
+
+        if self.material:
            # baseTexturePath = self.material.getKeyvalue("$basetexture")
 
-            if True:#vfs.exists(baseTexturePath):
+            texParam = self.material.getParam("base_color")
+            if texParam and isinstance(texParam, MaterialParamTexture):
+
+                tex = texParam.getValue()
                 #imageData = bytes(VirtualFileSystem.getGlobalPtr().readFile(baseTexturePath, True))
 
                 pimage = PNMImage()
-                self.material.store(pimage, 0, 0)
+                tex.store(pimage, 0, 0)
                 ss = StringStream()
                 pimage.write(ss, "tmp.png")
                 imageData = bytes(ss)

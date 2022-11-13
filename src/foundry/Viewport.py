@@ -544,7 +544,7 @@ class Viewport(QtWidgets.QWidget, DirectObject):
 
     def centerCursor(self, cursor):
         center = self.getViewportCenterPixels()
-        cursor.setPos(self.mapToGlobal(QtCore.QPoint(self.width() / 2, self.height() / 2)))
+        cursor.setPos(self.mapToGlobal(QtCore.QPoint(self.width() // 2, self.height() // 2)))
         self.inputDevice.setPointerInWindow(center.x, center.y)
 
     def viewportToWorld(self, viewport, vec = False):

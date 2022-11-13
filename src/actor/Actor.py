@@ -13,6 +13,83 @@ from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.Loader import Loader
 
+'''
+from panda3d.direct import CActor
+
+class Actor(DirectObject, CActor):
+    """Actor re-implementation using the new animation system."""
+    
+    notify = DirectNotifyGlobal.directNotify.newCategory("Actor")
+    
+    def __init__(self, models=None, anims=None, other=None, copy=True,
+                 lodNode=None, flattenable=True, setFinal=False,
+                 okMissing=None):
+        try:
+            self.Actor_initialized
+            return
+        except:
+            self.Actor_initialized = 1
+
+        CActor.__init__(self, models, anims, other, copy, lodNode, flattenable, setFinal, okMissing)
+        
+    def delete(self, removeNode=True):
+        try:
+            self.Actor_deleted
+            return
+        except:
+            self.Actor_deleted = 1
+
+        self.cleanup(removeNode)
+        
+    def actorInterval(self, *args, **kw):
+        from direct.interval import ActorInterval
+        return ActorInterval.ActorInterval(self, *args, **kw)
+        
+    # The functions below are to wrap to the CActor arguments for backwards compatibility.
+    # They are otherwise not needed.
+    
+    def loadModel(self, modelPath, partName="modelRoot", lodName="lodRoot", copy = True, okMissing = None, autoBindAnims = True, keepModel = False):
+        CActor.loadModel(self, modelPath, partName, lodName, copy, okMissing, keepModel)
+        
+    def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot", loadNow = False):
+        CActor.loadAnims(self, anims, partName, lodName, loadNow)
+        
+    def loop(self, animName=None, restart=True, partName=None, fromFrame=None, toFrame=None, layer=0, playRate=1.0, blendIn=0.0, channel=None):
+        if not animName and not channel:
+            return
+            
+        if not partName:
+            partName = ""
+        if not fromFrame:
+            fromFrame = 0
+        if not toFrame:
+            toFrame = -1
+        if not layer:
+            layer = 0
+            
+        if channel != None:
+            CActor.loop(self, channel, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+            return
+        
+        CActor.loop(self, animName, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+        
+    def pose(self, animName, frame, partName="", lodName="", layer=0, blendIn=0.0, blendOut=0.0):
+        CActor.pose(self, animName, partName, lodName, frame, layer, blendIn, blendOut)
+        
+    def setBlend(self, animBlend = None, frameBlend = False, blendType = None, partName = None, transitionBlend = True):
+        if partName != None:
+            CActor.setBlend(self, partName, frameBlend, transitionBlend)
+            return
+        CActor.setBlend(self, frameBlend, transitionBlend)
+        
+    def setPlayRate(self, rate, anim=None, partName=None, layer=0):
+        return # This function currently crashes... No clue why.
+        CActor.setPlayRate(self, rate, anim, partName, layer)
+        
+    def drawInFront(self, frontPartName, backPartName, mode, root="", lodName=""):
+        CActor.drawInFront(self, frontPartName, backPartName, mode, root, lodName)
+'''
+
 class Actor(DirectObject, NodePath):
     """Actor re-implementation using the new animation system."""
 
@@ -40,6 +117,42 @@ class Actor(DirectObject, NodePath):
             # Have to store play rate here because the character does not
             # remember play rates of channels as they are set on layers.
             self.playRate = 1.0
+            
+        def setName(self, name):
+            self.name = str(name)
+            
+        def getName(self):
+            return self.name
+            
+        def setFilename(self, filename):
+            self.filename = Filename(filename)
+            
+        def getFilename(self):
+            return self.filename
+            
+        def setAnimationChannel(self, channel):
+            self.channel = channel
+            
+        def getAnimationChannel(self):
+            return self.channel
+            
+        def setCharacter(self, character):
+            self.char = character
+            
+        def getCharacter(self):
+            return self.char
+            
+        def setIndex(self, index):
+            self.index = index
+            
+        def getIndex(self):
+            return self.index
+            
+        def setPlayRate(self, playRate):
+            self.playRate = playRate
+            
+        def getPlayRate(self):
+            return self.playRate
 
         def isBound(self):
             return self.index >= 0
@@ -78,6 +191,12 @@ class Actor(DirectObject, NodePath):
             if not animDef:
                 return -1
             return animDef.index
+            
+        def getCharacter(self):
+            return self.char
+            
+        def getCharacterNodepath(self):
+            return self.charNP
 
         def getAnimDef(self, animName):
             if isinstance(animName, str):
@@ -1147,8 +1266,7 @@ class Actor(DirectObject, NodePath):
         # the same node is still different from the Actor.
         if self is other:
             return 0
-        else:
-            return 1
+        return 1
 
     def delete(self, removeNode=True):
         try:
@@ -1156,7 +1274,8 @@ class Actor(DirectObject, NodePath):
             return
         except:
             self.Actor_deleted = 1
-            self.cleanup(removeNode=removeNode)
+
+        Actor.cleanup(self, removeNode=removeNode)
 
     def copyActor(self, other, overwrite=False):
         # act like a copy constructor
@@ -1927,4 +2046,3 @@ class Actor(DirectObject, NodePath):
                         channel = animDef.channel
                         print('      Index: %i NumFrames: %d PlayRate: %0.2f' %
                               (index, channel.getNumFrames(), animDef.playRate))
-

@@ -19,13 +19,14 @@
 #include "frameSnapshotEntry.h"
 #include "vector_int.h"
 #include "deletedChain.h"
+#include "memoryUsage.h"
 
 class EXPCL_DIRECT_DISTRIBUTED2 FrameSnapshot : public TypedReferenceCount {
 PUBLISHED:
   ALLOC_DELETED_CHAIN(FrameSnapshot);
 
   INLINE FrameSnapshot(int tick_count, int num_entries);
-  INLINE ~FrameSnapshot();
+  virtual ~FrameSnapshot() override;
 
   INLINE void set_tick_count(int tick);
   INLINE int get_tick_count() const;

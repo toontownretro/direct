@@ -6,6 +6,8 @@ from panda3d.core import *
 from .ClientConfig import *
 from .DOState import DOState
 
+import math
+
 class InterpVarEntry:
 
     def __init__(self, var, getter, setter, flags, arrayIndex):
@@ -42,7 +44,7 @@ class DistributedObject(BaseDistributedObject):
     def interpolateObjects():
         #print("interpolate at", globalClock.getFrameTime())
         ctx = InterpolationContext()
-        ctx.enableExtrapolation(True)
+        ctx.enableExtrapolation(False)
         ctx.setLastTimestamp(base.cr.lastServerTickTime)
         for do in set(DistributedObject.InterpolateList):
             do.interpolate(globalClock.getFrameTime())
@@ -61,7 +63,22 @@ class DistributedObject(BaseDistributedObject):
             # Already added.
             return
 
+        now = globalClock.frame_time
+
         var.setInterpolationAmount(self.getInterpolateAmount())
+        if isinstance(var, InterpolatedFloat):
+            default = 0.0
+        elif isinstance(var, InterpolatedVec3):
+            default = Vec3()
+        elif isinstance(var, InterpolatedQuat):
+            default = Quat()
+        elif isinstance(var, InterpolatedVec2):
+            default = Vec2()
+        elif isinstance(var, InterpolatedVec4):
+            default = Vec4()
+        var.reset(default)
+        var.recordLastNetworkedValue(default, now)
+
         self.interpVars.append(InterpVarEntry(var, getter, setter, flags, arrayIndex))
 
     def removeInterpolatedVar(self, var):
@@ -182,15 +199,27 @@ class DistributedObject(BaseDistributedObject):
             if entry.flags & self.ExcludeAutoInterpolate:
                 continue
 
-            if entry.var.interpolate(now):
+            ret = entry.var.interpolate(now)
+            if ret == 1:
                 entry.needsInterpolation = False
             else:
                 done = False
 
-            if entry.arrayIndex != -1:
-                entry.setter(entry.arrayIndex, entry.var.getInterpolatedValue())
-            else:
-                entry.setter(entry.var.getInterpolatedValue())
+            if ret != -1:
+                val = entry.var.getInterpolatedValue()
+
+                # FIXME: Bad hack to work around NaN interps.
+                good = True
+                if isinstance(val, (VBase4, VBase3, VBase2)):
+                    good = not val.isNan()
+                elif isinstance(val, float):
+                    good = not math.isnan(val)
+
+                if good:
+                    if entry.arrayIndex != -1:
+                        entry.setter(entry.arrayIndex, val)
+                    else:
+                        entry.setter(val)
 
         if done:
             DistributedObject.InterpolateList.remove(self)

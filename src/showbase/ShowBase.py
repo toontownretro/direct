@@ -143,6 +143,7 @@ class ShowBase(HostBase):
         self.wantRender2dp = ConfigVariableBool('want-render2dp', True).value
 
         self.screenshotExtension = ConfigVariableString('screenshot-extension', 'jpg').value
+        self.audioEngine = None
         self.musicManager = None
         self.musicManagerIsValid = None
         self.sfxManagerList = []
@@ -529,12 +530,10 @@ class ShowBase(HostBase):
             allowAccessibilityShortcutKeys(True)
             self.__disabledStickyKeys = False
 
-        if getattr(self, 'musicManager', None):
-            self.musicManager.shutdown()
-            self.musicManager = None
-            for sfxManager in self.sfxManagerList:
-                sfxManager.shutdown()
-            self.sfxManagerList = []
+        self.audioEngine = None
+        self.musicManager = None
+        self.sfxManagerList = []
+
         if getattr(self, 'graphicsEngine', None):
             self.graphicsEngine.removeAllWindows()
 
@@ -1875,11 +1874,13 @@ class ShowBase(HostBase):
         Creates the default SFX and music manager.  Called automatically from
         the ShowBase constructor.
         """
+        self.audioEngine = AudioEngine.makeEngine()
+
         self.sfxPlayer = SfxPlayer.SfxPlayer()
-        sfxManager = AudioManager.createAudioManager()
+        sfxManager = self.audioEngine.makeManager("sfx")
         self.addSfxManager(sfxManager)
 
-        self.musicManager = AudioManager.createAudioManager()
+        self.musicManager = self.audioEngine.makeManager("music")
         self.musicManagerIsValid = self.musicManager is not None \
             and self.musicManager.isValid()
         if self.musicManagerIsValid:
@@ -1957,24 +1958,24 @@ class ShowBase(HostBase):
     # This function should only be in the loader but is here for
     # backwards compatibility. Please do not add code here, add
     # it to the loader.
-    def loadSfx(self, name):
+    def loadSfx(self, name, stream=False):
         """
         :deprecated: Use `.Loader.Loader.loadSfx()` instead.
         """
         if __debug__:
             warnings.warn("base.loadSfx is deprecated, use base.loader.loadSfx instead.", DeprecationWarning, stacklevel=2)
-        return self.loader.loadSfx(name)
+        return self.loader.loadSfx(name, stream=stream)
 
     # This function should only be in the loader but is here for
     # backwards compatibility. Please do not add code here, add
     # it to the loader.
-    def loadMusic(self, name):
+    def loadMusic(self, name, stream=False):
         """
         :deprecated: Use `.Loader.Loader.loadMusic()` instead.
         """
         if __debug__:
             warnings.warn("base.loadMusic is deprecated, use base.loader.loadMusic instead.", DeprecationWarning, stacklevel=2)
-        return self.loader.loadMusic(name)
+        return self.loader.loadMusic(name, stream=stream)
 
     def playSfx(
             self, sfx, looping = 0, interrupt = 1, volume = None,
@@ -2046,10 +2047,8 @@ class ShowBase(HostBase):
         return Task.cont
 
     def __audioLoop(self, state):
-        if self.musicManager is not None:
-            self.musicManager.update()
-        for x in self.sfxManagerList:
-            x.update()
+        if self.audioEngine is not None:
+            self.audioEngine.update()
         return Task.cont
 
     def __garbageCollectStates(self, state):
@@ -2159,6 +2158,9 @@ class ShowBase(HostBase):
 
     def restart(self, clusterSync=False, cluster=None):
         self.shutdown()
+
+        #self.taskMgr.add(self.__clearPrepared, 'clearPrepared', sort = -52)
+
         # __resetPrevTransform goes at the very beginning of the frame.
         if self.fixedSimulationStep:
             self.simTaskMgr.add(
@@ -2183,7 +2185,7 @@ class ShowBase(HostBase):
 
         if ConfigVariableBool('garbage-collect-states').value:
             self.taskMgr.add(self.__garbageCollectStates, 'garbageCollectStates', sort = 46)
-        self.taskMgr.add(self.__clearCache, 'clearCache', sort = 47)
+        #self.taskMgr.add(self.__clearCache, 'clearCache', sort = 47)
         # give the igLoop task a reasonably "late" sort,
         # so that it will get run after most tasks
         self.cluster = cluster
@@ -2205,8 +2207,24 @@ class ShowBase(HostBase):
         self.taskMgr.remove('resetPrevTransform')
         self.taskMgr.remove('ivalLoop')
         self.taskMgr.remove('garbageCollectStates')
-        self.taskMgr.remove('clearCache')
+        #self.taskMgr.remove('clearCache')
+        #self.taskMgr.remove('clearPrepared')
         HostBase.shutdown(self)
+
+    def __clearPrepared(self, task):
+        """
+        Clears the list of enqueued and released graphics objects from the
+        previous frame.
+        """
+
+        if self.win:
+            gsg = self.win.getGsg()
+            if gsg:
+                pgo = gsg.getPreparedObjects()
+                if pgo:
+                    pgo.beginFrameApp()
+
+        return task.cont
 
     def getBackgroundColor(self, win = None):
         """

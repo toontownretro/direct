@@ -23,14 +23,9 @@ PackedObject() {
   _change_frame_list = nullptr;
   _creation_tick = 0;
   _should_check_creation_tick = false;
-}
-
-/**
- *
- */
-INLINE PackedObject::
-~PackedObject() {
-  clear_data();
+#ifdef DO_MEMORY_USAGE
+  MemoryUsage::update_type(this, this);
+#endif
 }
 
 /**
@@ -48,7 +43,7 @@ set_data(char *data, size_t length) {
  */
 INLINE void PackedObject::
 clear_data() {
-  if (_data) {
+  if (_data != nullptr) {
     delete[] _data;
     _data = nullptr;
   }

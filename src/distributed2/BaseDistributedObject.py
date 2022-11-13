@@ -48,6 +48,9 @@ class BaseDistributedObject(DirectObject):
         # Set of tasks that have been created on this object.
         self._tasks = {}
 
+    def __repr__(self):
+        return self.__class__.__name__ + ":doId=" + str(self.doId)
+
     def isDOGenerated(self):
         return self.doState >= DOState.Generated
 
@@ -97,6 +100,10 @@ class BaseDistributedObject(DirectObject):
             task.remove()
             if removeFromTable:
                 del self._tasks[name]
+
+    def hasTask(self, name):
+        task = self._tasks.get(name)
+        return task is not None and task[0].isAlive()
 
     def removeAllTasks(self):
         """
@@ -155,7 +162,6 @@ class BaseDistributedObject(DirectObject):
         self.ignoreAll()
         self.removeAllTasks()
         self._tasks = None
-        self.doId = None
         self.zoneId = None
         self.dclass = None
         self.doState = DOState.Deleted

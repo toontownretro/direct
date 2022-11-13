@@ -43,6 +43,15 @@ class ServerRepository(BaseObjectManager):
             self.cmdRate = 0
             self.cmdInterval = 0
 
+            # Last instantaneous RTT value from client.
+            self.currentRtt = 0
+            # Sliding window average.
+            self.averageRtt = 0
+            self.rttWindowSize = 5
+            self.rttSlidingWindow = [0] * self.rttWindowSize
+
+            self.interpAmount = 0.0
+
             # What tick are they currently on?
             self.prevTickCount = 0
             self.dt = 0
@@ -115,7 +124,7 @@ class ServerRepository(BaseObjectManager):
     # Generate a distributed object on the network
     # Can be given a client owner, in which that client will generate an
     # owner-view instance of the object.
-    def generateObject(self, do, zoneId, owner = None):
+    def generateObject(self, do, zoneId, owner = None, announce = True):
         do.zoneId = zoneId
         do.doId = self.allocateObjectID()
         do.dclass = self.dclassesByName[do.__class__.__name__]
@@ -130,11 +139,14 @@ class ServerRepository(BaseObjectManager):
         assert do.isDOGenerated()
 
         clients = set(self.zonesToClients.get(do.zoneId, set()))
-        if len(clients) > 0:
-            if owner:
-                # Don't include the owner in this message, we send a specific
-                # generate for the owner.
-                clients -= set([owner])
+        print(clients, owner)
+        if owner and clients:
+            # Don't include the owner in this message, we send a specific
+            # generate for the owner.
+            clients -= set([owner])
+
+        print(clients, owner)
+        if clients:
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_GenerateObject)
             self.packObjectGenerate(dg, do)
@@ -153,8 +165,9 @@ class ServerRepository(BaseObjectManager):
             # location of owned objects.
             self.updateClientInterestZones(owner)
 
-        do.announceGenerate()
-        assert do.isDOAlive()
+        if announce:
+            do.announceGenerate()
+            assert do.isDOAlive()
 
     def deleteObject(self, do, removeFromOwnerTable = True):
         if do.isDODeleted():
@@ -361,9 +374,32 @@ class ServerRepository(BaseObjectManager):
                 self.handleClientSetInterest(client, dgi)
             elif type == NetMessages.B_ObjectMessage:
                 self.handleObjectMessage(client, dgi)
+            elif type == NetMessages.CL_Ping:
+                self.handleClientPing(client)
+            elif type == NetMessages.CL_InformPing:
+                self.handleClientInformPing(client, dgi)
             else:
                 self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in verified state" % (client.connection, type))
                 self.closeClientConnection(client)
+
+    def handleClientPing(self, client):
+        dg = PyDatagram()
+        dg.addUint16(NetMessages.SV_Ping_Resp)
+        self.sendDatagram(dg, client.connection)
+
+    def handleClientInformPing(self, client, dgi):
+        rtt = dgi.getUint32()
+        client.currentRtt = rtt
+        if client.averageRtt == 0:
+            # First rtt report, duplicate to entire window.
+            client.rttSlidingWindow = [rtt] * client.rttWindowSize
+        else:
+            client.rttSlidingWindow = [rtt] + client.rttSlidingWindow[:client.rttWindowSize - 1]
+        total = 0
+        for rtt in client.rttSlidingWindow:
+            total += rtt
+        client.averageRtt = total / client.rttWindowSize
+        #print("Avg rtt", client.averageRtt)
 
     def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
@@ -547,6 +583,8 @@ class ServerRepository(BaseObjectManager):
         dg.addUint32(object.doId)
         dg.addUint32(object.zoneId)
 
+        print("packing generate for", object)
+
         # Find or create a baseline state.
         baseline = self.snapshotMgr.findOrCreateObjectPacketForBaseline(
             object, object.dclass, object.doId)
@@ -648,11 +686,12 @@ class ServerRepository(BaseObjectManager):
         password = dgi.getString()
 
         # And now make sure we have the remaining data.
-        if not self.ensureDatagramSize(6, dgi, client):
+        if not self.ensureDatagramSize(10, dgi, client):
             return
         dcHash = dgi.getUint32()
         updateRate = dgi.getUint8()
         cmdRate = dgi.getUint8()
+        interpAmount = dgi.getFloat32()
 
         dg = PyDatagram()
         dg.addUint16(NetMessages.SV_Hello_Resp)
@@ -688,6 +727,9 @@ class ServerRepository(BaseObjectManager):
         updateRate = max(sv_minupdaterate.getValue(), min(updateRate, sv_maxupdaterate.getValue()))
         client.updateRate = updateRate
         client.updateInterval = 1.0 / updateRate
+        client.interpAmount = interpAmount
+
+        print("Client lerp time", interpAmount)
 
         client.cmdRate = cmdRate
         client.cmdInterval = 1.0 / cmdRate

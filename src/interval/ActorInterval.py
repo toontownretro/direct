@@ -73,8 +73,16 @@ class ActorInterval(Interval.Interval):
             self.startFrame = 0
             self.endFrame = 0
         else:
-
-            self.frameRate = self.channels[0].channel.getFrameRate() * abs(playRate)
+            animation = self.channels[0]
+            if not animation:
+                self.notify.error("Actor %s has no animation definition for animName '%s'" % (actor.getName(), self.animName))
+                return
+            animationChannel = animation.getAnimationChannel()
+            if animationChannel:
+                self.frameRate = animationChannel.getFrameRate() * abs(playRate)
+            else:
+                self.notify.warning("Couldn't get animation channel from %s for animation '%s'!" % (str(animation), animName))
+                self.frameRate = 1.0
             # Compute start and end frames.
             if startFrame is not None:
                 self.startFrame = startFrame
@@ -95,10 +103,15 @@ class ActorInterval(Interval.Interval):
             else:
                 # No end frame specified.  Choose the maximum of all
                 # of the controls' numbers of frames.
-                maxFrames = self.channels[0].channel.getNumFrames()
+                maxFrames = animationChannel.getNumFrames()
                 warned = 0
                 for i in range(1, len(self.channels)):
-                    numFrames = self.channels[i].channel.getNumFrames()
+                    animation = self.channels[i]
+                    animationChannel = animation.getAnimationChannel()
+                    if not animationChannel:
+                        self.notify.warning("Animations '%s' on %s has no animation channel for %s!" % (animName, actor.getName(), str(animation)))
+                        continue
+                    numFrames = animationChannel.getNumFrames()
                     if numFrames != maxFrames and numFrames != 1 and not warned:
                         self.notify.warning("Animations '%s' on %s have an inconsistent number of frames." % (animName, actor.getName()))
                         warned = 1

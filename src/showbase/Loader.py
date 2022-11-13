@@ -920,6 +920,9 @@ class Loader(DirectObject):
         assert Loader.notify.debug("Unloading texture: %s" % (texture))
         TexturePool.releaseTexture(texture)
 
+    def loadMaterial(self, filename):
+        return MaterialPool.loadMaterial(filename)
+
     # sound loading funcs
     def loadSfx(self, *args, **kw):
         """Loads one or more sound files, specifically designated as a
@@ -949,7 +952,7 @@ class Loader(DirectObject):
             return None
 
     def loadSound(self, manager, soundPath, positional = False,
-                  callback = None, extraArgs = []):
+                  callback = None, extraArgs = [], stream = False):
 
         """Loads one or more sound files, specifying the particular
         AudioManager that should be used to load them.  The soundPath
@@ -973,7 +976,7 @@ class Loader(DirectObject):
             result = []
             for soundPath in soundList:
                 # should return a valid sound obj even if musicMgr is invalid
-                sound = manager.getSound(soundPath, positional)
+                sound = manager.getSound(soundPath, positional, stream)
                 result.append(sound)
 
             if gotList:

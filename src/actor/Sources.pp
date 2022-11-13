@@ -10,10 +10,10 @@
   #define LOCAL_LIBS \
     directbase dcparser
   #define OTHER_LIBS \
-    anim:c event:c downloader:c panda:m pandaegg:m express:c pandaexpress:m pgraph:c \
+    anim:c event:c downloader:c panda:m pandaegg:m express:c pandaexpress:m pgraph:c pgraphnodes:c jobsystem:c \
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m \
-    prc pstatclient:c pandabase:c linmath:c putil:c \
+    prc pstatclient:c linmath:c putil:c \
     pipeline:c $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c]
 
   #define SOURCES \
@@ -21,5 +21,8 @@
     cActor.cxx cActor.I cActor.h
 
   #define IGATESCAN all
+  
+  #define IGATEEXT \
+    cActor_ext.cxx cActor_ext.h cActor_ext.I
 
 #end lib_target
