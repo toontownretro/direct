@@ -2032,7 +2032,7 @@ class ShowBase(HostBase):
         # CollisionTraverser set.
         if not self.render or self.render.isEmpty():
             self.notify.warning("Skipping shadow collision loop because our Render isn't valid!")
-             return Task.cont
+            return Task.cont
         if self.shadowTrav:
             self.shadowTrav.traverse(self.render)
         return Task.cont
