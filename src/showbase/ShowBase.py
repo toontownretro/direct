@@ -2030,6 +2030,9 @@ class ShowBase(HostBase):
     def __shadowCollisionLoop(self, state):
         # run the collision traversal if we have a
         # CollisionTraverser set.
+        if not self.render or self.render.isEmpty():
+            self.notify.warning("Skipping shadow collision loop because our Render isn't valid!")
+             return Task.cont
         if self.shadowTrav:
             self.shadowTrav.traverse(self.render)
         return Task.cont
@@ -2037,6 +2040,9 @@ class ShowBase(HostBase):
     def __collisionLoop(self, state):
         # run the collision traversal if we have a
         # CollisionTraverser set.
+        if not self.render or self.render.isEmpty():
+            self.notify.warning("Skipping collision loop because our Render isn't valid!")
+            return Task.cont
         if self.cTrav:
             self.cTrav.traverse(self.render)
         if self.appTrav:

@@ -144,6 +144,10 @@ class Thread(ThreadBase):
             _sys.settrace(_settrace_func)
         if _setprofile_func:
             _sys.setprofile(_setprofile_func)
+            
+        if not self.__target:
+            print("ERROR: Failed to start run thread function because we don't have it!")
+            return
 
         self.__target(*self.__args, **self.__kwargs)
 
