@@ -13,6 +13,7 @@ import distutils.sysconfig as sysconf
 import zipfile
 import importlib
 import warnings
+import shutil
 
 from . import pefile
 
@@ -1721,6 +1722,9 @@ class Freezer:
 
         extraLink = []
         if self.linkExtensionModules:
+            tmpLibDir = 'tmp_pyd_libs\\'
+            if not os.path.isdir(tmpLibDir):
+                os.mkdir(tmpLibDir)
             for mod, fn in self.extras:
                 if not fn:
                     continue
@@ -1738,21 +1742,26 @@ class Freezer:
                     # easy given that we know the only symbol we need is a
                     # initmodule or PyInit_module function.
                     modname = mod.split('.')[-1]
-                    libfile = modname + '.lib'
+                    libfile = tmpLibDir + modname + '.lib'
                     symbolName = 'PyInit_' + modname
                     os.system('lib /nologo /def /export:%s /name:%s.pyd /out:%s' % (symbolName, modname, libfile))
                     extraLink.append(libfile)
-                    cleanFiles += [libfile, modname + '.exp']
+                    cleanFiles += [libfile, tmpLibDir + modname + '.exp']
                 else:
                     extraLink.append(fn)
+
+            if wroteTmpLib:
+                cleanFiles.append(tmpLibDir)
 
         try:
             compileFunc(filename, basename, extraLink=extraLink)
         finally:
             if not self.keepTemporaryFiles:
                 for file in cleanFiles:
-                    if os.path.exists(file):
+                    if os.path.isfile(file):
                         os.unlink(file)
+                    elif os.path.isdir(file):
+                        shutil.rmtree(file)
 
         return target
 
