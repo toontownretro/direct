@@ -1722,7 +1722,7 @@ class Freezer:
 
         extraLink = []
         if self.linkExtensionModules:
-            tmpLibDir = 'tmp_pyd_libs\\'
+            tmpLibDir = 'tmp_pyd_libs'
             if not os.path.isdir(tmpLibDir):
                 os.mkdir(tmpLibDir)
             for mod, fn in self.extras:
@@ -1742,16 +1742,15 @@ class Freezer:
                     # easy given that we know the only symbol we need is a
                     # initmodule or PyInit_module function.
                     modname = mod.split('.')[-1]
-                    libfile = tmpLibDir + modname + '.lib'
+                    libfile = tmpLibDir + '\\' + modname + '.lib'
                     symbolName = 'PyInit_' + modname
                     os.system('lib /nologo /def /export:%s /name:%s.pyd /out:%s' % (symbolName, modname, libfile))
                     extraLink.append(libfile)
-                    cleanFiles += [libfile, tmpLibDir + modname + '.exp']
+                    cleanFiles += [libfile, tmpLibDir + '\\' + modname + '.exp']
                 else:
                     extraLink.append(fn)
 
-            if wroteTmpLib:
-                cleanFiles.append(tmpLibDir)
+            cleanFiles.append(tmpLibDir)
 
         try:
             compileFunc(filename, basename, extraLink=extraLink)
