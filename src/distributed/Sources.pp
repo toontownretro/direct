@@ -1,5 +1,7 @@
 #define C++FLAGS -DWITHIN_PANDA
 
+#define BUILD_DIRECTORY $[HAVE_DISTRIBUTED]
+
 #begin lib_target
   #define BUILD_TARGET $[HAVE_PYTHON]
   #define USE_PACKAGES openssl native_net net

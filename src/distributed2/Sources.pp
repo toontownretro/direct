@@ -1,5 +1,7 @@
 #define C++FLAGS -DWITHIN_PANDA
 
+#define BUILD_DIRECTORY $[HAVE_DISTRIBUTED2]
+
 #begin lib_target
   #define TARGET distributed2
 

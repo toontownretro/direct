@@ -293,16 +293,14 @@ class DirectCameraControl(DirectObject):
     def XZTranslateOrHPanYZoomTask(self, state):
         if base.direct.fShift:
             return self.XZTranslateTask(state)
-        else:
-            return self.HPanYZoomTask(state)
+        return self.HPanYZoomTask(state)
 
     def XZTranslateOrHPPanTask(self, state):
         if base.direct.fShift:
             # Panning action
             return self.HPPanTask(state)
-        else:
-            # Translation action
-            return self.XZTranslateTask(state)
+        # Translation action
+        return self.XZTranslateTask(state)
 
     def XZTranslateTask(self, state):
         coaDist = Vec3(self.coaMarker.getPos(base.direct.camera)).length()
