@@ -403,7 +403,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         assert do.isDODeleted()
 
     def deleteAllObjects(self):
-        for do in list(self.doId2do.values()) + list(self.doId2ownerView.values()):
+        # Delete objects in the reverse order they were generated.
+        for do in reversed(list(self.doId2do.values())):
             self.removeObject(do.doId)
             if do.doState > DOState.Disabled:
                 do.disable()
@@ -412,6 +413,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             assert do.isDODeleted()
 
         self.doId2do = {}
+        # We don't use this, so there shouldn't be anything in it.
+        assert len(self.doId2ownerView) == 0
         self.doId2ownerView = {}
 
     def disconnect(self):
