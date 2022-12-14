@@ -519,8 +519,7 @@ class GravityWalker(DirectObject.DirectObject):
                     self.vel=Vec3(self.vel + (right * slideDistance))
                 self.vel=Vec3(rotMat.xform(self.vel))
                 step=self.vel + (self.priorParent * dt)
-                self.avatarNodePath.setFluidPos(Point3(
-                        self.avatarNodePath.getPos()+step))
+                self.avatarNodePath.setFluidPos(Point3(self.avatarNodePath.getPos() + step))
             self.avatarNodePath.setH(self.avatarNodePath.getH()+rotation)
         else:
             self.vel.set(0.0, 0.0, 0.0)
