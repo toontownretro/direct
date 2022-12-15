@@ -300,8 +300,8 @@ class WebRequestDispatcher(object):
                 self.landingPage.addTab("Services", "/services")
         else:
             self.landingPage = None
-            self.unregisterGETHandler("/", numArgs = 0")
-            self.unregisterGETHandler("/services", numArgs = 0")
+            self.unregisterGETHandler("/", numArgs = 0)
+            self.unregisterGETHandler("/services", numArgs = 0)
 
         
     def _main(self):
