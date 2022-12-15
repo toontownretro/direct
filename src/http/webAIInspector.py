@@ -17,9 +17,9 @@ from pirates.quest.QuestDB import QuestDict
 
 # Need to figure out which systeminfo module to import
 if platform == 'win32':
-    from windowsSystemInfo import SystemInformation
+    from .windowsSystemInfo import SystemInformation
 else:
-    from linuxSystemInfo import SystemInformation
+    from .linuxSystemInfo import SystemInformation
 
 class aiWebServer(SystemInformation):
     def __init__(self, air, listenPort=8080):
@@ -28,7 +28,7 @@ class aiWebServer(SystemInformation):
         self.air = simbase.air
         # self.taskMgr = Task.TaskManager()
         if __debug__:
-            print "Listen port set to: %d" % self.listenPort
+            print("Listen port set to: %d" % self.listenPort)
         # Start dispatcher
         self.web = WebRequest.WebRequestDispatcher()
         self.web.listenOnPort(self.listenPort)
@@ -92,7 +92,7 @@ class aiWebServer(SystemInformation):
                 # The most likely cause is the input of a non num type into
                 # the amount field
                 
-                print 'Incorrect value entered.'
+                print('Incorrect value entered.')
                 replyTo.respond('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<TITLE>Money Error</title>\n</head><body>Please check the Amount field. Transaction could not be completed.</BODY>\n</HTML>')
                 return
                 
@@ -102,7 +102,7 @@ class aiWebServer(SystemInformation):
                 replyTo.respond('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<TITLE>Money Error</title>\n</head><body>Please check the AvatarID field; the Avatar might have logged out. Transaction could not be completed.</BODY>\n</HTML>')
                 return
             curGold = av.getInventory().getGoldInPocket()
-            # print "Debug: Args being passed to AIMAgicWordTrade:\t%s" % av
+            # print("Debug: Args being passed to AIMAgicWordTrade:\t%s" % av)
             trade = AIMagicWordTrade(av, av.getDoId(), avatarId = av.getDoId())
             if count > curGold:
                 trade.giveGoldInPocket(count - curGold)
@@ -128,7 +128,7 @@ class aiWebServer(SystemInformation):
             av = kw['avatarId']
             av = int(av)
             questId = kw['questId']
-            # print 'Avatarid = %s\nQuestID = %s' % (av, questId)
+            # print('Avatarid = %s\nQuestID = %s' % (av, questId))
             try:
                 av = simbase.air.doId2do[av]
             except KeyError:
@@ -179,7 +179,7 @@ class aiWebServer(SystemInformation):
     def genQuestSelect(self):
         # Will generate an HTML select widget, with the Key vals from the QuestDB
         selectWidget = '<select name="questId">\n'
-        for k, v in QuestDict.iteritems():
+        for k, v in QuestDict.items():
             selectWidget = '%s<option>%s</option>\n' % (selectWidget, k)
         selectWidget = '%s</select><br>\n' % selectWidget
         return selectWidget
@@ -193,13 +193,13 @@ class aiWebServer(SystemInformation):
         # This will populate the middle frame with list of the members of
         # the object selected in the left frame
 
-        #print "%s|oInst Frame Accessed, Request ID %s" % (self.timeStamp(), str(kw))
+        #print("%s|oInst Frame Accessed, Request ID %s" % (self.timeStamp(), str(kw)))
         
         head = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<title>member List</title>\n</head>\n<body>\n<UL>'
         foot = '</ul></body></HTML>'
         body = ''
         doIdRequested = ''
-        for j, k in kw.iteritems():
+        for j, k in kw.items():
             doIdRequested = int(k)
             #print j,k
         try:
@@ -220,7 +220,7 @@ class aiWebServer(SystemInformation):
         # This will populate the left frame with a alpha sorted list of
         # objects.
 
-        # print "%s|oType Frame Accessed" % self.timeStamp()
+        # print("%s|oType Frame Accessed" % self.timeStamp())
         head = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<title>Object List</title>\n</head>\n<body>\n<UL>'
         foot = '</ul></body></HTML>'
         objList = self.generateSortedIDList()
@@ -244,7 +244,7 @@ class aiWebServer(SystemInformation):
         # frameset = '<frameset rows="35\%,65\%">\n<frame src="systemInfo" name="systemInfo" frameborder=1>\n<frameset cols="25\%,25\%,50\%">\n<frame src="oType" name="oType" frameborder=1>\n<frame src="blank" name="oInst" frameborder=1>\n<frame src="blank" name="oAttrib" frameborder=1>\n</frameset>\n</frameset>\n</html>'
         # Two Frames on the bottom row
         frameset = '<frameset rows="35\%,65\%">\n<frame src="systemInfo" name="systemInfo" frameborder=1>\n<frameset cols="50\%,50\%">\n<frame src="oMenu" name="oType" frameborder=1>\n<frame src="blank" name="oInst" frameborder=1>\n</frameset>\n</frameset>\n</html>'
-        #print "%s|Index Frame Accessed" % self.timeStamp()
+        #print("%s|Index Frame Accessed" % self.timeStamp())
         # print str(simbase.air.doid2do)
         replyTo.respond('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">\n<html lang="en">\n<head>\n<title>AI HTTP Interface: %s</title>\n</head>\n%s' % (self.localHostName, frameset))
 
@@ -252,7 +252,7 @@ class aiWebServer(SystemInformation):
         # This is the contents of the top frame; i.e. system information
 
         self.refresh()
-        #print "%s|SystemInfo Frame Accessed" % self.timeStamp()
+        #print("%s|SystemInfo Frame Accessed" % self.timeStamp())
         replyTo.respond('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<title>System Info</title>\n</head>\n<body>\n<center><table style="text-align: left; width: 443px; height: 128px;" border="1" cellpadding="2" cellspacing="2">\n<tbody>\n<tr>\n<td style="text-align: center;" colspan="4">Hostname: %s<br>\nOperating System: %s<br>\nCPU: %s</td>\n</tr>\n<tr>\n<td>Total RAM:</td>\n<td>%d</td>\n<td>Total VM</td>\n<td>%d</td>\n</tr>\n<tr>\n<td>Available RAM:</td>\n<td>%d</td>\n<td>Available VM</td>\n<td>%d</td>\n</tr>\n</tbody>\n</table></center>\n</body>\n</html>' % (self.localHostName, self.os, self.cpu, self.totalRAM, self.totalVM, self.availableRAM, self.availableVM))
 
     def startCheckingIncomingHTTP(self):
@@ -266,7 +266,7 @@ class aiWebServer(SystemInformation):
         """
         Task that polls the HTTP server for new requests.
         """
-        # print 'Polling...'
+        # print('Polling...')
         self.web.poll()
         #taskMgr.doMethodLater(0.3,self.pollHTTPTask,'pollHTTPTask')
         return Task.again
@@ -275,7 +275,7 @@ class aiWebServer(SystemInformation):
         # looks at the simbase.air.doID2do dict, and returns a list
         # sorted by alpha order.
         IDlist = []
-        for key, val in simbase.air.doId2do.iteritems():
+        for key, val in sorted(simbase.air.doId2do.items()):
             IDlist.append([val,key])
         IDlist.sort()
         return IDlist
@@ -295,7 +295,7 @@ def inspectorFor(anObject):
     if typeName in _InspectorMap:
         inspectorName = _InspectorMap[typeName]
     else:
-        print "Can't find an inspector for " + typeName
+        print("Can't find an inspector for " + typeName)
         inspectorName = 'Inspector'
     inspector = globals()[inspectorName](anObject)
     return inspector

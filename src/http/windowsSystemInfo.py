@@ -1,7 +1,7 @@
 import sys
 import os
 import ctypes
-import _winreg
+import winreg
 
 """Class to extract system information from a MS-Windows Box:
 
@@ -20,7 +20,7 @@ availableRAM
 Example:
 
 s = SystemInformation()
-print s.os
+print(s.os)
 
 s.refresh() # if you need to refresh the dynamic data (i.e. Memory stats, etc)
 """
@@ -29,9 +29,9 @@ def get_registry_value(key, subkey, value):
     if sys.platform != 'win32':
         raise OSError("get_registry_value is only supported on Windows")
         
-    key = getattr(_winreg, key)
-    handle = _winreg.OpenKey(key, subkey)
-    (value, type) = _winreg.QueryValueEx(handle, value)
+    key = getattr(winreg, key)
+    handle = winreg.OpenKey(key, subkey)
+    (value, type) = winreg.QueryValueEx(handle, value)
     return value
 
 c_ulong = ctypes.c_ulong
@@ -121,9 +121,9 @@ class SystemInformation:
 
 if __name__ == "__main__":
     s = SystemInformation()
-    print s.os
-    print s.cpu
-    print "RAM : %dKb total" % s.totalRAM
-    print "RAM : %dKb free" % s.availableRAM
-    print "Total VM: %dKb" % s.totalVM
-    print "Available VM: %dKb" % s.availableVM
+    print(s.os)
+    print(s.cpu)
+    print("RAM : %dKb total" % s.totalRAM)
+    print("RAM : %dKb free" % s.availableRAM)
+    print("Total VM: %dKb" % s.totalVM)
+    print("Available VM: %dKb" % s.availableVM)

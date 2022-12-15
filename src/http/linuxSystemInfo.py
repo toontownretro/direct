@@ -16,7 +16,7 @@ loadAvg
 Example:
 
 s = SystemInformation()
-print s.os
+print(s.os)
 
 s.refresh() # If you need to refresh the dynamic data
 
@@ -129,6 +129,6 @@ class SystemInformation:
 
 if __name__ == "__main__":
 	s = SystemInformation()
-	print s.cpu
-	print s.totalRAM
-	print s.os
+	print(s.cpu)
+	print(s.totalRAM)
+	print(s.os)
