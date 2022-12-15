@@ -1,4 +1,5 @@
 import os
+import types
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from panda3d.core import VirtualFileSystem
 from panda3d.core import Filename
@@ -105,9 +106,19 @@ class LandingPage:
 
     def getServicesPage(self, uriToHandler):
         output = ""
-        
-        uriList = list(uriToHandler.keys())
 
+        # extract names of handlers
+        filteredList = {}
+        for uri,handler in uriToHandler.iteritems():
+            if type(uri) == types.TupleType:
+                key = uri[0]
+            else:
+                key = uri
+            if '.jpg' in key:
+                continue
+            filteredList[key] = handler
+
+        uriList = list(filteredList.keys())
         #uriList.sort()
 
         autoList = []
@@ -125,9 +136,9 @@ class LandingPage:
             uriList.remove("/favicon.ico")
             autoList.append("/favicon.ico")
 
-        output += LandingPageHTML.getURITable(title="Application",uriList=uriList,uriToHandler=uriToHandler)
+        output += LandingPageHTML.getURITable(title="Application",uriList=uriList,uriToHandler=filteredList)
 
-        output += LandingPageHTML.getURITable(title="Admin",uriList=autoList,uriToHandler=uriToHandler)
+        output += LandingPageHTML.getURITable(title="Admin",uriList=autoList,uriToHandler=filteredList)
         
         return output
 

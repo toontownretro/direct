@@ -1,3 +1,4 @@
+import types
 import direct
 from panda3d.direct import HttpRequest
 from direct.directnotify.DirectNotifyGlobal import directNotify
@@ -15,8 +16,13 @@ class WebRequest(object):
 
     connection is an instance of libdirect.HttpRequest
     """
+    notify = directNotify.newCategory('WebRequest')
+
     def __init__(self,connection):
         self.connection = connection
+
+    def logRequest(self):
+        self.notify.info('[from %s]\n%s' % (self.connection.GetSourceAddress(), self.connection.GetRawRequest()))
 
     def getURI(self):
         return self.connection.GetRequestURL()
@@ -84,6 +90,7 @@ class SkinningReplyTo:
     # provides access to head and body tags of landing page
     def getHeadTag(self):
         return self._headTag
+        
     def getBodyTag(self):
         return self._bodyTag
 
@@ -108,7 +115,7 @@ class WebRequestDispatcher(object):
     w = WebRequestDispatcher()
     w.listenOnPort(8888)
     def test(replyTo,**kw):
-        print 'test got called with these options: %s' % str(kw)
+        print('test got called with these options: %s' % str(kw))
         replyTo.respond('<html><body>Thank you for the yummy arguments: %s' % str(kw))
     w.registerGETHandler('test',test)
     while 1:
@@ -172,7 +179,11 @@ class WebRequestDispatcher(object):
         uri = req.getURI()
         args = req.dictFromGET()
         
-        callable,returnsResponse,autoSkin = self.uriToHandler.get(uri, [self.invalidURI,False,False])
+        # a more secure lookup, make sure number of args match function to be called
+        callable,returnsResponse,autoSkin = self.uriToHandler.get((uri,len(args)),[self.invalidURI,False,False])
+        if callable == self.invalidURI:
+            # do less secure lookup that does not require number of arguments
+            callable,returnsResponse,autoSkin = self.uriToHandler.get(uri, [self.invalidURI,False,False])
 
         if callable != self.invalidURI:
             self.notify.info("%s - %s - %s - 200" % (req.getSourceAddress(), uri, args))
@@ -200,6 +211,7 @@ class WebRequestDispatcher(object):
         request = HttpRequest.HttpManagerGetARequest()
         while request is not None:
             wreq = WebRequest(request)
+            wreq.logRequest()
             if wreq.getRequestType() == "GET":
                 self.handleGET(wreq)
             else:
@@ -209,7 +221,7 @@ class WebRequestDispatcher(object):
             request = HttpRequest.HttpManagerGetARequest()
 
 
-    def registerGETHandler(self,uri,handler,returnsResponse=False, autoSkin=False):
+    def registerGETHandler(self,uri,handler,returnsResponse=False, autoSkin=False,numArgs=None):
         """
         Call this function to register a handler function to
         be called in response to a query to the given URI.
@@ -229,20 +241,33 @@ class WebRequestDispatcher(object):
         handler to return its response string, and we will route the
         response and close the socket ourselves.  No replyTo argument
         is provided to the handler in this case.
+
+        numArgs can be used for more secure uri handler lookup (helps avoid
+        calling a handler when given a hacked/stale argument list), if this
+        value is provided here, the handler is only called if the number of
+        args received in the url matches, then it is up to the handler to
+        verify the actual values of the args
         """
         if uri[0] != "/":
             uri = "/" + uri
 
-        if self.uriToHandler.get(uri,None) is None:
-            self.notify.info("Registered handler %s for URI %s." % (handler,uri))
-            self.uriToHandler[uri] = [handler, returnsResponse, autoSkin]
+        if numArgs != None:
+            handlerSig = (uri,numArgs)
         else:
-            self.notify.warning("Attempting to register a duplicate handler for URI %s.  Ignoring." % uri)
+            handlerSig = uri
+
+        if self.uriToHandler.get(handlerSig,None) is None:
+            self.notify.info("Registered handler %s for URI %s." % (handler,handlerSig))
+            self.uriToHandler[handlerSig] = [handler, returnsResponse, autoSkin]
+        else:
+            self.notify.warning("Attempting to register a duplicate handler for URI %s.  Ignoring." % handlerSig)
 
     def unregisterGETHandler(self,uri):
         if uri[0] != "/":
             uri = "/" + uri
-        self.uriToHandler.pop(uri,None)
+        for currHandler in list(self.uriToHandler.keys()):
+            if type(currHandler) is types.TupleType and currHandler[0] == uri or currHandler == uri:
+                self.uriToHandler.pop(currHandler)
         
 
     # -- Poll task wrappers --
@@ -265,16 +290,18 @@ class WebRequestDispatcher(object):
         if enable:
             if "landingPage" not in self.__dict__:
                 self.landingPage = LandingPage()
-                self.registerGETHandler("/", self._main, returnsResponse = True, autoSkin = True)
-                self.registerGETHandler("/services", self._services, returnsResponse = True, autoSkin = True)
+                self.registerGETHandler("/", self._main, returnsResponse = True, autoSkin = True,
+                                        numArgs = 0)
+                self.registerGETHandler("/services", self._services, returnsResponse = True,
+                                        autoSkin = True, numArgs = 0)
                 self.registerGETHandler("/default.css", self._stylesheet)
                 self.registerGETHandler("/favicon.ico", self._favicon)
                 self.landingPage.addTab("Main", "/")
                 self.landingPage.addTab("Services", "/services")
         else:
             self.landingPage = None
-            self.unregisterGETHandler("/")
-            self.unregisterGETHandler("/services")
+            self.unregisterGETHandler("/", numArgs = 0")
+            self.unregisterGETHandler("/services", numArgs = 0")
 
         
     def _main(self):
