@@ -109,8 +109,8 @@ class LandingPage:
 
         # extract names of handlers
         filteredList = {}
-        for uri,handler in uriToHandler.iteritems():
-            if type(uri) == types.TupleType:
+        for uri, handler in uriToHandler.items():
+            if type(uri) == type(tuple):
                 key = uri[0]
             else:
                 key = uri
