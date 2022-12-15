@@ -2,7 +2,7 @@
 # http://pypi.python.org/pypi/recaptcha-client
 # http://recaptcha.net/resources.html
 
-import urllib2, urllib
+import urllib
 
 API_SSL_SERVER="https://api-secure.recaptcha.net"
 API_SERVER="http://api.recaptcha.net"
