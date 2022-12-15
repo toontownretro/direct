@@ -1,9 +1,9 @@
 import direct
-from pandac.PandaModules import HttpRequest
+from panda3d.direct import HttpRequest
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.task.TaskManagerGlobal import taskMgr
 from direct.task import Task
-from LandingPage import LandingPage
+from .LandingPage import LandingPage
 import xml.etree.ElementTree as ET
 
 notify = directNotify.newCategory('WebRequestDispatcher')

@@ -1,11 +1,11 @@
 import os
 from direct.directnotify.DirectNotifyGlobal import directNotify
-from pandac.PandaModules import VirtualFileSystem
-from pandac.PandaModules import Filename
-from pandac.PandaModules import DSearchPath
+from panda3d.core import VirtualFileSystem
+from panda3d.core import Filename
+from panda3d.core import DSearchPath
 import xml.etree.ElementTree as ET
-import LandingPageHTML
-from StringIO import StringIO
+from . import LandingPageHTML
+from io import BytesIO
 
 class LandingPage:
     notify  = directNotify.newCategory("LandingPage")
@@ -61,7 +61,7 @@ class LandingPage:
         headTag.append(ET.Comment(''))
         bodyTag.append(ET.Comment(''))
 
-        fileStr = StringIO()
+        fileStr = BytesIO()
         ET.ElementTree(headTag).write(fileStr, encoding='utf-8')
         headTagStr = unicodeUtf8(fileStr.getvalue())
         # remove the tag closer
@@ -73,7 +73,7 @@ class LandingPage:
         landing = ET.Element('body')
         LandingPageHTML.addBodyHeaderAndContent(landing, titleStr, self.getMenuTags(activeTab))
 
-        fileStr = StringIO()
+        fileStr = BytesIO()
         ET.ElementTree(landing).write(fileStr, encoding='utf-8')
         landingStr = unicodeUtf8(fileStr.getvalue())
         # remove <body>
@@ -85,7 +85,7 @@ class LandingPage:
             # </center>
             landingStr = landingStr[:landingStr.rindex('<')]
         
-        fileStr = StringIO()
+        fileStr = BytesIO()
         ET.ElementTree(bodyTag).write(fileStr, encoding='utf-8')
         bodyTagStr = unicodeUtf8(fileStr.getvalue())
         # extract <body>
