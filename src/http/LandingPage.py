@@ -79,7 +79,7 @@ class LandingPage:
         # remove <body>
         landingStr = landingStr[landingStr.index('>')+1:]
         # remove tag closers
-        for i in xrange(3):
+        for i in range(3):
             # </body>
             # contents </div>
             # </center>
@@ -108,7 +108,7 @@ class LandingPage:
         
         uriList = list(uriToHandler.keys())
 
-        uriList.sort()
+        #uriList.sort()
 
         autoList = []
 

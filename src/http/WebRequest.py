@@ -156,6 +156,7 @@ class WebRequestDispatcher(object):
     # only for 'returnsResponse' mode
     def getHeadTag(self):
         return self._headTag
+        
     def getBodyTag(self):
         return self._bodyTag
 
@@ -177,7 +178,7 @@ class WebRequestDispatcher(object):
             self.notify.info("%s - %s - %s - 200" % (req.getSourceAddress(), uri, args))
         
         if returnsResponse:
-            result = apply(callable,(),args)
+            result = callable(**args)
             if autoSkin:
                 self._headTag = ET.Element('head')
                 self._bodyTag = ET.Element('body')
@@ -188,7 +189,7 @@ class WebRequestDispatcher(object):
                 req.respond(result)
         else:
             args["replyTo"] = SkinningReplyTo(req, self, uri, autoSkin)
-            apply(callable,(),args)
+            callable(**args)
 
     def poll(self):
         """

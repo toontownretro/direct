@@ -419,7 +419,7 @@ def getTabTags(menu,activeTab):
     if "Services" in tabList:
         tabList.remove("Services")
         
-    tabList.sort()
+    #tabList.sort()
     
     if "Main" in list(menu.keys()):
         tabList.insert(0, "Main")
