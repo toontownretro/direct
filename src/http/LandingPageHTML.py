@@ -377,7 +377,7 @@ def getURITable(title,uriList,uriToHandler):
     return output
 
 def getTabs(menu,activeTab):
-    tabList = menu.keys()
+    tabList = list(menu.keys())
     if "Main" in tabList:
         tabList.remove("Main")
     if "Services" in tabList:
@@ -385,9 +385,9 @@ def getTabs(menu,activeTab):
         
     tabList.sort()
     
-    if "Main" in menu.keys():
+    if "Main" in list(menu.keys()):
         tabList.insert(0, "Main")
-    if "Services" in menu.keys():
+    if "Services" in list(menu.keys()):
         tabList.insert(1, "Services")
 
     s = ""
@@ -413,7 +413,7 @@ def getTabs(menu,activeTab):
     return s    
 
 def getTabTags(menu,activeTab):
-    tabList = menu.keys()
+    tabList = list(menu.keys())
     if "Main" in tabList:
         tabList.remove("Main")
     if "Services" in tabList:
@@ -421,9 +421,9 @@ def getTabTags(menu,activeTab):
         
     tabList.sort()
     
-    if "Main" in menu.keys():
+    if "Main" in list(menu.keys()):
         tabList.insert(0, "Main")
-    if "Services" in menu.keys():
+    if "Services" in list(menu.keys()):
         tabList.insert(1, "Services")
 
     tabNum = 0

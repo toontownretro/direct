@@ -106,7 +106,7 @@ class LandingPage:
     def getServicesPage(self, uriToHandler):
         output = ""
         
-        uriList = uriToHandler.keys()
+        uriList = list(uriToHandler.keys())
 
         uriList.sort()
 
