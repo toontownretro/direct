@@ -1,17 +1,20 @@
 #ifndef  Http_Request_H_
 #define  Http_Request_H_
 
+#include "directbase.h"
+#include "http_connection.h"
+
 class Http_Request;
 extern std::set< Http_Request * >                       Global_WebRequests_pendingNotify;
- 
-class Http_Request : public HttpConnection
+
+class EXPCL_DIRECT_HTTP Http_Request : public HttpConnection
 {
 public:
-    Http_Request(SOCKET sck,Socket_Address &inaddr) : HttpConnection(sck,inaddr) 
+    Http_Request(SOCKET sck,Socket_Address &inaddr) : HttpConnection(sck,inaddr)
     {
     };
 
-    ~Http_Request() 
+    ~Http_Request()
     {
         Global_WebRequests_pendingNotify.erase(this);
     };
@@ -24,14 +27,14 @@ public:
         return true;
     };
 
-    CloseState      TryAndFinalize()  
+    CloseState      TryAndFinalize()
     {
         return  ConnectionDoNotClose;
     };
 
 PUBLISHED:
 
-    std::string GetRequestType() 
+    std::string GetRequestType()
     {
         return _parser.GetRequestType();
     }
@@ -46,7 +49,7 @@ PUBLISHED:
         return _parser.GetRequestURL();
     }
 
-    std::string GetSourceAddress() 
+    std::string GetSourceAddress()
     {
         return _MyAddress.get_ip_port();
     }
@@ -63,14 +66,14 @@ PUBLISHED:
         Finish();
     }
 
-    void Finish()  
-    {    
-        _Timer.ResetAll(Time_Clock::GetCurrentTime(),Time_Span(10,0));
-        _state  =  WRITING_DATA; 
-    };
-    void Abort()   
+    void Finish()
     {
-        _state =   ABORTING; 
+        _Timer.ResetAll(Time_Clock::GetCurrentTime(),Time_Span(10,0));
+        _state  =  WRITING_DATA;
+    };
+    void Abort()
+    {
+        _state =   ABORTING;
     };
 
 

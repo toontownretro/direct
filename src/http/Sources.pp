@@ -18,7 +18,7 @@
 #begin lib_target
   #define TARGET  http
 
-  //#define COMBINED_SOURCES $[TARGET]_composite1.cxx  
+  //#define COMBINED_SOURCES $[TARGET]_composite1.cxx
 
   #define COMPOSITE_SOURCES \
      config_http.cxx \
@@ -28,11 +28,19 @@
 
   #define SOURCES \
      config_http.h \
+     application_log.h \
+     baseincomingset.h baseincomingset.i \
+     bufferedwriter_growable.h \
+     http_bufferedreader.h http_bufferedreader.i \
      http_connection.h  \
-     http_request.h
+     http_request.h \
+     parsedhttprequest.h \
+     ringbuffer_slide.h ringbuffer_slide.i \
+     strtargetbuffer.h
 
   #define BUILDING_DLL BUILDING_DIRECT_HTTP
 
+  #define WIN_SYS_LIBS Ws2_32.lib
 
   #define IGATESCAN all
 #end lib_target

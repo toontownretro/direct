@@ -58,7 +58,7 @@ class ParsedHttpResponse
 {
     std::string             _Raw_Text;
     std::string             _response_header;
-    
+
     std::map<std::string,std::string>   _header_Lines;
 
 
@@ -82,7 +82,7 @@ public:
     }
 
     bool ParseThis(const std::string &response)
-    {   
+    {
         _Raw_Text = response;
 
         int line_number = 0;

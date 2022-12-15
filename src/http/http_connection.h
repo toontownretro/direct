@@ -1,7 +1,8 @@
-#ifndef HttpConnection_H 
-#define HttpConnection_H 
+#ifndef HttpConnection_H
+#define HttpConnection_H
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
+#include "directbase.h"
 #include "parsedhttprequest.h"
 #include "baseincomingset.h"
 
@@ -9,7 +10,7 @@
 #include "http_bufferedreader.h"
 
 
-class HttpConnection : public Socket_TCP 
+class EXPCL_DIRECT_HTTP HttpConnection : public Socket_TCP
 {
 protected:
     Http_BufferedReader             _Reader;
@@ -18,16 +19,16 @@ protected:
 
     Time_Out                    _Timer;
 
-    enum    STATE_CONNECTIONS {  
-        READING_HEADER =1, 
-        READING_POST =2, 
+    enum    STATE_CONNECTIONS {
+        READING_HEADER =1,
+        READING_POST =2,
         WAITING_TO_FINALIZE =3,
         WRITING_DATA =4,
         ABORTING = 5,
     };
 
 
-    STATE_CONNECTIONS                    _state;        
+    STATE_CONNECTIONS                    _state;
 
 
     ParsedHttpRequest           _parser;
@@ -44,15 +45,15 @@ public:
     HttpConnection(SOCKET sck,Socket_Address &inaddr) ;
 
     CloseState             ProcessMessage(char * message,Time_Clock &currentTime);
-    int                    DoReadHeader(char * message, int buffersize,Time_Clock &currentTime);    
-    int                    DoReadBody(char * message, int buffersize,Time_Clock &currentTime);  
+    int                    DoReadHeader(char * message, int buffersize,Time_Clock &currentTime);
+    int                    DoReadBody(char * message, int buffersize,Time_Clock &currentTime);
     int                    ReadIt(char * message, int buffersize,Time_Clock &currentTime);
     void                   Reset();
 
     virtual CloseState      TryAndFinalize()  {  _state = WRITING_DATA;  ;return ConnectionDoNotClose; };
 
     std::string             GetFullmessage() { return _headerDetail + _bodyDetail; };
-  
+
 public:
   static TypeHandle get_class_type() {
     return _type_handle;
@@ -72,7 +73,7 @@ private:
 };
 
 
-#endif  // HttpConnection_H 
+#endif  // HttpConnection_H
 
 
 
