@@ -45,13 +45,12 @@ import builtins
 import importlib
 from . import BpDb
 import functools
-import xml.etree.ElementTree as ET
-
-from html.parser import HTMLParser
 
 __report_indent = 3
 
 from panda3d.core import ConfigVariableBool, ClockObject
+from html.parser import HTMLParser
+import xml.etree.ElementTree as ET
 
 
 ## with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
@@ -3991,11 +3990,8 @@ def typeName(o):
         return o.__class__.__name__
     else:
         return o.__name__
-        
-        
-class HTMLStringToElements(HTMLParser):
-    __module__ = __name__
 
+class HTMLStringToElements(HTMLParser):
     def __init__(self, str, *a, **kw):
         self._elements = []
         self._elementStack = Stack()
@@ -4015,19 +4011,22 @@ class HTMLStringToElements(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         kwArgs = {}
-        for (name, value) in attrs:
+        for name, value in attrs:
             kwArgs[name] = value
-
         el = ET.Element(tag, **kwArgs)
         self._handleNewElement(el)
 
     def handle_data(self, data):
+        # this ignores text outside of a tag
         if len(self._elementStack):
             self._elementStack.top().text = data
 
     def handle_endtag(self, tag):
         top = self._elementStack.top()
-        if len(top.items()) == 0:
+        if len(list(top)) == 0:
+            # insert a comment to prevent ElementTree from using <... /> convention
+            # force it to create a tag closer a la </tag>
+            # prevents problems in certain browsers
             if top.tag == 'script' and top.get('type') == 'text/javascript':
                 if top.text == None:
                     top.text = '// force tag closer'
@@ -4040,9 +4039,26 @@ class HTMLStringToElements(HTMLParser):
         comment = ET.Comment(data)
         self._handleNewElement(comment)
 
-
 def str2elements(str):
     return HTMLStringToElements(str).getElements()
+
+if __debug__:
+    s = ScratchPad()
+    assert len(str2elements('')) == 0
+    s.br = str2elements('<br>')
+    assert len(s.br) == 1
+    assert s.br[0].tag == 'br'
+    s.b = str2elements('<b><br></b>')
+    assert len(s.b) == 1
+    assert len(list(s.b[0])) == 1
+    s.a = str2elements('<a href=\'/\'>test</a>')
+    assert len(s.a) == 1
+    assert s.a[0].get('href') == '/'
+    assert s.a[0].text == 'test'
+    s.c = str2elements('<!--testComment-->')
+    assert len(s.c) == 1
+    assert s.c[0].text == 'testComment'
+    del s
 
 def repeatableRepr(obj):
     if type(obj) is dict:
