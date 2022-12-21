@@ -36,13 +36,13 @@
 #include <utility>
 #include <vector>
 
-struct MultipartLODActorData {
+struct ActorModelData {
     std::string lod_name;
     std::string part_name;
     NodePath model_node;
 };
 
-struct MultipartLODActorDataWPath {
+struct ActorModelDataWPath {
     std::string lod_name;
     std::string part_name;
     std::string model_path;
@@ -401,8 +401,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
         
         // Multi-part Actor w/ LOD
-        CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
-        CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
+        CActor(const pvector<ActorModelDataWPath> &models, NodePath &lod_node, bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
+        CActor(const pvector<ActorModelData> &models, NodePath &lod_node, bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
         
         //////////////////////////////
         // Initializers w/ Animations
@@ -421,9 +421,9 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, const pvector<std::pair<std::string, std::string> > &anims, bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
         
         // Multi-part Actor w/ LOD
-        CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
+        CActor(const pvector<ActorModelDataWPath> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
                bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
-        CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
+        CActor(const pvector<ActorModelData> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
                bool copy=true, bool flattenable=true, bool set_final=false, bool ok_missing=false);
 
         

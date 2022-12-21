@@ -3,6 +3,8 @@
 
 #include "decalEffect.h"
 #include "jobSystem.h"
+#include "pStatCollector.h"
+#include "pStatTimer.h"
 #include "transformState.h"
 
 #include <algorithm>
@@ -14,6 +16,9 @@ TypeHandle CActor::PartDef::_type_handle;
 LightReMutex CActor::_cactor_thread_lock("cactor-thread-lock");
 LightReMutex CActor::AnimDef::_cactor_animdef_thread_lock("cactor-animdef-thread-lock");
 LightReMutex CActor::PartDef::_cactor_partdef_thread_lock("cactor-partdef-thread-lock");
+
+static PStatCollector prepare_bundle_collector("*:Actor:Init:PrepareBundle");
+static PStatCollector load_model_collector("*:Actor:Init:LoadModel");
 
 //////////////////////////////
 // Initializers w/o Animations
@@ -249,7 +254,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, bo
     }
 }
 
-CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
+CActor::CActor(const pvector<ActorModelDataWPath> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -262,7 +267,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        const MultipartLODActorDataWPath &data = models[i];
+        const ActorModelDataWPath &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
         lod_names.emplace_back(data.lod_name);
@@ -297,7 +302,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     }
 }
 
-CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
+CActor::CActor(const pvector<ActorModelData> &models, NodePath &lod_node, bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
     initialize_geom_node(flattenable);
@@ -310,7 +315,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        const MultipartLODActorData &data = models[i];
+        const ActorModelData &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
         lod_names.emplace_back(data.lod_name);
@@ -575,7 +580,7 @@ CActor::CActor(const pmap<std::string, NodePath> &models, NodePath &lod_node, co
     }
 }
 
-CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
+CActor::CActor(const pvector<ActorModelDataWPath> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
                bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
@@ -589,7 +594,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        const MultipartLODActorDataWPath &data = models[i];
+        const ActorModelDataWPath &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
         lod_names.emplace_back(data.lod_name);
@@ -631,7 +636,7 @@ CActor::CActor(const pvector<MultipartLODActorDataWPath> &models, NodePath &lod_
     }
 }
 
-CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
+CActor::CActor(const pvector<ActorModelData> &models, NodePath &lod_node, const pmap<std::string, pvector<std::pair<std::string, std::string> > > &anims, 
                bool copy, bool flattenable, bool set_final, bool ok_missing) : NodePath("actor") {
     pvector<std::string> lod_names;
     
@@ -645,7 +650,7 @@ CActor::CActor(const pvector<MultipartLODActorData> &models, NodePath &lod_node,
     // Multi-part Actor w/ LOD
     set_LOD_node(lod_node);
     for (size_t i = 0; i < models.size(); i++) {
-        const MultipartLODActorData &data = models[i];
+        const ActorModelData &data = models[i];
         
         // Add the lod name to the list we have, All duplicates will be removed.
         lod_names.emplace_back(data.lod_name);
@@ -1795,6 +1800,7 @@ void CActor::load_model(const NodePath &model_node, const std::string &part_name
 **/
 void CActor::load_model(const std::string &model_path, const std::string &part_name, const std::string &lod_name, bool copy, bool ok_missing, bool keep_model) {
     LightReMutexHolder holder(_cactor_thread_lock);
+    PStatTimer timer(load_model_collector);
     
     NodePath model;
     
@@ -1903,6 +1909,7 @@ void CActor::load_model_internal(NodePath &model, const std::string &part_name, 
 
 void CActor::prepare_bundle(const NodePath &bundle_np, const NodePath &part_model, const std::string &part_name, const std::string &lod_name) {
     LightReMutexHolder holder(_cactor_thread_lock);
+    PStatTimer timer(prepare_bundle_collector);
 
     std::string bundle_name = lod_name + ":" + part_name;
     
