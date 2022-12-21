@@ -30,7 +30,7 @@ class Actor(DirectObject, CActor):
         except:
             self.Actor_initialized = 1
 
-        CActor.__init__(self, models, anims, other, copy, lodNode, flattenable, setFinal, okMissing)
+        super().__init__(models, anims, other, copy, lodNode, flattenable, setFinal, okMissing)
         
     def delete(self, removeNode=True):
         try:
@@ -45,16 +45,29 @@ class Actor(DirectObject, CActor):
         from direct.interval import ActorInterval
         return ActorInterval.ActorInterval(self, *args, **kw)
         
+    def unloadAnims(self, anims=None, partName=None, lodName=None):
+        """unloadAnims(self, string:string{}, string='modelRoot',
+        string='lodRoot')
+        Actor anim unloader. Takes an optional partName (defaults to
+        'modelRoot' for non-multipart actors) and lodName (defaults to
+        'lodRoot' for non-LOD actors) and list of animation
+        names. Deletes the anim control for the given animation and
+        parts/lods.
+
+        If any parameter is None or omitted, it means all of them.
+        """
+        assert Actor.notify.debug("in unloadAnims: %s, part: %s, lod: %s" % (anims, partName, lodName))
+        
     # The functions below are to wrap to the CActor arguments for backwards compatibility.
     # They are otherwise not needed.
     
     def loadModel(self, modelPath, partName="modelRoot", lodName="lodRoot", copy = True, okMissing = None, autoBindAnims = True, keepModel = False):
-        CActor.loadModel(self, modelPath, partName, lodName, copy, okMissing, keepModel)
+        super().loadModel(modelPath, partName, lodName, copy, okMissing, keepModel)
         
     def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot", loadNow = False):
-        CActor.loadAnims(self, anims, partName, lodName, loadNow)
+        super().loadAnims(anims, partName, lodName, loadNow)
         
-    def loop(self, animName=None, restart=True, partName=None, fromFrame=None, toFrame=None, layer=0, playRate=1.0, blendIn=0.0, channel=None):
+    def loop(self, animName=None, restart=True, partName="", fromFrame=0, toFrame=-1, layer=0, playRate=1.0, blendIn=0.0, channel=None):
         if not animName and not channel:
             return
             
@@ -68,26 +81,43 @@ class Actor(DirectObject, CActor):
             layer = 0
             
         if channel != None:
-            CActor.loop(self, channel, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+            super().loop(channel, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
             return
         
-        CActor.loop(self, animName, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+        super().loop(animName, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
         
     def pose(self, animName, frame, partName="", lodName="", layer=0, blendIn=0.0, blendOut=0.0):
-        CActor.pose(self, animName, partName, lodName, frame, layer, blendIn, blendOut)
+        super().pose(animName, partName, lodName, frame, layer, blendIn, blendOut)
         
     def setBlend(self, animBlend = None, frameBlend = False, blendType = None, partName = None, transitionBlend = True):
         if partName != None:
-            CActor.setBlend(self, partName, frameBlend, transitionBlend)
+            super().setBlend(partName, frameBlend, transitionBlend)
             return
-        CActor.setBlend(self, frameBlend, transitionBlend)
+
+        super().setBlend(frameBlend, transitionBlend)
         
-    def setPlayRate(self, rate, anim=None, partName=None, layer=0):
-        return # This function currently crashes... No clue why.
-        CActor.setPlayRate(self, rate, anim, partName, layer)
+    def setPlayRate(self, rate, anim="", partName="", layer=0):
+        super().setPlayRate(rate, anim, partName, layer)
         
     def drawInFront(self, frontPartName, backPartName, mode, root="", lodName=""):
-        CActor.drawInFront(self, frontPartName, backPartName, mode, root, lodName)
+        super().drawInFront(frontPartName, backPartName, mode, root, lodName)
+        
+    def pingpong(self, animName=None, restart=1, partName=None,
+                 fromFrame=None, toFrame=None, layer=0,
+                 playRate=1.0, blendIn=0.0, channel=None):
+        if channel != None:
+            if partName != None:
+                super().pingpong(channel, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+            else:
+                super().pingpong(channel, restart, fromFrame, toFrame, layer, playRate, blendIn)
+            return
+            
+        if partName != None:
+            super().pingpong(animName, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+            return
+            
+        super().pingpong(animName, restart, fromFrame, toFrame, layer, playRate, blendIn)
+        
 '''
 
 class Actor(DirectObject, NodePath):

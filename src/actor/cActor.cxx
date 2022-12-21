@@ -1459,7 +1459,7 @@ void CActor::set_play_rate(PN_stdfloat rate, const std::string &anim, const std:
             // Make sure the provided layer is valid before doing anything else.
             if (!character->is_valid_layer_index(layer)) { continue; }
             // Get the animation layer and make sure it isn't a nullptr.
-            AnimLayer *anim_layer = character->get_anim_layer(i);
+            AnimLayer *anim_layer = character->get_anim_layer(layer);
             if (anim_layer == nullptr) { continue; }
             // Set the play rate of the animation layer.
             anim_layer->_play_rate = rate;
