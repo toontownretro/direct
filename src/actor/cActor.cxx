@@ -1736,20 +1736,12 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
     
     anim_def.set_index(channel_index);
     anim_def.set_animation_channel(channel);
+    
+    CActor::AnimIndexNode node { channel_index, anim_def };
 
     // Add in our animation def to the index vector.
-    std::vector<AnimDef> &anims_by_index = part_def._anims_by_index;
-    // Make sure the vector has enough space to store the index.
-    if (anims_by_index.capacity() <= channel_index) {
-        anims_by_index.reserve(channel_index + 1);
-    }
-    // Insert our Animation Definiton.
-    std::vector<AnimDef>::iterator position = anims_by_index.begin() + channel_index;
-    anims_by_index.emplace(position, anim_def);
-    // Shrink our vector down to it's minimum possible size.
-    anims_by_index.shrink_to_fit();
+    part_def._anims_by_index.emplace_back(node);
 
-    
     return true;
 }
 
@@ -1904,7 +1896,8 @@ void CActor::load_model_internal(NodePath &model, const std::string &part_name, 
         anim_def.set_name(channel->get_name());
         anim_def.set_index(i);
         part_def._anims_by_name[anim_def.get_name()] = anim_def;
-        part_def._anims_by_index[i] = anim_def;
+        AnimIndexNode node { i, anim_def };
+        part_def._anims_by_index.emplace_back(node);
     }
 }
 
@@ -2370,9 +2363,9 @@ std::vector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name)
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef &part_def = part_defs[i];
+        PartDef part_def = part_defs[i];
         if (!part_def.has_anim_def(anim_name)) { continue; }
-        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        AnimDef anim_def = part_def.get_anim_def(anim_name);
         if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
             anim_defs.emplace_back(anim_def);
         }
@@ -2391,11 +2384,12 @@ std::vector<CActor::AnimDef> CActor::get_anim_defs(int anim_index) {
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef &part_def = part_defs[i];
+        PartDef part_def = part_defs[i];
         if (!part_def.has_anim_def(anim_index)) { continue; }
-        AnimDef &anim_def = part_def.get_anim_def(anim_index);
-        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
-            anim_defs.emplace_back(anim_def);
+        PT(AnimDef) anim_def = part_def.get_anim_def(anim_index);
+        nassertr(anim_def != nullptr, anim_defs);
+        if (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def)) {
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2419,9 +2413,9 @@ std::vector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name,
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef &part_def = part_defs[i];
+        PartDef part_def = part_defs[i];
         if (!part_def.has_anim_def(anim_name)) { continue; }
-        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        AnimDef anim_def = part_def.get_anim_def(anim_name);
         if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
             anim_defs.emplace_back(anim_def);
         }
@@ -2447,11 +2441,12 @@ std::vector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const std::st
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef &part_def = part_defs[i];
+        PartDef part_def = part_defs[i];
         if (!part_def.has_anim_def(anim_index)) { continue; }
-        AnimDef &anim_def = part_def.get_anim_def(anim_index);
-        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
-            anim_defs.emplace_back(anim_def);
+        PT(AnimDef) anim_def = part_def.get_anim_def(anim_index);
+        nassertr(anim_def != nullptr, anim_defs);
+        if (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def)) {
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2475,9 +2470,9 @@ std::vector<CActor::AnimDef> CActor::get_anim_defs(const std::string &anim_name,
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef &part_def = part_defs[i];
+        PartDef part_def = part_defs[i];
         if (!part_def.has_anim_def(anim_name)) { continue; }
-        AnimDef &anim_def = part_def.get_anim_def(anim_name);
+        AnimDef anim_def = part_def.get_anim_def(anim_name);
         if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
             anim_defs.emplace_back(anim_def);
         }
@@ -2503,11 +2498,12 @@ std::vector<CActor::AnimDef> CActor::get_anim_defs(int anim_index, const pvector
     
     // We got our part defs, Need we need to iterate them all.
     for (size_t i = 0; i < part_defs.size(); i++) {
-        PartDef &part_def = part_defs[i];
+        PartDef part_def = part_defs[i];
         if (!part_def.has_anim_def(anim_index)) { continue; }
-        AnimDef &anim_def = part_def.get_anim_def(anim_index);
-        if (anim_def.is_bound() || load_and_bind_anim(part_def, anim_def)) {
-            anim_defs.emplace_back(anim_def);
+        PT(AnimDef) anim_def = part_def.get_anim_def(anim_index);
+        nassertr(anim_def != nullptr, anim_defs);
+        if (anim_def->is_bound() || load_and_bind_anim(part_def, *anim_def)) {
+            anim_defs.emplace_back(*anim_def);
         }
     }
     
@@ -2645,7 +2641,7 @@ std::string CActor::get_current_anim(int layer) {
     
     // Return the name associated with the channel index the layer is
     // playing.
-    AnimDef &anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
+    AnimDef &anim_def = part_def._anims_by_index.at(anim_layer->_sequence).second;
     return anim_def.get_name();
 }
 
@@ -2682,7 +2678,7 @@ std::string CActor::get_current_anim(const std::string &part_name, int layer) {
         
         // Return the name associated with the channel index the layer is
         // playing.
-        AnimDef &anim_def = part_def._anims_by_index.at(anim_layer->_sequence);
+        AnimDef &anim_def = part_def._anims_by_index.at(anim_layer->_sequence).second;
         return anim_def.get_name();
     }
     
@@ -3841,7 +3837,11 @@ int CActor::PartDef::get_channel_index(const std::string &anim_name) {
     return g->second.get_index();
 }
 bool CActor::PartDef::has_anim_def(int index) {
-    return !(index >= _anims_by_index.size() || index <= -1);
+    for (size_t i = 0; i < _anims_by_index.size(); i++) {
+        AnimIndexNode &node = _anims_by_index[i];
+        if (node.first == index) { return true; }
+    }
+    return false;
 }
 
 bool CActor::PartDef::has_anim_def(const std::string &anim_name) {
@@ -3849,8 +3849,15 @@ bool CActor::PartDef::has_anim_def(const std::string &anim_name) {
     return g != _anims_by_name.end();
 }
 
-CActor::AnimDef &CActor::PartDef::get_anim_def(int index) { 
-    return _anims_by_index.at(index);
+PT(CActor::AnimDef) CActor::PartDef::get_anim_def(int index) {
+    PT(AnimDef) anim_def = nullptr;
+    
+    for (size_t i = 0; i < _anims_by_index.size(); i++) {
+        AnimIndexNode &node = _anims_by_index[i];
+        if (node.first != index) { continue; }
+        anim_def = &node.second;
+    }
+    return anim_def;
 }
 
 CActor::AnimDef &CActor::PartDef::get_anim_def(const std::string &anim_name) {

@@ -52,18 +52,22 @@ struct MultipartLODActorDataWPath {
 class CActor;
 
 class EXPCL_DIRECT_ACTOR CActor : public NodePath {
+    
     // Internal Forward declarations.
     public:
         class AnimDef;
         class PartDef;
-    
-    typedef std::map<std::string, PartDef> PartBundleDict;
+        
+    typedef pmap<std::string, PartDef> PartBundleDict;
     //typedef std::map<std::string, pmap<std::string, PartDef> > PartBundleDict;
     
     typedef std::map<std::string, std::pair<int, int> > Switches;
+        
+    private:
+        struct AnimIndexNode;
 
     PUBLISHED:
-        class EXPCL_DIRECT_ACTOR AnimDef : public TypedObject {
+        class EXPCL_DIRECT_ACTOR AnimDef : public TypedReferenceCount {
             PUBLISHED:
                 INLINE AnimDef(Filename filename = Filename());
                 INLINE AnimDef(Filename filename, PT(AnimChannel) channel);
@@ -119,8 +123,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                     return _type_handle;
                 }
                 static void init_type() {
-                    TypedObject::init_type();
-                    register_type(_type_handle, "CActor::AnimDef", TypedObject::get_class_type());
+                    TypedReferenceCount::init_type();
+                    register_type(_type_handle, "CActor::AnimDef", TypedReferenceCount::get_class_type());
                 }
                 
                 virtual TypeHandle force_init_type() { 
@@ -140,7 +144,7 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 static TypeHandle _type_handle;
         };
         
-        class EXPCL_DIRECT_ACTOR PartDef : public TypedObject {
+        class EXPCL_DIRECT_ACTOR PartDef : public TypedReferenceCount {
             friend class CActor;
             
             PUBLISHED:
@@ -162,7 +166,7 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 bool has_anim_def(int index);
                 bool has_anim_def(const std::string &anim_name);
 
-                AnimDef &get_anim_def(int index);
+                PT(AnimDef) get_anim_def(int index);
                 AnimDef &get_anim_def(const std::string &anim_name);
                 
             protected:
@@ -170,8 +174,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                 PT(Character) _character = nullptr;
                 NodePath _part_model = NodePath();
                 
-                std::map<std::string, AnimDef> _anims_by_name;
-                std::vector<AnimDef> _anims_by_index;
+                pmap<std::string, AnimDef> _anims_by_name;
+                pvector<AnimIndexNode> _anims_by_index;
                 pmap<std::string, WeightList> _weight_list;
                 
             private:
@@ -182,8 +186,8 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
                     return _type_handle;
                 }
                 static void init_type() {
-                    TypedObject::init_type();
-                    register_type(_type_handle, "CActor::PartDef", TypedObject::get_class_type());
+                    TypedReferenceCount::init_type();
+                    register_type(_type_handle, "CActor::PartDef", TypedReferenceCount::get_class_type());
                 }
                 
                 virtual TypeHandle force_init_type() { 
@@ -454,6 +458,11 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         NodePath _lod_node = NodePath();
         
     private:
+        struct AnimIndexNode {
+            int first;
+            AnimDef second;
+        };
+        
         void clear_data();
         
         INLINE const NodePath &get_geom_node() const;

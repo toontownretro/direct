@@ -171,7 +171,7 @@ class ActorInterval(Interval.Interval):
         # expensive Actor interface every frame.
         for animDef in self.channels:
             # Each animControl might have a different number of frames.
-            numFrames = animDef.channel.getNumFrames()
+            numFrames = animDef.getAnimationChannel().getNumFrames()
             if self.loopAnim:
                 frame = (intFrame % numFrames) + (absFrame - intFrame)
             else:
@@ -179,7 +179,7 @@ class ActorInterval(Interval.Interval):
 
             #print("pose frame", frame, "channel", index, "layer", self.layer)
 
-            animDef.char.pose(animDef.index, frame, self.layer, self.blendIn, self.blendOut)
+            animDef.getCharacter().pose(animDef.getIndex(), frame, self.layer, self.blendIn, self.blendOut)
 
         if self.forceUpdate:
             self.actor.update()
@@ -198,10 +198,10 @@ class ActorInterval(Interval.Interval):
             # the next cycle.
             if self.reverse:
                 for animDef in self.channels:
-                    animDef.char.pose(animDef.index, self.startFrame, self.layer, self.blendIn, self.blendOut)
+                    animDef.getCharacter().pose(animDef.getIndex(), self.startFrame, self.layer, self.blendIn, self.blendOut)
             else:
                 for animDef in self.channels:
-                    animDef.char.pose(animDef.index, self.endFrame, self.layer, self.blendIn, self.blendOut)
+                    animDef.getCharacter().pose(animDef.getIndex(), self.endFrame, self.layer, self.blendIn, self.blendOut)
             if self.forceUpdate:
                 self.actor.update()
 

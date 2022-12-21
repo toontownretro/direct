@@ -554,7 +554,7 @@ PyObject *Extension<CActor>::get_anim_defs(PyObject *anim, PyObject *parts, PyOb
         CActor::AnimDef *anim_def_copy = new CActor::AnimDef(anim_def);
         
         // Create the Python Instance for our animation definition.
-        PyObject *anim_def_obj = DTool_CreatePyInstanceTyped(anim_def_copy, *AnimDef_py_type, true, false, anim_def.as_typed_object()->get_type_index());
+        PyObject *anim_def_obj = DTool_CreatePyInstanceTyped(anim_def_copy, *AnimDef_py_type, true, false, anim_def_copy->as_typed_object()->get_type_index());
         if (anim_def_obj == nullptr) { 
             // Free the copy we made which failed to be bound to a PyObject.
             delete anim_def_copy;
