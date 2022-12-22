@@ -434,16 +434,16 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         INLINE void set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name);
         void set_play_rate(PN_stdfloat rate, const std::string &anim, const std::string &part_name, int layer);
         
-        std::vector<AnimDef> get_anim_defs(const std::string &anim_name);
-        std::vector<AnimDef> get_anim_defs(int anim_index);
-        std::vector<AnimDef> get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name);
-        std::vector<AnimDef> get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name);
-        std::vector<AnimDef> get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name);
-        std::vector<AnimDef> get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(const std::string &anim_name);
+        pvector<AnimDef> get_anim_defs(int anim_index);
+        pvector<AnimDef> get_anim_defs(const std::string &anim_name, const std::string &part_name, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(int anim_index, const std::string &part_name, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(const std::string &anim_name, const pvector<std::string> &part_names, const std::string &lod_name);
+        pvector<AnimDef> get_anim_defs(int anim_index, const pvector<std::string> &part_names, const std::string &lod_name);
         
-        std::vector<PartDef> get_part_defs();
-        std::vector<PartDef> get_part_defs(const std::string &part_name, const std::string &lod_name);
-        std::vector<PartDef> get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name);
+        pvector<PartDef> get_part_defs();
+        pvector<PartDef> get_part_defs(const std::string &part_name, const std::string &lod_name);
+        pvector<PartDef> get_part_defs(const pvector<std::string> &part_names, const std::string &lod_name);
         
         pvector<PT(Character)> get_part_bundles();
         pvector<PT(Character)> get_part_bundles(const std::string &part_name);

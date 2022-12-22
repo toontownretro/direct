@@ -457,7 +457,7 @@ PyObject *Extension<CActor>::get_anim_defs(PyObject *anim, PyObject *parts, PyOb
     long long anim_index = -1;
     std::string anim_name;
     std::string lod_name("lodRoot");
-    std::vector<CActor::AnimDef> anim_defs;
+    pvector<CActor::AnimDef> anim_defs;
     
     // Any and all needed types for constructing PyObjects or extracting pointers from them.
     Dtool_TypeMap *tmap = Dtool_GetGlobalTypeMap();
