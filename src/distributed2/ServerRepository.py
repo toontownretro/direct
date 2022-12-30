@@ -139,13 +139,11 @@ class ServerRepository(BaseObjectManager):
         assert do.isDOGenerated()
 
         clients = set(self.zonesToClients.get(do.zoneId, set()))
-        print(clients, owner)
         if owner and clients:
             # Don't include the owner in this message, we send a specific
             # generate for the owner.
             clients -= set([owner])
 
-        print(clients, owner)
         if clients:
             dg = PyDatagram()
             dg.addUint16(NetMessages.SV_GenerateObject)
@@ -399,7 +397,7 @@ class ServerRepository(BaseObjectManager):
         for rtt in client.rttSlidingWindow:
             total += rtt
         client.averageRtt = total / client.rttWindowSize
-        #print("Avg rtt", client.averageRtt)
+        assert self.notify.debug("Client " + str(client.connection) + " average RTT: " + str(client.averageRtt))
 
     def sendUpdate(self, do, name, args, client = None, excludeClients = []):
         if not do:
@@ -583,7 +581,7 @@ class ServerRepository(BaseObjectManager):
         dg.addUint32(object.doId)
         dg.addUint32(object.zoneId)
 
-        print("packing generate for", object)
+        assert self.notify.debug("Packing generate for " + repr(object))
 
         # Find or create a baseline state.
         baseline = self.snapshotMgr.findOrCreateObjectPacketForBaseline(
@@ -729,14 +727,13 @@ class ServerRepository(BaseObjectManager):
         client.updateInterval = 1.0 / updateRate
         client.interpAmount = interpAmount
 
-        print("Client lerp time", interpAmount)
-
         client.cmdRate = cmdRate
         client.cmdInterval = 1.0 / cmdRate
         client.state = ClientState.Verified
         client.id = self.clientIdAllocator.allocate()
 
         self.notify.info("Got hello from client %i, verified, given ID %i" % (client.connection, client.id))
+        self.notify.info("Client lerp time", interpAmount)
 
         # Tell the client their ID and our tick rate.
         dg.addUint16(client.id)

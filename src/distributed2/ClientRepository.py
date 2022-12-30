@@ -318,7 +318,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.doId2do[do.doId] = do
             self.addObject(do)
 
-            print("Generate owner", classDef, "with doId", doId, "in zone", zoneId, "dclass", dclass)
+            assert self.notify.debug("Generate owner " + repr(classDef) + " with doId " + str(doId) + " in zone " + str(zoneId) + " dclass " + repr(dclass))
 
             do.generate()
             assert do.isDOGenerated()
@@ -359,7 +359,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.doId2do[do.doId] = do
             self.addObject(do)
 
-            print("Generate", classDef, "with doId", doId, "in zone", zoneId, "dclass", dclass)
+            assert self.notify.debug("Generate " + repr(classDef) + " with doId " + str(doId) + " in zone " + str(zoneId) + " dclass " + repr(dclass))
 
             do.generate()
             assert do.isDOGenerated()
