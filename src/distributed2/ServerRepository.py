@@ -733,7 +733,7 @@ class ServerRepository(BaseObjectManager):
         client.id = self.clientIdAllocator.allocate()
 
         self.notify.info("Got hello from client %i, verified, given ID %i" % (client.connection, client.id))
-        self.notify.info("Client lerp time", interpAmount)
+        self.notify.info("Client lerp time: " + str(interpAmount))
 
         # Tell the client their ID and our tick rate.
         dg.addUint16(client.id)
