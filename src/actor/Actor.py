@@ -13,7 +13,6 @@ from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.Loader import Loader
 
-
 '''
 from panda3d.direct import CActor
 
@@ -254,6 +253,13 @@ class Actor(DirectObject, NodePath):
         self.__LODAnimation = None
         self.__LODCenter = Point3(0, 0, 0)
         self.switches = None
+        
+        # Set of Actors that are joint merged to me.
+        # When our model changes, we will redirect our children
+        # to the new character to maintain joint merges.
+        self.jointMergeChildren = set()
+        # The parent Actor that we are joint merged to.
+        self.jointMergeParent = None
 
         if other is None:
             # act like a normal constructor
@@ -611,6 +617,8 @@ class Actor(DirectObject, NodePath):
             animDef.index = i
             partDef.animsByName[animDef.name] = animDef
             partDef.animsByIndex[i] = animDef
+            
+        self.maintainJointMerges()
 
     def __prepareBundle(self, bundleNP, partModel,
                         partName="modelRoot", lodName="lodRoot"):
@@ -960,6 +968,8 @@ class Actor(DirectObject, NodePath):
                         anyChanged = True
         else:
             self.notify.warning('update() - no lod: %d' % lod)
+            
+        self.maintainJointMerges()
 
         return anyChanged
 
@@ -2028,6 +2038,71 @@ class Actor(DirectObject, NodePath):
             if joint == -1:
                 continue
             char.clearJointControllerNode(joint)
+            
+    def getCharacter(self):
+        character = None
+        characterNode = self.find("**/+CharacterNode") 
+        if not characterNode.isEmpty():
+            character = characterNode.node().getCharacter()
+        return character
+            
+    def setJointMergeParent(self, actor):
+        """
+        Same as addJointMergeChild(), but you call this on the child, passing
+        in the parent.
+        """
+
+        self.clearJointMergeParent()
+
+        if not actor:
+            return
+
+        if actor.getCharacter() and self.getCharacter():
+            self.getCharacter().setJointMergeCharacter(actor.getCharacter())
+            
+        self.jointMergeParent = actor
+        actor.jointMergeChildren.add(self)
+
+    def addJointMergeChild(self, actor):
+        """
+        Adds the indicated actor as a joint merge child of this Actor.
+        Makes child "actor" copy joint poses from this Actor.
+
+        Same as setJointMergeParent(), but you call this on the parent,
+        passing in the child.
+        """
+
+        assert actor
+
+        actor.clearJointMergeParent()
+
+        self.jointMergeChildren.add(actor)
+        if actor.getCharacter() and self.getCharacter():
+            actor.getCharacter().setJointMergeCharacter(self.getCharacter())
+            
+        actor.jointMergeParent = self
+
+    def clearJointMergeParent(self):
+        """
+        Breaks a joint merge relationship to the current parent, if it has
+        one.
+        """
+        if self.jointMergeParent:
+            # TODO: Remove the link on the actual character.
+            if self in self.jointMergeParent.jointMergeChildren:
+                self.jointMergeParent.jointMergeChildren.remove(self)
+            self.jointMergeParent = None
+
+    def maintainJointMerges(self):
+        if not self.getCharacter():
+            return
+
+        if self.jointMergeParent and self.jointMergeParent.getCharacter():
+            self.getCharacter().setJointMergeCharacter(self.jointMergeParent.getCharacter())
+
+        for child in self.jointMergeChildren:
+            if child.getCharacter():
+                child.getCharacter().setJointMergeCharacter(self.getCharacter())
 
     def getActorInfo(self):
         """
