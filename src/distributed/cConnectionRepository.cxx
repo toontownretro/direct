@@ -36,7 +36,7 @@ using std::string;
 const string CConnectionRepository::_overflow_event_name = "CRDatagramOverflow";
 
 #ifndef CPPPARSER
-PStatCollector CConnectionRepository::_update_pcollector("App:Show code:readerPollTask:Update");
+PStatCollector CConnectionRepository::_update_pcollector("App:Tasks:readerPollTask:Update");
 #endif  // CPPPARSER
 
 /**
@@ -600,7 +600,8 @@ flush() {
 
   #ifdef HAVE_OPENSSL
   if (_http_conn) {
-    return _http_conn->flush();
+    _http_conn->flush();
+    return !_http_conn->is_closed();
   }
   #endif  // HAVE_OPENSSL
 

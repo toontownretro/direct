@@ -154,11 +154,11 @@ class EventManager:
             hyphen = name.find('-')
             if hyphen >= 0:
                 name = name[0:hyphen]
-            pstatCollector = PStatCollector('App:Show code:eventManager:' + name)
+            pstatCollector = PStatCollector('App:Tasks:eventManager:' + name)
             pstatCollector.start()
             if self.eventHandler:
                 cppPstatCollector = PStatCollector(
-                    'App:Show code:eventManager:' + name + ':C++')
+                    'App:Tasks:eventManager:' + name + ':C++')
 
             self.messenger.send(eventName, paramList)
             if self.messenger != MessengerGlobal.messenger:
@@ -199,3 +199,6 @@ class EventManager:
         # since the task removal itself might also fire off an event.
         if self.eventQueue is not None:
             self.eventQueue.clear()
+
+    do_events = doEvents
+    process_event = processEvent
