@@ -172,6 +172,10 @@ class ServerRepository(BaseObjectManager):
             assert do.doId not in self.doId2do
             return
 
+        assert do.doId in self.doId2do
+
+        doId = do.doId
+
         del self.doId2do[do.doId]
         self.objectsByZoneId[do.zoneId].remove(do)
         if not self.objectsByZoneId[do.zoneId]:
@@ -198,6 +202,9 @@ class ServerRepository(BaseObjectManager):
 
         do.delete()
         assert do.isDODeleted()
+
+        # Allow the doId to be re-used for future objects.
+        self.freeObjectID(doId)
 
     def simObjects(self):
         dos = list(self.doId2do.values())
