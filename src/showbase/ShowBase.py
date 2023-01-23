@@ -424,11 +424,15 @@ class ShowBase(HostBase):
             DGG.setDefaultClickSound(self.loader.loadSfx("audio/sfx/GUI_click.wav"))
             DGG.setDefaultRolloverSound(self.loader.loadSfx("audio/sfx/GUI_rollover.wav"))
 
+        # Create a private DirectObject - allowing base.accept for window-event
+        # as well as allowing ShowBase's default handling of this.
+        self.__directObject = DirectObject.DirectObject()
+
         # Now hang a hook on the window-event from Panda.  This allows
         # us to detect when the user resizes, minimizes, or closes the
         # main window.
         self.__prevWindowProperties = None
-        self.accept('window-event', self.windowEvent)
+        self.__directObject.accept('window-event', self.windowEvent)
 
         # Transition effects (fade, iris, etc)
         from . import Transitions
@@ -514,7 +518,17 @@ class ShowBase(HostBase):
         exitfunc and will be called at application exit time
         automatically.
 
-        This function is designed to be safe to call multiple times."""
+        This function is designed to be safe to call multiple times.
+
+        When called from a thread other than the main thread, this will create
+        a task to schedule the destroy on the main thread, and wait for this to
+        complete.
+        """
+
+        if Thread.getCurrentThread() != Thread.getMainThread():
+            task = taskMgr.add(self.destroy, extraArgs=[])
+            task.wait()
+            return
 
         for cb in self.finalExitCallbacks[:]:
             cb()
@@ -2541,9 +2555,9 @@ class ShowBase(HostBase):
             self.oobeVis.setLightOff(1)
             self.oobeCullFrustum = None
 
-            self.accept('oobe-down', self.__oobeButton, extraArgs = [''])
-            self.accept('oobe-repeat', self.__oobeButton, extraArgs = ['-repeat'])
-            self.accept('oobe-up', self.__oobeButton, extraArgs = ['-up'])
+            self.__directObject.accept('oobe-down', self.__oobeButton, extraArgs = [''])
+            self.__directObject.accept('oobe-repeat', self.__oobeButton, extraArgs = ['-repeat'])
+            self.__directObject.accept('oobe-up', self.__oobeButton, extraArgs = ['-up'])
 
         if self.oobeMode:
             # Disable OOBE mode.
@@ -3188,7 +3202,7 @@ class ShowBase(HostBase):
         builtins.tkroot = self.tkRoot
 
         init_app_for_gui()
-        
+
         # Sanity check for if we're running a threaded Panda3d.
         if ConfigVariableString("threading-model", "").getValue() == "":
             # Disable the Windows message loop, since Tcl wants to handle this all
