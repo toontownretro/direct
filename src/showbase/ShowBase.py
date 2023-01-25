@@ -63,6 +63,7 @@ import atexit
 import importlib
 from direct.showbase import ExceptionVarDump
 from . import SfxPlayer
+from . import DirectObject
 from .HostBase import HostBase
 if __debug__:
     from direct.showbase import GarbageReport
