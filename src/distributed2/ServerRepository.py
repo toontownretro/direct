@@ -135,6 +135,8 @@ class ServerRepository(BaseObjectManager):
             owner.objectsByDoId[do.doId] = do
             owner.objectsByZoneId.setdefault(do.zoneId, set()).add(do)
 
+        self.snapshotMgr.addObject(do)
+
         do.generate()
         assert do.isDOGenerated()
 
@@ -199,6 +201,7 @@ class ServerRepository(BaseObjectManager):
 
         # Forget this object in the packet history
         self.snapshotMgr.removePrevSentPacket(do.doId)
+        self.snapshotMgr.removeObject(do.doId)
 
         do.delete()
         assert do.isDODeleted()
