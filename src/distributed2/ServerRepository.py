@@ -109,7 +109,6 @@ class ServerRepository(BaseObjectManager):
 
         base.setTickRate(sv_tickrate.getValue())
         base.simTaskMgr.add(self.runFrame, "serverRunFrame", sort = -100)
-        base.simTaskMgr.add(self.simObjectsTask, "serverSimObjects", sort = 0)
         base.simTaskMgr.add(self.takeSnapshotTask, "serverTakeSnapshot", sort = 100)
 
     def getMaxClients(self):
@@ -208,18 +207,6 @@ class ServerRepository(BaseObjectManager):
 
         # Allow the doId to be re-used for future objects.
         self.freeObjectID(doId)
-
-    def simObjects(self):
-        dos = list(self.doId2do.values())
-        for do in dos:
-            # This DO may have been deleted during a simulation run for a
-            # previous DO.
-            if not do.isDODeleted():
-                do.simulate()
-
-    def simObjectsTask(self, task):
-        self.simObjects()
-        return task.cont
 
     def runFrame(self, task):
         self.readerPollUntilEmpty()
