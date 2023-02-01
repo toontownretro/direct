@@ -274,8 +274,17 @@ class HostBase(DirectObject):
 
             self.simInterrupted = False
 
+            start = self.globalClock.real_time
+
             # Step all simulation-bound tasks
             self.simTaskMgr.step()
+
+            end = self.globalClock.real_time
+
+            tickElapsed = end - start
+
+            if tickElapsed >= self.intervalPerTick:
+                self.notify.warning("Server overloaded!  Tick %i took %i ms, tick interval is %i ms!" % (self.tickCount, int(tickElapsed * 1000), int(self.intervalPerTick * 1000)))
 
             if self.simInterrupted:
                 break
