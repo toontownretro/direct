@@ -235,17 +235,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
         self.clockDriftMgr.setServerTick(self.serverTickCount)
 
-        saveTickCount = base.tickCount
-        saveFrameTime = base.frameTime
-        saveDeltaTime = base.deltaTime
-
-        # Be on the same tick count and frame time as the snapshot.
-        base.tickCount = self.serverTickCount
-        base.frameTime = self.serverTickCount * self.serverIntervalPerTick
-        base.deltaTime = (self.serverTickCount - oldTick) * self.serverIntervalPerTick
-        globalClock.setFrameTime(base.frameTime)
-        globalClock.setFrameCount(base.tickCount)
-        globalClock.setDt(base.deltaTime)
+        base.clockMgr.enterSimulationTime(self.serverTickCount)
 
         if hasattr(self, 'prediction') and hasattr(base, 'localAvatar') and base.localAvatar is not None:
             if True or (base.localAvatar.lastOutgoingCommand == base.localAvatar.commandAck):
@@ -267,12 +257,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.postSnapshot()
 
         # Restore the true client tick count and frame time.
-        base.tickCount = saveTickCount
-        base.frameTime = saveFrameTime
-        base.deltaTime = saveDeltaTime
-        globalClock.setFrameCount(base.tickCount)
-        globalClock.setFrameTime(base.frameTime)
-        globalClock.setDt(base.deltaTime)
+        base.clockMgr.exitSimulationTime()
 
         self.notify.debug("Got tick %i and snapshot from server" % self.serverTickCount)
 

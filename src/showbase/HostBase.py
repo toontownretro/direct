@@ -15,6 +15,7 @@ from direct.task.TaskManagerGlobal import taskMgr, simTaskMgr
 from direct.task import Task
 from .JobManagerGlobal import jobMgr
 from . import ExceptionVarDump
+from .ClockManager import ClockManager
 
 # Register the extension methods for NodePath.
 from direct.extensions_native import NodePath_extensions
@@ -75,10 +76,9 @@ class HostBase(DirectObject):
         # Get a pointer to Panda's global ClockObject, used for
         # synchronizing events between Python and C.
         globalClock = ClockObject.getGlobalClock()
-        # We will manually manage the clock
-        globalClock.setMode(ClockObject.MSlave)
         self.globalClock = globalClock
         self.clock = self.globalClock
+        self.clockMgr = ClockManager(self.clock)
 
         # Since we have already started up a TaskManager, and probably
         # a number of tasks; and since the TaskManager had to use the
@@ -126,13 +126,6 @@ class HostBase(DirectObject):
         builtins.run = ShowBaseGlobal.run
         ShowBaseGlobal.base = self
 
-        # What is the current frame number?
-        self.frameCount = 0
-        # Time at beginning of current frame
-        self.frameTime = self.globalClock.getRealTime()
-        # How long did the last frame take.
-        self.deltaTime = 0
-
         #
         # Variables pertaining to simulation ticks.
         #
@@ -151,22 +144,8 @@ class HostBase(DirectObject):
         # How many simulations ticks are we running per-second?
         self.ticksPerSec = 60
         self.intervalPerTick = 1.0 / self.ticksPerSec
-        self.realFrameTime = 0.0
-        self.realDeltaTime = 0.0
 
         self.taskMgr.finalInit()
-
-    def setFrameTime(self, time):
-        self.frameTime = time
-        self.globalClock.frame_time = time
-
-    def setDeltaTime(self, dt):
-        self.deltaTime = dt
-        self.globalClock.dt = dt
-
-    def setFrameCount(self, count):
-        self.frameCount = count
-        self.globalClock.frame_count = count
 
     def shutdown(self):
         self.eventMgr.shutdown()
@@ -229,20 +208,22 @@ class HostBase(DirectObject):
         # First determine how many simulation ticks we should run.
         #
 
+        hostDeltaTime = globalClock.dt
+
         hasClockDriftMgr = False
         if base.cr is not None and hasattr(base.cr, 'clockDriftMgr'):
             # Adjust the client clock very slightly to keep it in line with the
             # server clock.
             if base.cr.clockDriftMgr.isClockCorrectionEnabled():
                 hasClockDriftMgr = True
-            adj = base.cr.clockDriftMgr.adjustFrameTime(self.deltaTime) - self.deltaTime
-            self.deltaTime += adj
+            adj = base.cr.clockDriftMgr.adjustFrameTime(globalClock.dt) - globalClock.dt
+            hostDeltaTime += adj
 
         self.prevRemainder = self.remainder
         if self.prevRemainder < 0.0:
             self.prevRemainder = 0.0
 
-        self.remainder += self.deltaTime
+        self.remainder += globalClock.dt
 
         numTicks = 0
         if self.remainder >= self.intervalPerTick:
@@ -257,20 +238,20 @@ class HostBase(DirectObject):
         # Now run any simulation ticks.
         #
 
-        hostDeltaTime = self.deltaTime
-        hostFrameTime = self.frameTime
+        if numTicks > 0:
+            self.clockMgr.simulationDelta = self.clock.frame_time - (((self.tickCount + numTicks) * self.intervalPerTick) + self.remainder)
 
         for _ in range(numTicks):
             # Determine delta and frame time of this sim tick
-            self.frameTime = self.intervalPerTick * self.tickCount
             if hasClockDriftMgr:
-                self.deltaTime = hostDeltaTime
+                dt = hostDeltaTime
             else:
-                elapsedTicks = (self.tickCount - self.oldTickCount)
-                self.deltaTime = elapsedTicks * self.intervalPerTick
-            # Set it on the global clock for anything that uses it
-            self.globalClock.frame_time = self.frameTime
-            self.globalClock.dt = self.deltaTime
+                dt = (self.tickCount - self.oldTickCount) * self.intervalPerTick
+
+            self.clockMgr.enterSimulationTime(self.tickCount, dt=dt)
+            self.clockMgr.setRestoreTickCount(False)
+
+            #self.clockMgr.report()
 
             self.simInterrupted = False
 
@@ -287,26 +268,32 @@ class HostBase(DirectObject):
                 self.notify.warning("Server overloaded!  Tick %i took %i ms, tick interval is %i ms!" % (self.tickCount, int(tickElapsed * 1000), int(self.intervalPerTick * 1000)))
 
             if self.simInterrupted:
+                self.clockMgr.exitSimulationTime()
                 break
 
             self.oldTickCount = self.tickCount
+
+            self.clockMgr.exitSimulationTime()
+
+            assert not self.clockMgr.isInSimulationClock()
 
             self.tickCount += 1
             self.currentFrameTick += 1
             self.currentTicksThisFrame += 1
 
-        # Restore the true time for rendering and frame-bound stuff
-        self.frameTime = (self.tickCount * self.intervalPerTick) + self.remainder
-        self.deltaTime = self.realDeltaTime
-        self.globalClock.frame_time = self.frameTime
-        self.globalClock.dt = self.realDeltaTime
+        #self.clockMgr.report()
 
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
 
     def resetSimulation(self, tick):
+        self.oldTickCount = tick
         self.tickCount = tick
         self.simInterrupted = True
+        self.remainder = 0.0
+        self.prevRemainder = 0.0
+        self.clockMgr.setRestoreTickCount(False)
+        #self.clockMgr.startSimulation(tick, self.intervalPerTick)
 
     def getRenderTime(self):
         return self.tickCount * self.intervalPerTick + self.remainder
@@ -320,22 +307,9 @@ class HostBase(DirectObject):
         pass
 
     def doRunFrame(self):
-        # Manually advance the clock
-        now = self.globalClock.real_time
-        self.realDeltaTime = now - self.realFrameTime
-        self.realFrameTime += self.realDeltaTime
-
-        self.deltaTime = self.realDeltaTime
-        self.frameTime = self.realFrameTime
-        self.globalClock.dt = self.realDeltaTime
-        self.globalClock.frame_time = self.realFrameTime
-        self.globalClock.frame_count = self.frameCount
-
         self.preRunFrame()
         self.runFrame()
         self.postRunFrame()
-
-        self.frameCount += 1
 
     def run(self):
         """Starts the main loop of the application."""

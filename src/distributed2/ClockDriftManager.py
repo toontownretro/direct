@@ -39,6 +39,8 @@ class ClockDriftManager:
         return returnValue
 
     def setServerTick(self, tick):
+        base.clockMgr.setRestoreTickCount(False)
+
         self.serverTick = tick
         maxDriftTicks = base.timeToTicks(cl_clockdrift_max_ms.getValue() / 1000.0)
 

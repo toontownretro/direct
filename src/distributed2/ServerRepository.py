@@ -215,7 +215,7 @@ class ServerRepository(BaseObjectManager):
         return task.cont
 
     def clientNeedsUpdate(self, client):
-        return client.isVerified() and client.nextUpdateTime <= globalClock.getFrameTime()
+        return client.isVerified() and client.nextUpdateTime <= base.clockMgr.getTime()
 
     ###########################################################
     #
@@ -239,7 +239,7 @@ class ServerRepository(BaseObjectManager):
                 # Factor in this client's interest zones
                 clientZones |= client.currentInterestZoneIds
                 # Calculate when the next update should be
-                client.nextUpdateTime = globalClock.getFrameTime() + client.updateInterval
+                client.nextUpdateTime = base.clockMgr.getTime() + client.updateInterval
                 client.setupPackInfo(snap)
                 clientsNeedingSnapshots.append(client)
 
