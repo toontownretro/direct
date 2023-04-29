@@ -38,6 +38,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.serverIntervalPerTick = 0
         self.lastServerTickTime = 0
         self.interestHandle = 0
+        self.lastUpdateTime = 0
 
         # Estimated "ping" time, since the ping query from the client and
         # response from the server.  In milliseconds.
@@ -236,6 +237,8 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.clockDriftMgr.setServerTick(self.serverTickCount)
 
         base.clockMgr.enterSimulationTime(self.serverTickCount)
+
+        self.lastUpdateTime = base.clockMgr.getClientTime()
 
         if hasattr(self, 'prediction') and hasattr(base, 'localAvatar') and base.localAvatar is not None:
             if True or (base.localAvatar.lastOutgoingCommand == base.localAvatar.commandAck):
