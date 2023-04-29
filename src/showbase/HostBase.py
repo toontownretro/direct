@@ -239,7 +239,7 @@ class HostBase(DirectObject):
         #
 
         if numTicks > 0:
-            self.clockMgr.simulationDelta = self.clock.frame_time - (((self.tickCount + numTicks) * self.intervalPerTick) + self.remainder)
+            self.clockMgr.calcSimulationDelta(self.tickCount + numTicks)
 
         for _ in range(numTicks):
             # Determine delta and frame time of this sim tick
@@ -283,8 +283,13 @@ class HostBase(DirectObject):
 
         #self.clockMgr.report()
 
+        self.preClientFrame()
+
         # And finally, step all frame-bound tasks
         self.taskMgr.step()
+
+    def preClientFrame(self):
+        pass
 
     def resetSimulation(self, tick):
         self.oldTickCount = tick
@@ -293,7 +298,7 @@ class HostBase(DirectObject):
         self.remainder = 0.0
         self.prevRemainder = 0.0
         self.clockMgr.setRestoreTickCount(False)
-        #self.clockMgr.startSimulation(tick, self.intervalPerTick)
+        self.clockMgr.calcSimulationDelta(tick)
 
     def getRenderTime(self):
         return self.tickCount * self.intervalPerTick + self.remainder

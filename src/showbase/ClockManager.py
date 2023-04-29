@@ -19,6 +19,9 @@ class ClockManager:
     def setSimulationDelta(self, delta):
         self.simulationDelta = delta
 
+    def calcSimulationDelta(self, tick):
+        self.simulationDelta = self.getClientFrameTime() - ((tick * base.intervalPerTick) + base.remainder)
+
     def isInSimulationClock(self):
         return self.simulationDepth > 0
 
