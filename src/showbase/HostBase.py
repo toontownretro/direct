@@ -223,7 +223,7 @@ class HostBase(DirectObject):
         if self.prevRemainder < 0.0:
             self.prevRemainder = 0.0
 
-        self.remainder += globalClock.dt
+        self.remainder += hostDeltaTime
 
         numTicks = 0
         if self.remainder >= self.intervalPerTick:
