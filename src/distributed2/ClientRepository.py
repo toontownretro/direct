@@ -437,14 +437,15 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         # Process the events.
         event = self.netSys.getNextEvent()
         while event:
-            if self.connected: # I'm paranoid and want to empty out events if we disconnect.
-                self.__handleNetCallback(event.getConnection(),
-                    event.getState(), event.getOldState())
+            self.__handleNetCallback(event.getConnection(),
+                event.getState(), event.getOldState())
             event = self.netSys.getNextEvent()
 
     def readerPollOnce(self):
         if not self.connected:
             return False
+
+        assert self.connectionHandle
 
         msg = SteamNetworkMessage()
         if self.netSys.receiveMessageOnConnection(self.connectionHandle, msg):
