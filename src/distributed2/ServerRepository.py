@@ -120,13 +120,20 @@ class ServerRepository(BaseObjectManager):
     def freeObjectID(self, id):
         self.objectIdAllocator.free(id)
 
+    def getDClass(self, name):
+        return self.dclassesByName.get(name)
+
     # Generate a distributed object on the network
     # Can be given a client owner, in which that client will generate an
     # owner-view instance of the object.
-    def generateObject(self, do, zoneId, owner = None, announce = True):
+    def generateObject(self, do, zoneId, owner = None, announce = True, dclassName=None):
         do.zoneId = zoneId
         do.doId = self.allocateObjectID()
-        do.dclass = self.dclassesByName[do.__class__.__name__]
+        if not dclassName:
+            dclassName = do.__class__.__name__
+        do.dclass = self.dclassesByName.get(dclassName)
+        if not do.dclass:
+            self.notify.error("Could not find DCClass for %s" % dclassName)
         do.owner = owner
         self.doId2do[do.doId] = do
         self.objectsByZoneId.setdefault(do.zoneId, []).append(do)
