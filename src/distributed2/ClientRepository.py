@@ -24,6 +24,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
         self.netSys = SteamNetworkSystem()
         self.connected = False
+        self.isAuthed = False
         self.connectionHandle = None
         self.serverAddress = None
         self.msgType = 0
@@ -102,7 +103,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
         self.runCallbacks()
 
         # Handle automatic pinging for latency measuring.
-        if self.connected and cl_ping.value:
+        if self.connected and self.isAuthed and cl_ping.value:
             if globalClock.real_time >= self.nextPingTime:
                 self.sendPing()
 
@@ -201,17 +202,22 @@ class ClientRepository(BaseObjectManager, CClientRepository):
     def __handleServerHelloResp(self, dgi):
         ret = dgi.getUint8()
         if ret:
-            self.clientId = dgi.getUint16()
+            needAuth = dgi.getBool()
 
-            self.serverTickRate = dgi.getUint8()
-            self.serverIntervalPerTick = 1.0 / self.serverTickRate
-            # Use the same simulation rate as the server!
-            base.setTickRate(self.serverTickRate)
-            tickCount = dgi.getUint32()
-            base.resetSimulation(tickCount)
+            if not needAuth:
+                self.isAuthed = True
 
-            self.notify.info("Verified with server")
-            messenger.send('serverHelloSuccess')
+                self.clientId = dgi.getUint16()
+
+                self.serverTickRate = dgi.getUint8()
+                self.serverIntervalPerTick = 1.0 / self.serverTickRate
+                # Use the same simulation rate as the server!
+                base.setTickRate(self.serverTickRate)
+                tickCount = dgi.getUint32()
+                base.resetSimulation(tickCount)
+
+                self.notify.info("Verified with server")
+                messenger.send('serverHelloSuccess')
         else:
             self.notify.warning("Failed to verify with server")
             msg = dgi.getString()
@@ -415,6 +421,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.netSys.closeConnection(self.connectionHandle)
             self.connectionHandle = None
         self.connected = False
+        self.isAuthed = False
         self.pendingPing = False
         self.clientId = 0
         self.serverTickRate = 0
@@ -506,6 +513,7 @@ class ClientRepository(BaseObjectManager, CClientRepository):
 
             # Lost connection
             self.connected = False
+            self.isAuthed = False
             self.notify.warning("Lost connection to server")
             messenger.send('connectionLost')
             self.serverAddress = None
@@ -531,6 +539,16 @@ class ClientRepository(BaseObjectManager, CClientRepository):
             self.__handleObjectMessage(dgi)
         elif self.msgType == NetMessages.SV_Ping_Resp:
             self.handlePingResponse()
+        elif self.msgType == NetMessages.SV_AuthenticateRequest:
+            self.handleServerAuthenticateRequest(dgi)
+        elif self.msgType == NetMessages.SV_AuthenticateResponse:
+            self.handleServerAuthenticateResponse(dgi)
+
+    def handleServerAuthenticateResponse(self, dgi):
+        raise NotImplementedError
+
+    def handleServerAuthenticateRequest(self, dgi):
+        raise NotImplementedError
 
     def sendUpdate(self, do, name, args):
         if not do:

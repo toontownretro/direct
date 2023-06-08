@@ -14,7 +14,8 @@ from enum import IntEnum
 class ClientState(IntEnum):
 
     Unverified = 0
-    Verified = 1
+    Authenticating = 1
+    Verified = 2
 
 class ServerRepository(BaseObjectManager):
     """
@@ -357,6 +358,15 @@ class ServerRepository(BaseObjectManager):
                 self.handleClientHello(client, dgi)
             else:
                 self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in unverified state" % (client.connection, type))
+                self.closeClientConnection(client)
+
+        elif client.state == ClientState.Authenticating:
+            # If the client is in the verification process, they can
+            # only send a verification response.
+            if type == NetMessages.CL_AuthenticateResponse:
+                self.handleClientAuthResponse(client, dgi)
+            else:
+                self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in in-verify state" % (client.connection, type))
                 self.closeClientConnection(client)
 
         elif client.state == ClientState.Verified:
@@ -733,22 +743,40 @@ class ServerRepository(BaseObjectManager):
 
         client.cmdRate = cmdRate
         client.cmdInterval = 1.0 / cmdRate
-        client.state = ClientState.Verified
-        client.id = self.clientIdAllocator.allocate()
 
-        self.notify.info("Got hello from client %i, verified, given ID %i" % (client.connection, client.id))
-        self.notify.info("Client lerp time: " + str(interpAmount))
+        if not self.wantAuthentication():
+            client.state = ClientState.Verified
+            client.id = self.clientIdAllocator.allocate()
 
-        # Tell the client their ID and our tick rate.
-        dg.addUint16(client.id)
-        dg.addUint8(base.ticksPerSec)
-        dg.addUint32(base.tickCount)
+            self.notify.info("Got hello from client %i, verified, given ID %i" % (client.connection, client.id))
+            self.notify.info("Client lerp time: " + str(interpAmount))
 
-        self.numClients += 1
+            # Tell the client their ID and our tick rate.
+            dg.addBool(False)
+            dg.addUint16(client.id)
+            dg.addUint8(base.ticksPerSec)
+            dg.addUint32(base.tickCount)
 
-        self.sendDatagram(dg, client.connection)
+            self.numClients += 1
 
-        messenger.send('clientConnected', [client])
+            self.sendDatagram(dg, client.connection)
+
+            messenger.send('clientConnected', [client])
+        else:
+            dg.addBool(True)
+            self.sendDatagram(dg, client.connection)
+
+            client.state = ClientState.Authenticating
+            self.sendClientAuthRequest(client)
+
+    def wantAuthentication(self):
+        return False
+
+    def sendClientAuthRequest(self, client):
+        raise NotImplementedError
+
+    def handleClientAuthResponse(self, client, dgi):
+        raise NotImplementedError
 
     def handleClientDisconnect(self, client):
         # Delete all objects owned by the client
