@@ -119,7 +119,7 @@ QUIET_ZONE_IGNORED_LIST = [
     #CLIENT_CREATE_OBJECT_REQUIRED,
     #CLIENT_CREATE_OBJECT_REQUIRED_OTHER,
 
-    ]
+]
 
 # The following is a different set of numbers from above.
 # These are the sub-message types for CLIENT_LOGIN_2.

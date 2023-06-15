@@ -6,18 +6,20 @@ import os
 import time
 import copy
 
-from panda3d.core import *
+from panda3d.core import ConfigVariableString, Filename, Mat4, NodePath
 from direct.actor.Actor import Actor
+from direct.showbase.PythonUtil import Functor
 from direct.task import Task
 from direct.task.TaskManagerGlobal import taskMgr
-from .ActionMgr import *
+from .ActionMgr import ActionTransformObj, ActionUpdateObjectProp
 from . import ObjectGlobals as OG
 
 
 # python wrapper around a panda.NodePath object
 class PythonNodePath(NodePath):
     def __init__(self,node):
-        NodePath.__init__(self,node)
+        NodePath.__init__(self, node)
+
 
 class ObjectMgrBase:
     """ ObjectMgr will create, manage, update objects in the scene """
@@ -47,7 +49,7 @@ class ObjectMgrBase:
         for id in list(self.objects.keys()):
             try:
                 self.objects[id][OG.OBJ_NP].removeNode()
-            except:
+            except Exception:
                 pass
             del self.objects[id]
 
@@ -88,21 +90,21 @@ class ObjectMgrBase:
         for item in curveInfo:
             controler = base.render.attachNewNode("controler")
             controler = base.loader.loadModel('models/misc/smiley')
-            controlerPathname = 'controler%d' % item[0]
+            controlerPathname = f'controler{item[0]}'
             controler.setName(controlerPathname)
             controler.setPos(item[1])
             controler.setColor(0, 0, 0, 1)
             controler.setScale(0.2)
             controler.reparentTo(base.render)
-            controler.setTag('OBJRoot','1')
-            controler.setTag('Controller','1')
+            controler.setTag('OBJRoot', '1')
+            controler.setTag('Controller', '1')
             curve.append((None, item[1]))
             curveControl.append((item[0], controler))
 
         self.editor.curveEditor.degree = degree
-        self.editor.curveEditor.ropeUpdate (curve)
+        self.editor.curveEditor.ropeUpdate(curve)
         #add new curve to the scene
-        curveObjNP = self.addNewCurve(curveControl, degree, uid, parent, fSelectObject, nodePath = self.editor.curveEditor.currentRope)
+        curveObjNP = self.addNewCurve(curveControl, degree, uid, parent, fSelectObject, nodePath=self.editor.curveEditor.currentRope)
         curveObj = self.findObjectByNodePath(curveObjNP)
         self.editor.objectMgr.updateObjectPropValue(curveObj, 'Degree', degree, fSelectObject=False, fUndo=False)
 
@@ -135,7 +137,7 @@ class ObjectMgrBase:
             newobj = nodePath
 
         newobj.reparentTo(parent)
-        newobj.setTag('OBJRoot','1')
+        newobj.setTag('OBJRoot', '1')
 
         # populate obj data using default values
         properties = {}
@@ -210,7 +212,7 @@ class ObjectMgrBase:
                         model = objDef.model
                     try:
                         newobj = Actor(model)
-                    except:
+                    except Exception:
                         newobj = Actor(Filename.fromOsSpecific(model).getFullpath())
                     if hasattr(objDef, 'animDict') and objDef.animDict != {}:
                         objDef.anims = objDef.animDict.get(model)
@@ -221,7 +223,7 @@ class ObjectMgrBase:
                         model = objDef.model
                     try:
                         newobjModel = base.loader.loadModel(model)
-                    except:
+                    except Exception:
                         newobjModel = base.loader.loadModel(Filename.fromOsSpecific(model).getFullpath(), okMissing=True)
                     if newobjModel:
                         self.flatten(newobjModel, model, objDef, uid)
@@ -255,7 +257,7 @@ class ObjectMgrBase:
                 return None
 
             newobj.reparentTo(parent)
-            newobj.setTag('OBJRoot','1')
+            newobj.setTag('OBJRoot', '1')
 
             # populate obj data using default values
             properties = {}
@@ -277,11 +279,11 @@ class ObjectMgrBase:
         obj = self.findObjectById(uid)
         nodePath = obj[OG.OBJ_NP]
 
-        for i in range(0,len(self.Actor)):
+        for i in range(0, len(self.Actor)):
             if self.Actor[i] == obj:
                 del self.Actor[i]
                 break
-        for i in range(0,len(self.Nodes)):
+        for i in range(0, len(self.Nodes)):
             if self.Nodes[i][OG.OBJ_UID] == uid:
                 del self.Nodes[i]
                 break
@@ -301,11 +303,11 @@ class ObjectMgrBase:
     def removeObjectByNodePath(self, nodePath):
         uid = self.npIndex.get(nodePath)
         if uid:
-            for i in range(0,len(self.Actor)):
+            for i in range(0, len(self.Actor)):
                 if self.Actor[i][OG.OBJ_UID] == uid:
                     del self.Actor[i]
                     break
-            for i in range(0,len(self.Nodes)):
+            for i in range(0, len(self.Nodes)):
                 if self.Nodes[i][OG.OBJ_UID] == uid:
                     del self.Nodes[i]
                     break
@@ -512,7 +514,7 @@ class ObjectMgrBase:
             if objDef.actor:
                 try:
                     newobj = Actor(model)
-                except:
+                except Exception:
                     newobj = Actor(Filename.fromOsSpecific(model).getFullpath())
             else:
                 newobjModel = base.loader.loadModel(model, okMissing=True)
@@ -521,7 +523,7 @@ class ObjectMgrBase:
                     return
                 self.flatten(newobjModel, model, objDef, uid)
                 newobj = PythonNodePath(newobjModel)
-            newobj.setTag('OBJRoot','1')
+            newobj.setTag('OBJRoot', '1')
 
             # reparent children
             objNP.findAllMatches("=OBJRoot").reparentTo(newobj)
@@ -922,7 +924,6 @@ class ObjectMgrBase:
 
                 self.findActors(child)
 
-
     def findNodes(self, parent):
         for child in parent.getChildren():
             if child.hasTag('OBJRoot') and not child.hasTag('Controller'):
@@ -932,5 +933,3 @@ class ObjectMgrBase:
                     self.Nodes.append(obj)
 
                 self.findActors(child)
-
-
