@@ -21,6 +21,7 @@ from panda3d.core import (
     StaticTextFont,
     TexturePool,
     VBase4,
+    MaterialPool
 )
 from panda3d.core import Loader as PandaLoader
 from direct.directnotify.DirectNotifyGlobal import directNotify
