@@ -535,6 +535,17 @@ class ServerRepository(BaseObjectManager):
         if not packer.endUnpack():
             self.notify.warning("Failed to unpack object message")
 
+    def isValidClientInterest(self, zone):
+        return True
+
+    def addExplicitInterest(self, client, zones):
+        if not isinstance(zones, (tuple, list)):
+            zones = tuple(zones)
+        for zoneId in zones:
+            client.explicitInterestZoneIds.add(zoneId)
+
+        self.updateClientInterestZones(client)
+
     def handleClientAddInterest(self, client, dgi):
         """ Called when client wants to add interest into a set of zones """
 
@@ -543,13 +554,17 @@ class ServerRepository(BaseObjectManager):
         handle = dgi.getUint8()
         numZones = dgi.getUint8()
 
+        zones = []
         i = 0
         while i < numZones and dgi.getRemainingSize() >= 4:
             zoneId = dgi.getUint32()
-            client.explicitInterestZoneIds.add(zoneId)
+            if not self.isValidClientInterest(zoneId):
+                self.closeClientConnection(client)
+                return
+            zones.append(zoneId)
             i += 1
 
-        self.updateClientInterestZones(client)
+        self.addExplicitInterest(client, zones)
         self.sendInterestComplete(client, handle)
 
     def handleClientRemoveInterest(self, client, dgi):
