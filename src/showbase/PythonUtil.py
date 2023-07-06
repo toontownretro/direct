@@ -20,7 +20,7 @@ __all__ = [
     'nullGen', 'loopGen', 'makeFlywheelGen', 'flywheel', 'listToIndex2item',
     'listToItem2index', 'formatTimeCompact', 'deeptype', 'StdoutCapture',
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
-    'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
+    'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString',
     'enumerate', 'nonRepeatingRandomList', 'describeException', 'pdir',
     'choice', 'cmp', 'lerp', 'triglerp',
