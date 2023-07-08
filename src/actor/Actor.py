@@ -7,7 +7,7 @@ to learn more about loading animated models.
 __all__ = ['Actor']
 
 from panda3d.core import (
-    Character,
+    CharacterNode,
     ConfigVariableBool,
     DecalEffect,
     Filename,
@@ -16,6 +16,7 @@ from panda3d.core import (
     LoaderOptions,
     LODNode,
     ModelNode,
+    ModelRoot,
     NodePath,
     PandaNode,
     Point3,
