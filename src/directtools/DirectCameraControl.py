@@ -424,7 +424,7 @@ class DirectCameraControl(DirectObject):
         # Set at markers position in render coordinates
         self.camManipRef.setPos(self.coaMarkerPos)
         if (self.camManipRef.getTransform(base.direct.camera).hasHpr()):
-            self.camManipRef.setHpr(base.direct.camera, ZERO_POINT)
+            self.camManipRef.setHpr(base.direct.camera, DG.ZERO_POINT)
         else:
             self.notify.warning("Failed to rotate camera from its manipulation reference!")
         t = Task.Task(self.mouseRotateTask)
