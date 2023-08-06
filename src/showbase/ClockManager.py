@@ -15,12 +15,14 @@ class ClockManager:
         self.savedStack = []
         self.simulationDepth = 0
         self.simulationDelta = 0.0
+        self.simulationDeltaNoRemainder = 0.0
 
     def setSimulationDelta(self, delta):
         self.simulationDelta = delta
 
     def calcSimulationDelta(self, tick):
         self.simulationDelta = self.getClientFrameTime() - ((tick * base.intervalPerTick) + base.remainder)
+        self.simulationDeltaNoRemainder = self.getClientFrameTime() - (tick * base.intervalPerTick)
 
     def isInSimulationClock(self):
         return self.simulationDepth > 0

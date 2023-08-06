@@ -44,8 +44,8 @@ class DistributedObject(BaseDistributedObject):
     def interpolateObjects():
         #print("interpolate at", globalClock.getFrameTime())
         ctx = InterpolationContext()
-        ctx.enableExtrapolation(False)
-        ctx.setLastTimestamp(base.cr.lastServerTickTime)
+        ctx.enableExtrapolation(True)
+        ctx.setLastTimestamp(base.clockMgr.networkToClientTime(base.cr.lastServerTickTime))
         for do in set(DistributedObject.InterpolateList):
             do.interpolate(globalClock.getFrameTime())
             do.postInterpolate()
@@ -118,7 +118,7 @@ class DistributedObject(BaseDistributedObject):
 
     def getInterpolateAmount(self):
         if self.predictable:
-            return 0.0
+            return base.intervalPerTick
         serverTickMultiple = 1
         return base.ticksToTime(base.timeToTicks(getClientInterpAmount()) + serverTickMultiple)
 
@@ -183,7 +183,7 @@ class DistributedObject(BaseDistributedObject):
             # Fix up time for interpolating prediction results.
             now = base.localAvatar.finalPredictedTick * base.intervalPerTick
             now -= base.intervalPerTick
-            now += base.clockMgr.simulationDelta
+            now += base.clockMgr.simulationDeltaNoRemainder
             now += base.remainder
 
         done = True
