@@ -59,3 +59,10 @@ class NetMessages:
     SV_Ping_Resp = 18
     # Inform the server about our current ping.
     CL_InformPing = 19
+
+    # Server request to initiate a client authentication.
+    SV_AuthenticateRequest = 20
+    # Client response to the authentication request.
+    CL_AuthenticateResponse = 21
+    # Server reponse to the client's response.
+    SV_AuthenticateResponse = 22

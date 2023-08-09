@@ -1,5 +1,5 @@
 #define INSTALL_CONFIG \
-  40_direct.prc direct.fgd
+  $[ODIR_GEN]/40_direct.prc direct.fgd
 
 #if $[CTPROJS]
   // These files only matter to ctattach users.

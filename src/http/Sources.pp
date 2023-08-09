@@ -18,8 +18,6 @@
 #begin lib_target
   #define TARGET  http
 
-  //#define COMBINED_SOURCES $[TARGET]_composite1.cxx
-
   #define COMPOSITE_SOURCES \
      config_http.cxx \
      http_connection.cxx \

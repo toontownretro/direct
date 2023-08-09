@@ -6,9 +6,8 @@ of this class.
 
 __all__ = ['ActorInterval']
 
-from panda3d.core import *
-from panda3d.direct import *
-from direct.directnotify.DirectNotifyGlobal import *
+from panda3d.direct import CInterval
+from direct.directnotify.DirectNotifyGlobal import directNotify
 from . import Interval
 import math
 

@@ -63,12 +63,14 @@ import atexit
 import importlib
 from direct.showbase import ExceptionVarDump
 from . import SfxPlayer
+from . import DirectObject
 from .HostBase import HostBase
 if __debug__:
     from direct.showbase import GarbageReport
     from direct.directutil import DeltaProfiler
     from . import OnScreenDebug
     import warnings
+
 
 @atexit.register
 def exitfunc():
@@ -424,11 +426,15 @@ class ShowBase(HostBase):
             DGG.setDefaultClickSound(self.loader.loadSfx("audio/sfx/GUI_click.wav"))
             DGG.setDefaultRolloverSound(self.loader.loadSfx("audio/sfx/GUI_rollover.wav"))
 
+        # Create a private DirectObject - allowing base.accept for window-event
+        # as well as allowing ShowBase's default handling of this.
+        self.__directObject = DirectObject.DirectObject()
+
         # Now hang a hook on the window-event from Panda.  This allows
         # us to detect when the user resizes, minimizes, or closes the
         # main window.
         self.__prevWindowProperties = None
-        self.accept('window-event', self.windowEvent)
+        self.__directObject.accept('window-event', self.windowEvent)
 
         # Transition effects (fade, iris, etc)
         from . import Transitions
@@ -471,6 +477,7 @@ class ShowBase(HostBase):
     def pushCTrav(self, cTrav):
         self.cTravStack.push(self.cTrav)
         self.cTrav = cTrav
+
     def popCTrav(self):
         self.cTrav = self.cTravStack.pop()
 
@@ -514,7 +521,17 @@ class ShowBase(HostBase):
         exitfunc and will be called at application exit time
         automatically.
 
-        This function is designed to be safe to call multiple times."""
+        This function is designed to be safe to call multiple times.
+
+        When called from a thread other than the main thread, this will create
+        a task to schedule the destroy on the main thread, and wait for this to
+        complete.
+        """
+
+        if Thread.getCurrentThread() != Thread.getMainThread():
+            task = taskMgr.add(self.destroy, extraArgs=[])
+            task.wait()
+            return
 
         for cb in self.finalExitCallbacks[:]:
             cb()
@@ -539,7 +556,7 @@ class ShowBase(HostBase):
 
         try:
             self.direct.panel.destroy()
-        except:
+        except Exception:
             pass
 
         if hasattr(self, 'win'):
@@ -664,7 +681,7 @@ class ShowBase(HostBase):
         # Save this lambda here for convenience; we'll use it to call
         # down to the underlying _doOpenWindow() with all of the above
         # parameters.
-        func = lambda : self._doOpenWindow(
+        func = lambda: self._doOpenWindow(
             props = props, fbprops = fbprops, pipe = pipe, gsg = gsg,
             host = host, type = type, name = name, size = size,
             aspectRatio = aspectRatio, makeCamera = makeCamera,
@@ -1563,7 +1580,6 @@ class ShowBase(HostBase):
             self.recorder.addRecorder('mouse', mouseRecorder)
             np = mw.getParent().attachNewNode(mouseRecorder)
             mw.reparentTo(np)
-
 
         mw = self.buttonThrowers[0].getParent()
 
@@ -2541,9 +2557,9 @@ class ShowBase(HostBase):
             self.oobeVis.setLightOff(1)
             self.oobeCullFrustum = None
 
-            self.accept('oobe-down', self.__oobeButton, extraArgs = [''])
-            self.accept('oobe-repeat', self.__oobeButton, extraArgs = ['-repeat'])
-            self.accept('oobe-up', self.__oobeButton, extraArgs = ['-up'])
+            self.__directObject.accept('oobe-down', self.__oobeButton, extraArgs = [''])
+            self.__directObject.accept('oobe-repeat', self.__oobeButton, extraArgs = ['-repeat'])
+            self.__directObject.accept('oobe-up', self.__oobeButton, extraArgs = ['-up'])
 
         if self.oobeMode:
             # Disable OOBE mode.
@@ -2575,7 +2591,7 @@ class ShowBase(HostBase):
             self.bboard.post('oobeEnabled', True)
             try:
                 cameraParent = localAvatar
-            except:
+            except NameError:
                 # Make oobeCamera be a sibling of wherever camera is now.
                 cameraParent = self.camera.getParent()
             self.oobeCamera.reparentTo(cameraParent)
@@ -2739,7 +2755,6 @@ class ShowBase(HostBase):
                     camera = None, size = 128,
                     cameraMask = PandaNode.getAllCameraMask(),
                     sourceLens = None):
-
         """
         Similar to :meth:`screenshot()`, this sets up a temporary cube
         map Texture which it uses to take a series of six snapshots of
@@ -3113,7 +3128,7 @@ class ShowBase(HostBase):
             # Set a timer to run the Panda frame 60 times per second.
             wxFrameRate = ConfigVariableDouble('wx-frame-rate', 60.0)
             self.wxTimer = wx.Timer(self.wxApp)
-            self.wxTimer.Start(1000.0 / wxFrameRate.value)
+            self.wxTimer.Start(int(round(1000.0 / wxFrameRate.value)))
             self.wxApp.Bind(wx.EVT_TIMER, self.__wxTimerCallback)
 
             # wx is now the main loop, not us any more.
@@ -3188,7 +3203,7 @@ class ShowBase(HostBase):
         builtins.tkroot = self.tkRoot
 
         init_app_for_gui()
-        
+
         # Sanity check for if we're running a threaded Panda3d.
         if ConfigVariableString("threading-model", "").getValue() == "":
             # Disable the Windows message loop, since Tcl wants to handle this all

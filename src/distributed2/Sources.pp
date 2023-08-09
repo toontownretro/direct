@@ -21,7 +21,6 @@
     clientFrameManager.h clientFrameManager.I \
     frameSnapshot.h frameSnapshot.I \
     frameSnapshotEntry.h frameSnapshotEntry.I \
-    frameSnapshotManager.h frameSnapshotManager.I \
     packedObject.h packedObject.I
 
   #define COMPOSITE_SOURCES \
@@ -32,7 +31,6 @@
     clientFrameManager.cxx \
     frameSnapshot.cxx \
     frameSnapshotEntry.cxx \
-    frameSnapshotManager.cxx \
     packedObject.cxx
 
   #define IGATESCAN all
@@ -40,7 +38,6 @@
   #define IGATEEXT \
     cClientRepository.cxx \
     cClientRepository.h cClientRepository.I \
-    frameSnapshotManager_ext.cxx \
-    frameSnapshotManager_ext.h
+    frameSnapshotManager.h frameSnapshotManager.I frameSnapshotManager.cxx
 
 #end lib_target

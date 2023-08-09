@@ -6,7 +6,23 @@ to learn more about loading animated models.
 
 __all__ = ['Actor']
 
-from panda3d.core import *
+from panda3d.core import (
+    CharacterNode,
+    ConfigVariableBool,
+    DecalEffect,
+    Filename,
+    GlobPattern,
+    LineStream,
+    LoaderOptions,
+    LODNode,
+    ModelNode,
+    ModelRoot,
+    NodePath,
+    PandaNode,
+    Point3,
+    TransformState,
+    Vec3,
+)
 from panda3d.core import Loader as PandaLoader
 
 from direct.directnotify import DirectNotifyGlobal

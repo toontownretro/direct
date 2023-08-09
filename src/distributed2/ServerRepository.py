@@ -14,7 +14,8 @@ from enum import IntEnum
 class ClientState(IntEnum):
 
     Unverified = 0
-    Verified = 1
+    Authenticating = 1
+    Verified = 2
 
 class ServerRepository(BaseObjectManager):
     """
@@ -109,7 +110,6 @@ class ServerRepository(BaseObjectManager):
 
         base.setTickRate(sv_tickrate.getValue())
         base.simTaskMgr.add(self.runFrame, "serverRunFrame", sort = -100)
-        base.simTaskMgr.add(self.simObjectsTask, "serverSimObjects", sort = 0)
         base.simTaskMgr.add(self.takeSnapshotTask, "serverTakeSnapshot", sort = 100)
 
     def getMaxClients(self):
@@ -121,19 +121,28 @@ class ServerRepository(BaseObjectManager):
     def freeObjectID(self, id):
         self.objectIdAllocator.free(id)
 
+    def getDClass(self, name):
+        return self.dclassesByName.get(name)
+
     # Generate a distributed object on the network
     # Can be given a client owner, in which that client will generate an
     # owner-view instance of the object.
-    def generateObject(self, do, zoneId, owner = None, announce = True):
+    def generateObject(self, do, zoneId, owner = None, announce = True, dclassName=None):
         do.zoneId = zoneId
         do.doId = self.allocateObjectID()
-        do.dclass = self.dclassesByName[do.__class__.__name__]
+        if not dclassName:
+            dclassName = do.__class__.__name__
+        do.dclass = self.dclassesByName.get(dclassName)
+        if not do.dclass:
+            self.notify.error("Could not find DCClass for %s" % dclassName)
         do.owner = owner
         self.doId2do[do.doId] = do
         self.objectsByZoneId.setdefault(do.zoneId, []).append(do)
         if owner:
             owner.objectsByDoId[do.doId] = do
             owner.objectsByZoneId.setdefault(do.zoneId, set()).add(do)
+
+        self.snapshotMgr.addObject(do)
 
         do.generate()
         assert do.isDOGenerated()
@@ -172,6 +181,10 @@ class ServerRepository(BaseObjectManager):
             assert do.doId not in self.doId2do
             return
 
+        assert do.doId in self.doId2do
+
+        doId = do.doId
+
         del self.doId2do[do.doId]
         self.objectsByZoneId[do.zoneId].remove(do)
         if not self.objectsByZoneId[do.zoneId]:
@@ -195,21 +208,13 @@ class ServerRepository(BaseObjectManager):
 
         # Forget this object in the packet history
         self.snapshotMgr.removePrevSentPacket(do.doId)
+        self.snapshotMgr.removeObject(do.doId)
 
         do.delete()
         assert do.isDODeleted()
 
-    def simObjects(self):
-        dos = list(self.doId2do.values())
-        for do in dos:
-            # This DO may have been deleted during a simulation run for a
-            # previous DO.
-            if not do.isDODeleted():
-                do.simulate()
-
-    def simObjectsTask(self, task):
-        self.simObjects()
-        return task.cont
+        # Allow the doId to be re-used for future objects.
+        self.freeObjectID(doId)
 
     def runFrame(self, task):
         self.readerPollUntilEmpty()
@@ -218,7 +223,7 @@ class ServerRepository(BaseObjectManager):
         return task.cont
 
     def clientNeedsUpdate(self, client):
-        return client.isVerified() and client.nextUpdateTime <= globalClock.getFrameTime()
+        return client.isVerified() and client.nextUpdateTime <= base.clockMgr.getTime()
 
     ###########################################################
     #
@@ -242,7 +247,7 @@ class ServerRepository(BaseObjectManager):
                 # Factor in this client's interest zones
                 clientZones |= client.currentInterestZoneIds
                 # Calculate when the next update should be
-                client.nextUpdateTime = globalClock.getFrameTime() + client.updateInterval
+                client.nextUpdateTime = base.clockMgr.getTime() + client.updateInterval
                 client.setupPackInfo(snap)
                 clientsNeedingSnapshots.append(client)
 
@@ -353,6 +358,15 @@ class ServerRepository(BaseObjectManager):
                 self.handleClientHello(client, dgi)
             else:
                 self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in unverified state" % (client.connection, type))
+                self.closeClientConnection(client)
+
+        elif client.state == ClientState.Authenticating:
+            # If the client is in the verification process, they can
+            # only send a verification response.
+            if type == NetMessages.CL_AuthenticateResponse:
+                self.handleClientAuthResponse(client, dgi)
+            else:
+                self.notify.warning("SUSPICIOUS: client %i sent unknown message %i in in-verify state" % (client.connection, type))
                 self.closeClientConnection(client)
 
         elif client.state == ClientState.Verified:
@@ -521,6 +535,17 @@ class ServerRepository(BaseObjectManager):
         if not packer.endUnpack():
             self.notify.warning("Failed to unpack object message")
 
+    def isValidClientInterest(self, zone):
+        return True
+
+    def addExplicitInterest(self, client, zones):
+        if not isinstance(zones, (tuple, list)):
+            zones = tuple(zones)
+        for zoneId in zones:
+            client.explicitInterestZoneIds.add(zoneId)
+
+        self.updateClientInterestZones(client)
+
     def handleClientAddInterest(self, client, dgi):
         """ Called when client wants to add interest into a set of zones """
 
@@ -529,13 +554,17 @@ class ServerRepository(BaseObjectManager):
         handle = dgi.getUint8()
         numZones = dgi.getUint8()
 
+        zones = []
         i = 0
         while i < numZones and dgi.getRemainingSize() >= 4:
             zoneId = dgi.getUint32()
-            client.explicitInterestZoneIds.add(zoneId)
+            if not self.isValidClientInterest(zoneId):
+                self.closeClientConnection(client)
+                return
+            zones.append(zoneId)
             i += 1
 
-        self.updateClientInterestZones(client)
+        self.addExplicitInterest(client, zones)
         self.sendInterestComplete(client, handle)
 
     def handleClientRemoveInterest(self, client, dgi):
@@ -729,22 +758,40 @@ class ServerRepository(BaseObjectManager):
 
         client.cmdRate = cmdRate
         client.cmdInterval = 1.0 / cmdRate
-        client.state = ClientState.Verified
-        client.id = self.clientIdAllocator.allocate()
 
-        self.notify.info("Got hello from client %i, verified, given ID %i" % (client.connection, client.id))
-        self.notify.info("Client lerp time: " + str(interpAmount))
+        if not self.wantAuthentication():
+            client.state = ClientState.Verified
+            client.id = self.clientIdAllocator.allocate()
 
-        # Tell the client their ID and our tick rate.
-        dg.addUint16(client.id)
-        dg.addUint8(base.ticksPerSec)
-        dg.addUint32(base.tickCount)
+            self.notify.info("Got hello from client %i, verified, given ID %i" % (client.connection, client.id))
+            self.notify.info("Client lerp time: " + str(interpAmount))
 
-        self.numClients += 1
+            # Tell the client their ID and our tick rate.
+            dg.addBool(False)
+            dg.addUint16(client.id)
+            dg.addUint8(base.ticksPerSec)
+            dg.addUint32(base.tickCount)
 
-        self.sendDatagram(dg, client.connection)
+            self.numClients += 1
 
-        messenger.send('clientConnected', [client])
+            self.sendDatagram(dg, client.connection)
+
+            messenger.send('clientConnected', [client])
+        else:
+            dg.addBool(True)
+            self.sendDatagram(dg, client.connection)
+
+            client.state = ClientState.Authenticating
+            self.sendClientAuthRequest(client)
+
+    def wantAuthentication(self):
+        return False
+
+    def sendClientAuthRequest(self, client):
+        raise NotImplementedError
+
+    def handleClientAuthResponse(self, client, dgi):
+        raise NotImplementedError
 
     def handleClientDisconnect(self, client):
         # Delete all objects owned by the client

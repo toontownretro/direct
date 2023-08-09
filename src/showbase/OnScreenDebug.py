@@ -2,7 +2,13 @@
 
 __all__ = ['OnScreenDebug']
 
-from panda3d.core import *
+from panda3d.core import (
+    ConfigVariableBool,
+    ConfigVariableDouble,
+    ConfigVariableString,
+    TextNode,
+    Vec4,
+)
 
 from direct.gui import OnscreenText
 from direct.directtools import DirectUtil
@@ -28,16 +34,16 @@ class OnScreenDebug:
         color = {
             "black": Vec4(0, 0, 0, 1),
             "white": Vec4(1, 1, 1, 1),
-            }
+        }
         fgColor = color[ConfigVariableString("on-screen-debug-fg-color", "white").value]
         bgColor = color[ConfigVariableString("on-screen-debug-bg-color", "black").value]
         fgColor.setW(ConfigVariableDouble("on-screen-debug-fg-alpha", 0.85).value)
         bgColor.setW(ConfigVariableDouble("on-screen-debug-bg-alpha", 0.85).value)
 
-        font = base.loader.loadFont(fontPath)
-        if not font.isValid():
-            print("failed to load OnScreenDebug font %s" % fontPath)
-            font = TextNode.getDefaultFont()
+        #font = base.loader.loadFont(fontPath)
+        #if not font.isValid():
+            #print("failed to load OnScreenDebug font %s" % fontPath)
+        font = TextNode.getDefaultFont()
         self.onScreenText = OnscreenText.OnscreenText(
                 parent = base.a2dTopLeft, pos = (0.0, -0.1),
                 fg=fgColor, bg=bgColor, scale = (fontScale, fontScale, 0.0),

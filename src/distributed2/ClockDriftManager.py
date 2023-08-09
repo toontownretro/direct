@@ -49,9 +49,13 @@ class ClockDriftManager:
                 if base.tickCount < base.oldTickCount:
                     base.oldTickCount = base.tickCount
                 self.clockOffsets = [0] * 16
+                base.resetSimulation(base.tickCount)
+                #base.clockMgr.setRestoreTickCount(False)
         else:
             # Used for testing.
             base.tickCount = tick + cl_clock_correction_force_server_tick.getValue()
+            base.resetSimulation(base.tickCount)
+            #base.clockMgr.setRestoreTickCount(False)
 
         # Adjust the clock offset
         self.clockOffsets[self.currentClockOffset] = clientTick - self.serverTick
