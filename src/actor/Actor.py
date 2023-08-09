@@ -516,7 +516,8 @@ class Actor(DirectObject, NodePath):
         animDef.index = channelIndex
         animDef.channel = channel
         partDef.animsByIndex[channelIndex] = animDef
-
+        
+        self.maintainJointMerges()
         return True
 
     def loadAndBindAnim(self, partDef, animDef):
@@ -2025,7 +2026,8 @@ class Actor(DirectObject, NodePath):
 
         if not anyGood:
             self.notify.warning("Cannot control joint %s" % (jointName))
-
+        
+        self.maintainJointMerges()
         return node
 
     def releaseJoint(self, partName, jointName):
