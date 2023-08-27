@@ -9,6 +9,7 @@ import imp
 import platform
 import struct
 import io
+import distutils.sysconfig as sysconf
 import sysconfig
 import zipfile
 import importlib
