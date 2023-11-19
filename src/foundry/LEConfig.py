@@ -2,13 +2,18 @@
 
 from panda3d.core import ConfigVariableList, ConfigVariableString, ConfigVariableDouble, ConfigVariableInt
 
+unit_scale = ConfigVariableDouble(
+  "unit-scale", 16.0,
+  "Specify the unit scale multiplier."
+)
+
 fgd_files = ConfigVariableList(
   "fgd-file",
   "List of FGD files that are to be loaded by the level editor")
 
 default_material = ConfigVariableString(
   "default-material",
-  "materials/brickwall001.mto",
+  "materials/brick/brickwall001.mto",
   #"maps/smiley.txo",
   "The default material to use for solids")
 

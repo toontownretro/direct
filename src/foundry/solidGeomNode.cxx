@@ -20,8 +20,8 @@ add_for_draw(CullTraverser *trav, CullTraverserData &data) {
   trav->_geoms_pcollector.add_level(num_geoms);
   CPT(TransformState) internal_transform = data.get_internal_transform(trav);
 
-  const TransformState *net_node = nullptr;
-  const TransformState *cam = nullptr;
+  CPT(TransformState) net_node = nullptr;
+  CPT(TransformState) cam = nullptr;
 
   for (int i = 0; i < num_geoms; i++) {
     CPT(SolidFaceGeom) geom = DCAST(SolidFaceGeom, geoms.get_geom(i));
@@ -40,7 +40,7 @@ add_for_draw(CullTraverser *trav, CullTraverserData &data) {
 
     if (geom->is_plane_culled()) {
       // Only calculate this if we haven't yet.
-      if (!net_node) {
+      if (net_node == nullptr) {
         net_node = data.get_net_transform(trav);
         cam = net_node->invert_compose(trav->get_camera_transform());
       }

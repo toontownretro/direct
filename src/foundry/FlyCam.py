@@ -4,6 +4,7 @@ from direct.gui.DirectGui import OnscreenImage
 from direct.foundry import KeyBinds
 from direct.foundry.KeyBind import KeyBind
 from direct.foundry.DocObject import DocObject
+from direct.foundry import LEConfig
 
 import math
 
@@ -18,7 +19,7 @@ class FlyCam(DocObject):
 
         self.enabled = False
         self.mouseSensitivity = 0.3
-        self.cameraSpeed = 500 / 16.0
+        self.cameraSpeed = (500 / 16.0) * LEConfig.unit_scale.value
         self.timeToSpeed = 0.5 # seconds
         self.moveStart = 0.0
         self.cameraRotateSpeed = 75.0

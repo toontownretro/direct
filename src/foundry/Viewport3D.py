@@ -6,6 +6,7 @@ from .ViewportType import VIEWPORT_3D
 from .FlyCam import FlyCam
 from direct.directbase import DirectRender
 from direct.foundry.Grid3D import Grid3D
+from direct.foundry import LEConfig
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 
@@ -20,10 +21,10 @@ class Viewport3D(Viewport):
     def cleanup(self):
         self.flyCam.cleanup()
         self.flyCam = None
-        self.ppTask.remove()
-        self.ppTask = None
-        self.pp.cleanup()
-        self.pp = None
+        #self.ppTask.remove()
+        #self.ppTask = None
+        #self.pp.cleanup()
+        #self.pp = None
         Viewport.cleanup(self)
 
     def getViewportFullMask(self):
@@ -49,6 +50,7 @@ class Viewport3D(Viewport):
 
         # Set a default camera position + angle
         self.camera.setPos(193 / 16, 247 / 16, 124 / 16)
+        self.camera.setPos(self.camera.getPos() * LEConfig.unit_scale.value)
         self.camera.setHpr(143, -18, 0)
 
         # FIXME: Move this to direct

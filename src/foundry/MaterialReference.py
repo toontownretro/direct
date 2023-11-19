@@ -24,22 +24,22 @@ class MaterialReference:
                 #imageData = bytes(VirtualFileSystem.getGlobalPtr().readFile(baseTexturePath, True))
 
                 pimage = PNMImage()
-                tex.store(pimage, 0, 0)
+                tex.store(pimage)
                 ss = StringStream()
                 pimage.write(ss, "tmp.png")
-                imageData = bytes(ss)
 
-                byteArray = QtCore.QByteArray.fromRawData(imageData)
-                image = QtGui.QImage.fromData(byteArray)
-                self.pixmap = QtGui.QPixmap.fromImage(image)
+                self.pixmap = QtGui.QPixmap()
+                ret = self.pixmap.loadFromData(ss.getData(), "png")
+                if not ret:
+                    print("Unable to load", tex.getName(), "into a qpixmap")
                 self.icon = QtGui.QIcon(self.pixmap)
                 self.size = LVector2i(pimage.getXSize(), pimage.getYSize())
 
                 print(pimage, self.size)
             else:
                 self.size = LVector2i(64, 64)
-                self.icon = None
-                self.pixmap = None
+                self.icon = QtGui.QIcon()
+                self.pixmap = QtGui.QPixmap()
         else:
             self.size = LVector2i(64, 64)
             self.icon = None

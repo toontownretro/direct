@@ -5,8 +5,8 @@ from __future__ import absolute_import
 from builtins import dict
 from builtins import open
 from builtins import int
-from future import standard_library
-standard_library.install_aliases()
+#from future import standard_library
+#standard_library.install_aliases()
 
 import os  # NOQA: E402
 from pyparsing import *  # NOQA: E402

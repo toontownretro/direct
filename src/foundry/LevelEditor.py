@@ -201,7 +201,7 @@ class LevelEditorWindow(QtWidgets.QMainWindow, DirectObject):
         base.openDocument(None)
 
     def __open(self):
-        selectedFilename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open', filter=('Panda3D map file (*.pmap)'))
+        selectedFilename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open', filter=('Panda3D map file (*.pmap);;Map file (*.map);;Valve map file (*.vmf)'))
         if len(selectedFilename[0]) == 0:
             # Save as was cancelled
             return False
@@ -622,13 +622,13 @@ class LevelEditor(DirectObject):
 
     def __incGridSize(self):
         GridSettings.DefaultStep *= 2
-        GridSettings.DefaultStep = min(256 / 16, GridSettings.DefaultStep)
+        GridSettings.DefaultStep = min((256 / 16) * LEConfig.unit_scale.value, GridSettings.DefaultStep)
         self.adjustGridText()
         self.document.updateAllViews()
 
     def __decGridSize(self):
         GridSettings.DefaultStep /= 2
-        GridSettings.DefaultStep = max(1 / 16, GridSettings.DefaultStep)
+        GridSettings.DefaultStep = max((1 / 16) * LEConfig.unit_scale.value, GridSettings.DefaultStep)
         self.adjustGridText()
         self.document.updateAllViews()
 

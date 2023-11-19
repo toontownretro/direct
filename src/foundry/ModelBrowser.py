@@ -27,20 +27,7 @@ class ModelBrowser(AssetBrowser):
 
         # Set up an offscreen buffer to render the thumbnails of our models.
 
-        props = core.WindowProperties()
-        props.setSize(96, 96)
-        fbprops = core.FrameBufferProperties()
-        fbprops.setSrgbColor(True)
-        fbprops.setRgbaBits(8, 8, 8, 0)
-        fbprops.setDepthBits(8)
-        flags = (core.GraphicsPipe.BFRefuseWindow | core.GraphicsPipe.BFSizeSquare)
-        self.buffer = base.graphicsEngine.makeOutput(base.pipe, "modelBrowserBuffer", 0,
-            fbprops, props, flags, None, None)
-        gsg = self.buffer.getGsg()
-        self.buffer.setClearColor(LEGlobals.vec3GammaToLinear(core.Vec4(82 / 255.0, 82 / 255.0, 82 / 255.0, 1.0)))
-        self.buffer.setActive(False)
-
-        self.displayRegion = self.buffer.makeDisplayRegion()
+        self.buffer = None
 
         self.render = core.NodePath("modelBrowserRoot")
         #self.render.setShaderAuto()
@@ -54,17 +41,29 @@ class ModelBrowser(AssetBrowser):
         # Isometric camera angle
         self.camera.setHpr(225, -30, 0)
 
-        self.displayRegion.setCamera(self.camera)
+    def makeBuffer(self):
+        props = core.WindowProperties()
+        props.setSize(96, 96)
+        fbprops = core.FrameBufferProperties()
+        fbprops.setSrgbColor(True)
+        fbprops.setRgbaBits(8, 8, 8, 0)
+        fbprops.setDepthBits(8)
+        flags = (core.GraphicsPipe.BFRefuseWindow | core.GraphicsPipe.BFSizeSquare)
+        self.buffer = base.graphicsEngine.makeOutput(base.pipe, "modelBrowserBuffer", 0,
+            fbprops, props, flags, base.document.gsg, base.document.viewportMgr.viewports[0].win)
+        assert self.buffer.getGsg() == base.document.gsg
+        self.buffer.setClearColor(LEGlobals.vec3GammaToLinear(core.Vec4(82 / 255.0, 82 / 255.0, 82 / 255.0, 1.0)))
+        self.buffer.setActive(False)
 
-        #shgen = BSPShaderGenerator(self.buffer, gsg, self.camera, self.render)
-        #gsg.setShaderGenerator(shgen)
-        #for shader in ShaderGlobals.getShaders():
-        #    shgen.addShader(shader)
-        #self.shaderGenerator = shgen
+        self.displayRegion = self.buffer.makeDisplayRegion()
+
+        self.displayRegion.setCamera(self.camera)
 
         base.graphicsEngine.openWindows()
 
     def generateAssets(self):
+        if not self.buffer:
+            self.makeBuffer()
         if self.currentLoadContext:
             self.currentLoadContext.cancel()
         AssetBrowser.generateAssets(self)
@@ -88,6 +87,9 @@ class ModelBrowser(AssetBrowser):
 
         # If there's no geomnode, there is no model!
         if mdl.find("**/+GeomNode").isEmpty():
+            context.createNextAsset()
+            return
+        elif not mdl.find("**/+MapRoot").isEmpty():
             context.createNextAsset()
             return
 

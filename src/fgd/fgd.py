@@ -6,9 +6,9 @@ from builtins import int
 from builtins import next
 from builtins import str
 from builtins import object
-from future import standard_library
+#from future import standard_library
 from collections import OrderedDict
-standard_library.install_aliases()
+#standard_library.install_aliases()
 
 
 class Fgd(object):
