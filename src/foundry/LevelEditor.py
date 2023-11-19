@@ -446,6 +446,9 @@ class LevelEditor(DirectObject):
 
         self.initialize()
 
+    def destroy(self):
+        pass
+
     def requestRender(self):
         self.renderRequested = True
 
