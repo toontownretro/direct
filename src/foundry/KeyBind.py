@@ -81,3 +81,5 @@ class KeyBind(IntEnum):
     TieToEntity = 62
 
     Run = 63
+
+    ListScene = 64

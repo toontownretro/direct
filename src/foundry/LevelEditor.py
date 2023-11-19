@@ -4,7 +4,7 @@ from panda3d.core import TextNode, Filename, KeyboardButton, ButtonRegistry
 from panda3d.core import CullBinManager, GraphicsEngine, GraphicsPipeSelection
 from panda3d.core import TransformState, RenderState, DataGraphTraverser
 from panda3d.core import ClockObject, TrueClock, PStatClient, ConfigVariableBool
-from panda3d.core import ExecutionEnvironment, VirtualFileSystem, getModelPath
+from panda3d.core import ExecutionEnvironment, VirtualFileSystem, getModelPath, StringStream
 from panda3d.direct import throwNewFrame
 
 # This needs to be available early for DirectGUI imports
@@ -372,7 +372,8 @@ class LevelEditor(DirectObject):
         KeyBind.Toggle3DGrid,
         KeyBind.ToggleGridSnap,
         KeyBind.IncGridSize,
-        KeyBind.DecGridSize
+        KeyBind.DecGridSize,
+        KeyBind.ListScene
     ]
 
     def __init__(self):
@@ -587,12 +588,30 @@ class LevelEditor(DirectObject):
         self.menuMgr.connect(KeyBind.ViewXY, self.__viewXY)
         self.menuMgr.connect(KeyBind.ViewXZ, self.__viewXZ)
         self.menuMgr.connect(KeyBind.ViewYZ, self.__viewYZ)
+        self.menuMgr.connect(KeyBind.ListScene, self.__listScene)
 
         self.menuMgr.action(KeyBind.ToggleGridSnap).setChecked(GridSettings.GridSnap)
         self.menuMgr.action(KeyBind.Toggle2DGrid).setChecked(GridSettings.EnableGrid)
         self.menuMgr.action(KeyBind.Toggle3DGrid).setChecked(GridSettings.EnableGrid3D)
 
         self.brushMgr.addBrushes()
+
+    def __listScene(self):
+        ss = StringStream()
+        self.document.render.ls(ss)
+
+        dlg = QtWidgets.QDialog(self.qtWindow)
+        dlg.setWindowTitle("Scene Graph Listing")
+        dlg.resize(800, 600)
+        dlg.setModal(True)
+        dlg.setSizeGripEnabled(True)
+        dlg.setLayout(QtWidgets.QGridLayout())
+
+        box = QtWidgets.QPlainTextEdit(str(ss.getData(), 'utf-8'))
+        box.setReadOnly(True)
+        dlg.layout().addWidget(box)
+
+        dlg.show()
 
     def __viewQuads(self):
         self.document.page.arrangeInQuadLayout()

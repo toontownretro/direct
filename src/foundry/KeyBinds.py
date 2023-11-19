@@ -79,7 +79,9 @@ KeyBinds = [
     KeyBindDef("Tie to world", KeyBind.TieToWorld, "ctrl+shift+w"),
     KeyBindDef("Tie to entity", KeyBind.TieToEntity, "ctrl+t"),
 
-    KeyBindDef("Run map", KeyBind.Run, "f9")
+    KeyBindDef("Run map", KeyBind.Run, "f9"),
+
+    KeyBindDef("List scene graph", KeyBind.ListScene, "ctrl+l")
 ]
 
 KeyBindsByID = {x.id: x for x in KeyBinds}

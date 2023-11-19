@@ -142,5 +142,8 @@ class MenuManager:
             icon="icons/editor-grid-2d.png")
         self.addAction(KeyBind.Toggle3DGrid, "3D Grid", "Toggle 3D grid", menu=viewMenu, toolBar=editToolBar, enabled=False, checkable=True,
             icon="icons/editor-grid-3d.png")
+        viewMenu.addSeparator()
+        self.addAction(KeyBind.ListScene, "List Scene Graph", "Lists the scene graph of the entire level editor.  For debugging purposes.",
+                       menu=viewMenu, enabled=False)
 
         self.editMenu = editMenu
