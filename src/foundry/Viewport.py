@@ -28,7 +28,7 @@ class Viewport(QtWidgets.QWidget, DirectObject):
         DirectObject.__init__(self)
         QtWidgets.QWidget.__init__(self, window)
         self.doc = doc
-        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.setMouseTracking(True)
 
         self.qtWindow = None

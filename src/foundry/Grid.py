@@ -105,7 +105,7 @@ class Grid:
 
         np = NodePath(segs.create())
         np.setLightOff(1)
-        np.setFogOff(1)
+        #np.setFogOff(1)
         np.hide(DirectRender.ShadowCameraBitmask | DirectRender.ReflectionCameraBitmask)
         #np.setAntialias(AntialiasAttrib.MLine)
         #loader.loadModel("models/smiley.egg.pz").reparentTo(np)

@@ -77,7 +77,7 @@ class BlockTool(BoxTool):
     KeyBind = KeyBind.BlockTool
     ToolTip = "Block tool"
     Icon = "icons/editor-block.png"
-    Draw3DBox = False
+    Draw3DBox = True
 
     def __init__(self, mgr):
         BoxTool.__init__(self, mgr)

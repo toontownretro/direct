@@ -197,6 +197,7 @@ class BoxTool(BaseTool):
     ToolTip = "Box Tool"
     Usage = ToolUsage.Both
     Draw3DBox = True
+    Align3DToView = True
 
     CursorHandles = {
         ResizeHandle.TopLeft: QtCore.Qt.SizeFDiagCursor,
@@ -379,9 +380,9 @@ class BoxTool(BaseTool):
         vp = base.viewportMgr.activeViewport
         if not vp:
             return
-        if vp.is3D():
-            self.mouseDown3D()
-            return
+        #if vp.is3D():
+        #    self.mouseDown3D()
+        #    return
 
         self.state.clickStart = Point2(vp.getMouse())
 
@@ -421,9 +422,9 @@ class BoxTool(BaseTool):
         if not vp:
             return
 
-        if vp.is3D():
-            self.mouseUp3D()
-            return
+        #if vp.is3D():
+        #    self.mouseUp3D()
+        #    return
 
         if self.state.action == BoxAction.Drawing:
             self.leftMouseUpDrawing()
@@ -465,9 +466,9 @@ class BoxTool(BaseTool):
         self.state.action = BoxAction.ReadyToResize
 
     def mouseMove(self, vp):
-        if vp.is3D():
-            self.mouseMove3D()
-            return
+        #if vp.is3D():
+        #    self.mouseMove3D()
+        #    return
         if not self.state.isValidAndApplicable(vp):
             return
 
