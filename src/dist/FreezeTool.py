@@ -5,11 +5,9 @@ import modulefinder
 import sys
 import os
 import marshal
-import imp
 import platform
 import struct
 import io
-import distutils.sysconfig as sysconf
 import sysconfig
 import zipfile
 import importlib
@@ -26,6 +24,19 @@ except ImportError:
 
 from panda3d.core import Filename, Multifile, PandaSystem, StringStream
 
+PY_SOURCE = 0
+PY_COMPILED = 1
+C_EXTENSION = 2
+PKG_DIRECTORY = 3
+PY_FROZEN = 4
+C_BUILTIN = 5
+
+def get_suffixes():
+    suffixes = [['.py', 'rb', PY_SOURCE], ['.pyc', 'rb', PY_COMPILED]]
+    for ext in importlib.machinery.EXTENSION_SUFFIXES:
+        suffixes.append([ext, 'rb', C_EXTENSION])
+    return suffixes
+
 # Check to see if we are running python_d, which implies we have a
 # debug build, and we have to build the module with debug options.
 # This is only relevant on Windows.
@@ -39,7 +50,7 @@ isDebugBuild = (python.lower().endswith('_d'))
 # NB. if encodings are removed, be sure to remove them from the shortcut in
 # deploy-stub.c.
 startupModules = [
-    'imp', 'encodings', 'encodings.*', 'io', 'marshal', 'importlib.machinery',
+    'encodings', 'encodings.*', 'io', 'marshal', 'importlib.machinery',
     'importlib.util',
 ]
 
@@ -204,7 +215,7 @@ class CompilationEnvironment:
 
     def determineStandardSetup(self):
         if self.platform.startswith('win'):
-            self.Python = sysconf.PREFIX
+            self.Python = sysconfig.get_config_var('prefix')
 
             if 'VCINSTALLDIR' in os.environ:
                 self.MSVC = os.environ['VCINSTALLDIR']
@@ -271,7 +282,7 @@ class CompilationEnvironment:
 
         else:
             # Unix
-            lib_dir = sysconf.get_python_lib(plat_specific=1, standard_lib=1)
+            lib_dir = sysconfig.get_path('platlib')
             #python_a = os.path.join(lib_dir, "config", "libpython%(pythonVersion)s.a")
             self.compileObjExe = "%(CC)s %(CFLAGS)s -c -o %(basename)s.o -pthread -O2 %(filename)s -I%(pythonIPath)s"
             self.compileObjDll = "%(CC)s %(CFLAGS)s %(CCSHARED)s -c -o %(basename)s.o -O2 %(filename)s -I%(pythonIPath)s"
@@ -294,7 +305,7 @@ class CompilationEnvironment:
             'arch': self.arch,
             'filename': filename,
             'basename': basename,
-        }, **sysconf.get_config_vars())
+        }, **sysconfig.get_config_vars())
         sys.stderr.write(compile + '\n')
         if os.system(compile) != 0:
             raise Exception('failed to compile %s.' % basename)
@@ -309,7 +320,7 @@ class CompilationEnvironment:
             'arch': self.arch,
             'filename': filename,
             'basename': basename,
-        }, **sysconf.get_config_vars())
+        }, **sysconfig.get_config_vars())
         link += ' ' + ' '.join(extraLink)
         sys.stderr.write(link + '\n')
         if os.system(link) != 0:
@@ -327,7 +338,7 @@ class CompilationEnvironment:
             'arch': self.arch,
             'filename': filename,
             'basename': basename,
-        }, **sysconf.get_config_vars())
+        }, **sysconfig.get_config_vars())
         sys.stderr.write(compile + '\n')
         if os.system(compile) != 0:
             raise Exception('failed to compile %s.' % basename)
@@ -343,7 +354,7 @@ class CompilationEnvironment:
             'filename': filename,
             'basename': basename,
             'dllext': self.dllext,
-        }, **sysconf.get_config_vars())
+        }, **sysconfig.get_config_vars())
         link += ' ' + ' '.join(extraLink)
         sys.stderr.write(link + '\n')
         if os.system(link) != 0:
@@ -899,12 +910,7 @@ class Freezer:
 
         # Suffix/extension for Python C extension modules
         if self.platform == PandaSystem.getPlatform():
-            suffixes = imp.get_suffixes()
-
-            # Set extension for Python files to binary mode
-            for i, suffix in enumerate(suffixes):
-                if suffix[2] == imp.PY_SOURCE:
-                    suffixes[i] = (suffix[0], 'rb', imp.PY_SOURCE)
+            suffixes = get_suffixes()
         else:
             suffixes = [('.py', 'rb', 1), ('.pyc', 'rb', 2)]
 
@@ -1321,10 +1327,10 @@ class Freezer:
             ext = mdef.filename.getExtension()
             if ext == 'pyc' or ext == 'pyo':
                 fp = open(pathname, 'rb')
-                stuff = ("", "rb", imp.PY_COMPILED)
+                stuff = ("", "rb", PY_COMPILED)
                 self.mf.load_module(mdef.moduleName, fp, pathname, stuff)
             else:
-                stuff = ("", "rb", imp.PY_SOURCE)
+                stuff = ("", "rb", PY_SOURCE)
                 if mdef.text:
                     fp = io.StringIO(mdef.text)
                 else:
@@ -1420,7 +1426,7 @@ class Freezer:
 
     def __addPyc(self, multifile, filename, code, compressionLevel):
         if code:
-            data = imp.get_magic() + b'\0\0\0\0\0\0\0\0'
+            data = importlib.util.MAGIC_NUMBER + b'\0\0\0\0\0\0\0\0'
             data += marshal.dumps(code)
 
             stream = StringStream(data)
@@ -1610,7 +1616,16 @@ class Freezer:
             # trouble importing it as a builtin module.  Synthesize a frozen
             # module that loads it as builtin.
             if '.' in moduleName and self.linkExtensionModules:
-                code = compile('import sys;del sys.modules["%s"];import imp;imp.init_builtin("%s")' % (moduleName, moduleName), moduleName, 'exec', optimize=self.optimize)
+                codeStr = '''
+import sys;
+del sys.modules["%s"];
+spec = importlib.machinery.BuiltinImporter.find_spec("%s")
+if spec is None:
+    raise ImportError(f'no built-in module named %s')
+module = importlib.util.module_from_spec(spec)
+sys.modules["%s"] = module
+'''
+                code = compile(codeStr % (moduleName, moduleName, moduleName, moduleName), moduleName, 'exec', optimize=self.optimize)
                 code = marshal.dumps(code)
                 mangledName = self.mangleName(moduleName)
                 moduleDefs.append(self.makeModuleDef(mangledName, code))
@@ -1899,9 +1914,25 @@ class Freezer:
             if '.' in moduleName and not self.platform.startswith('android'):
                 if self.platform.startswith("macosx") and not use_console:
                     # We write the Frameworks directory to sys.path[0].
-                    code = 'import sys;del sys.modules["%s"];import sys,os,imp;imp.load_dynamic("%s",os.path.join(sys.path[0], "%s%s"))' % (moduleName, moduleName, moduleName, modext)
+                    code = '''
+                        import sys;
+                        del sys.modules["%s"];
+                        import sys,os,importlib;
+                        spec = importlib.util.spec_from_file_location("%s", os.path.join(sys.path[0], "%s%s"))
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[%s] = module
+                        spec.loader.exec_module(module)
+                        ''' % (moduleName, moduleName, moduleName, modext, moduleName)
                 else:
-                    code = 'import sys;del sys.modules["%s"];import sys,os,imp;imp.load_dynamic("%s",os.path.join(os.path.dirname(sys.executable), "%s%s"))' % (moduleName, moduleName, moduleName, modext)
+                    code = '''
+                        import sys;
+                        del sys.modules["%s"];
+                        import sys,os,importlib;
+                        spec = importlib.util.spec_from_file_location("%s",os.path.join(os.path.dirname(sys.executable), "%s%s"))
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[%s] = module
+                        spec.loader.exec_module(module)
+                        ''' % (moduleName, moduleName, moduleName, modext, moduleName)
                 code = compile(code, moduleName, 'exec', optimize=self.optimize)
                 code = marshal.dumps(code)
                 moduleList.append((moduleName, len(pool), len(code)))
@@ -2427,7 +2458,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
         self.builtin_module_names = kw.pop('builtin_module_names', sys.builtin_module_names)
 
-        self.suffixes = kw.pop('suffixes', imp.get_suffixes())
+        self.suffixes = kw.pop('suffixes', get_suffixes())
         self.optimize = kw.pop('optimize', -1)
 
         modulefinder.ModuleFinder.__init__(self, *args, **kw)
@@ -2575,7 +2606,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
         suffix, mode, type = file_info
         self.msgin(2, "load_module", fqname, fp and "fp", pathname)
-        if type == imp.PKG_DIRECTORY:
+        if type == PKG_DIRECTORY:
             m = self.load_package(fqname, pathname)
             self.msgout(2, "load_module ->", m)
             return m
@@ -2586,7 +2617,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
             m.__path__ = pathname
             return m
 
-        if type == imp.PY_SOURCE:
+        if type == PY_SOURCE:
             if fqname in overrideModules:
                 # This module has a custom override.
                 code = overrideModules[fqname]
@@ -2610,7 +2641,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
             code += b'\n' if isinstance(code, bytes) else '\n'
             co = compile(code, pathname, 'exec', optimize=self.optimize)
-        elif type == imp.PY_COMPILED:
+        elif type == PY_COMPILED:
             if sys.version_info >= (3, 7):
                 try:
                     data = fp.read()
@@ -2764,11 +2795,11 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
         # If we have a custom override for this module, we know we have it.
         if fullname in overrideModules:
-            return (None, '', ('.py', 'r', imp.PY_SOURCE))
+            return (None, '', ('.py', 'r', PY_SOURCE))
 
         # It's built into the interpreter.
         if fullname in self.builtin_module_names:
-            return (None, None, ('', '', imp.C_BUILTIN))
+            return (None, None, ('', '', C_BUILTIN))
 
         # If no search path is given, look for a built-in module.
         if path is None:
@@ -2818,7 +2849,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
             for suffix, mode, _ in self.suffixes:
                 init = os.path.join(basename, '__init__' + suffix)
                 if self._open_file(init, mode):
-                    return (None, basename, ('', '', imp.PKG_DIRECTORY))
+                    return (None, basename, ('', '', PKG_DIRECTORY))
 
             # This may be a namespace package.
             if self._dir_exists(basename):
@@ -2830,7 +2861,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
             # Only if we're not looking on a particular path, though.
             if extend_frozen and extend_frozen.is_frozen_module(name):
                 # It's a frozen module.
-                return (None, name, ('', '', imp.PY_FROZEN))
+                return (None, name, ('', '', PY_FROZEN))
 
         # If we found folders on the path with this module name without an
         # __init__.py file, we should consider this a namespace package.
