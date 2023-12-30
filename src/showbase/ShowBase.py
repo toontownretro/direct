@@ -267,10 +267,6 @@ class ShowBase(HostBase):
         # benefit of creating DirectGui elements before ShowBase.
         self.hidden = ShowBaseGlobal.hidden
 
-        #: The global :class:`~panda3d.core.GraphicsEngine`, as returned by
-        #: GraphicsEngine.getGlobalPtr()
-        self.graphicsEngine = GraphicsEngine.getGlobalPtr()
-        self.graphics_engine = self.graphicsEngine
         self.setupRender()
         self.setupRender2d()
         self.setupDataGraph()

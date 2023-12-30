@@ -2,7 +2,7 @@
 
 from panda3d.core import ExecutionEnvironment, ClockObject, TrueClock, \
     VirtualFileSystem, ConfigPageManager, ConfigVariableManager, Notify, \
-    PandaSystem
+    PandaSystem, GraphicsEngine
 
 from .DirectObject import DirectObject
 from direct.directnotify.DirectNotifyGlobal import directNotify, giveNotify
@@ -39,6 +39,11 @@ class HostBase(DirectObject):
         #: The directory containing the main Python file of this application.
         self.mainDir = ExecutionEnvironment.getEnvironmentVariable("MAIN_DIR")
         self.main_dir = self.mainDir
+
+        #: The global :class:`~panda3d.core.GraphicsEngine`, as returned by
+        #: GraphicsEngine.getGlobalPtr()
+        self.graphicsEngine = GraphicsEngine.getGlobalPtr()
+        self.graphics_engine = self.graphicsEngine
 
         self.wantStats = self.config.GetBool('want-pstats', 0)
 
