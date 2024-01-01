@@ -21,14 +21,14 @@
 #include "pStatCollector.h"
 #include "pStatTimer.h"
 
-static PStatCollector unpack_snapshot_coll("App:CClientRepository:UnpackSnapshot");
-static PStatCollector unpack_object_coll("App:CClientRepository:UnpackSnapshot:UnpackObject");
-static PStatCollector find_in_map_coll("App:CClientRepository:UnpackSnapshot:UnpackObject:FindInTable");
-static PStatCollector pre_data_coll("App:CClientRepository:UnpackSnapshot:UnpackObject:PreDataUpdate");
-static PStatCollector unpack_args_coll("App:CClientRepository:UnpackSnapshot:UnpackObject:UnpackFieldArgs");
-static PStatCollector recv_proxy_coll("App:CClientRepository:UnpackSnapshot:UnpackObject:ReceiveProxy");
-static PStatCollector set_field_coll("App:CClientRepository:UnpackSnapshot:UnpackObject:SetField");
-static PStatCollector post_data_coll("App:CClientRepository:UnpackSnapshot:UnpackObject:PostDataUpdate");
+static PStatCollector unpack_snapshot_coll("App:Tasks:readerPollTask:Snapshot");
+static PStatCollector unpack_object_coll("App:Tasks:readerPollTask:Snapshot:UnpackObject");
+static PStatCollector find_in_map_coll("App:Tasks:readerPollTask:Snapshot:UnpackObject:FindInTable");
+static PStatCollector pre_data_coll("App:Tasks:readerPollTask:PreDataUpdate");
+static PStatCollector unpack_args_coll("App:Tasks:readerPollTask:Snapshot:UnpackObject:UnpackFieldArgs");
+static PStatCollector recv_proxy_coll("App:Tasks:readerPollTask:RecvProxy");
+static PStatCollector set_field_coll("App:Tasks:readerPollTask:Snapshot:UnpackObject:SetField");
+static PStatCollector post_data_coll("App:Tasks:readerPollTask:PostDataUpdate");
 
 /**
  * Unpacks a server snapshot from the datagram and applies the state onto the
@@ -74,8 +74,11 @@ unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
 
   // Now call the postDataUpdate() method on all objects that had
   // new state information.
-  post_data_coll.start();
+  //post_data_coll.start();
   for (const DOData *odata : unpacked) {
+#ifdef DO_PSTATS
+    PStatTimer post_data_timer(odata->_pcollectors->_post_data_update);
+#endif
     PyObject_CallNoArgs(odata->_post_data_update);
     if (PyErr_Occurred()) {
       distributed2_cat.error()
@@ -83,7 +86,7 @@ unpack_server_snapshot(DatagramIterator &dgi, bool is_delta) {
       PyErr_Print();
     }
   }
-  post_data_coll.stop();
+  //post_data_coll.stop();
 }
 
 /**
@@ -101,14 +104,15 @@ unpack_object_state(DatagramIterator &dgi, const DOData *odata) {
   // First call the preDataUpdate method on the object so they can do stuff
   // before we unpack the state.
   if (odata->_pre_data_update != nullptr) {
-    pre_data_coll.start();
+#ifdef DO_PSTATS
+    PStatTimer pre_data_update_timer(odata->_pcollectors->_pre_data_update);
+#endif
     PyObject_CallNoArgs(odata->_pre_data_update);
     if (PyErr_Occurred()) {
       distributed2_cat.error()
         << "Python error occurred during preDataUpdate()\n";
       PyErr_Print();
     }
-    pre_data_coll.stop();
   }
 
   int num_fields = dgi.get_uint16();
@@ -175,7 +179,9 @@ unpack_object_state(DatagramIterator &dgi, const DOData *odata) {
       // If we have a proxy for this field, allow the proxy method to
       // do whatever it needs to do with the args
 
-      recv_proxy_coll.start();
+#ifdef DO_PSTATS
+      PStatTimer field_recv_proxy_timer(odata->_pcollectors->_recv_proxy[field_number]);
+#endif
 
       if (distributed2_cat.is_debug()) {
         distributed2_cat.debug()
@@ -203,8 +209,6 @@ unpack_object_state(DatagramIterator &dgi, const DOData *odata) {
         }
         Py_DECREF(tuple_args);
       }
-
-      recv_proxy_coll.stop();
 
     } else {
       set_field_coll.start();
@@ -266,6 +270,9 @@ add_object(PyObject *dist_obj) {
   }
 
   PT(DOData) data = new DOData;
+#ifdef DO_PSTATS
+  data->_pcollectors = get_dclass_collectors(dclass);
+#endif
   data->_do_id = do_id;
   data->_dclass = dclass;
   data->_dist_obj = dist_obj;
@@ -284,7 +291,6 @@ add_object(PyObject *dist_obj) {
 
   data->_field_data.resize(dclass->get_num_inherited_fields());
 
-  char proxy_name[256];
   for (size_t i = 0; i < dclass->get_num_inherited_fields(); i++) {
     // Check for proxies on the field.
     DOFieldData &field_data = data->_field_data[i];
@@ -296,14 +302,13 @@ add_object(PyObject *dist_obj) {
       continue;
     }
 
-    const char *c_field_name = field->get_name().c_str();
-
-    sprintf(proxy_name, "RecvProxy_%s", c_field_name);
-    if (PyObject_HasAttrString(dist_obj, proxy_name)) {
-      field_data._recv_proxy = PyObject_GetAttrString(dist_obj, proxy_name);
+    std::string proxy_name = "RecvProxy_" + field->get_name();
+    const char *proxy_name_c = proxy_name.c_str();
+    if (PyObject_HasAttrString(dist_obj, proxy_name_c)) {
+      field_data._recv_proxy = PyObject_GetAttrString(dist_obj, proxy_name_c);
     }
 
-    field_data._field_name = PyUnicode_FromString(c_field_name);
+    field_data._field_name = PyUnicode_FromString(field->get_name().c_str());
   }
 
   Py_INCREF(dist_obj);
@@ -336,3 +341,31 @@ remove_object(DOID_TYPE do_id) {
 
   _do_data.erase(it);
 }
+
+#ifdef DO_PSTATS
+/**
+ *
+ */
+CClientRepository::DClassCollectors *CClientRepository::
+get_dclass_collectors(DCClass *cls) {
+  DClassCollectorMap::const_iterator it = _dclass_pcollectors.find(cls);
+  if (it != _dclass_pcollectors.end()) {
+    return (*it).second;
+  }
+
+  PT(DClassCollectors) coll = new DClassCollectors;
+  coll->_pre_data_update = PStatCollector("App:Tasks:readerPollTask:PreDataUpdate:" + cls->get_name());
+  coll->_post_data_update = PStatCollector("App:Tasks:readerPollTask:PostDataUpdate:" + cls->get_name());
+  coll->_on_data_changed = PStatCollector("App:Tasks:readerPollTask:OnDataChanged:" + cls->get_name());
+  coll->_recv_proxy.resize(cls->get_num_inherited_fields());
+  for (int i = 0; i < cls->get_num_inherited_fields(); ++i) {
+    DCField *field = cls->get_inherited_field(i);
+    if (field->as_parameter() == nullptr) {
+      continue;
+    }
+    coll->_recv_proxy[i] = PStatCollector("App:Tasks:readerPollTask:RecvProxy:" + cls->get_name() + ":" + field->get_name());
+  }
+  _dclass_pcollectors.insert({ cls, coll });
+  return coll;
+}
+#endif // DO_PSTATS
