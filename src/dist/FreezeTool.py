@@ -13,6 +13,7 @@ import zipfile
 import importlib
 import warnings
 import shutil
+from importlib import machinery
 
 from . import pefile
 
@@ -24,18 +25,15 @@ except ImportError:
 
 from panda3d.core import Filename, Multifile, PandaSystem, StringStream
 
-PY_SOURCE = 0
-PY_COMPILED = 1
-C_EXTENSION = 2
-PKG_DIRECTORY = 3
-PY_FROZEN = 4
-C_BUILTIN = 5
+# Old imp constants.
+_PY_SOURCE = 1
+_PY_COMPILED = 2
+_C_EXTENSION = 3
+_PKG_DIRECTORY = 5
+_C_BUILTIN = 6
+_PY_FROZEN = 7
 
-def get_suffixes():
-    suffixes = [['.py', 'rb', PY_SOURCE], ['.pyc', 'rb', PY_COMPILED]]
-    for ext in importlib.machinery.EXTENSION_SUFFIXES:
-        suffixes.append([ext, 'rb', C_EXTENSION])
-    return suffixes
+_PKG_NAMESPACE_DIRECTORY = object()
 
 # Check to see if we are running python_d, which implies we have a
 # debug build, and we have to build the module with debug options.
@@ -275,10 +273,15 @@ class CompilationEnvironment:
                 self.arch = '-arch x86_64'
             elif proc in ('arm64', 'aarch64'):
                 self.arch = '-arch arm64'
-            self.compileObjExe = "gcc -c %(arch)s -o %(basename)s.o -O2 -I%(pythonIPath)s %(filename)s"
-            self.compileObjDll = "gcc -fPIC -c %(arch)s -o %(basename)s.o -O2 -I%(pythonIPath)s %(filename)s"
-            self.linkExe = "gcc %(arch)s -o %(basename)s %(basename)s.o -framework Python"
-            self.linkDll = "gcc %(arch)s -undefined dynamic_lookup -bundle -o %(basename)s.so %(basename)s.o"
+            self.compileObjExe = "clang -c %(arch)s -o %(basename)s.o -O2 -I%(pythonIPath)s %(filename)s"
+            self.compileObjDll = "clang -fPIC -c %(arch)s -o %(basename)s.o -O2 -I%(pythonIPath)s %(filename)s"
+            self.linkExe = "clang %(arch)s -o %(basename)s %(basename)s.o"
+            if '/Python.framework/' in self.PythonIPath:
+                framework_dir = self.PythonIPath.split("/Python.framework/", 1)[0]
+                if framework_dir != "/System/Library/Frameworks":
+                    self.linkExe += " -F " + framework_dir
+            self.linkExe += " -framework Python"
+            self.linkDll = "clang %(arch)s -undefined dynamic_lookup -bundle -o %(basename)s.so %(basename)s.o"
 
         else:
             # Unix
@@ -910,7 +913,11 @@ class Freezer:
 
         # Suffix/extension for Python C extension modules
         if self.platform == PandaSystem.getPlatform():
-            suffixes = get_suffixes()
+            suffixes = (
+                [(s, 'rb', _C_EXTENSION) for s in machinery.EXTENSION_SUFFIXES] +
+                [(s, 'rb', _PY_SOURCE) for s in machinery.SOURCE_SUFFIXES] +
+                [(s, 'rb', _PY_COMPILED) for s in machinery.BYTECODE_SUFFIXES]
+            )
         else:
             suffixes = [('.py', 'rb', 1), ('.pyc', 'rb', 2)]
 
@@ -1154,15 +1161,12 @@ class Freezer:
 
         # Walk through the list in sorted order, so we reach parents
         # before children.
-        names = list(self.modules.items())
-        names.sort()
-
         excludeDict = {}
         implicitParentDict = {}
         includes = []
         autoIncludes = []
         origToNewName = {}
-        for newName, mdef in names:
+        for newName, mdef in sorted(self.modules.items()):
             moduleName = mdef.moduleName
             origToNewName[moduleName] = newName
             if mdef.implicit and '.' in newName:
@@ -1327,11 +1331,11 @@ class Freezer:
             ext = mdef.filename.getExtension()
             if ext == 'pyc' or ext == 'pyo':
                 fp = open(pathname, 'rb')
-                stuff = ("", "rb", PY_COMPILED)
+                stuff = ("", "rb", _PY_COMPILED)
                 self.mf.load_module(mdef.moduleName, fp, pathname, stuff)
             else:
-                stuff = ("", "rb", PY_SOURCE)
-                if mdef.text:
+                stuff = ("", "rb", _PY_SOURCE)
+                if mdef.text is not None:
                     fp = io.StringIO(mdef.text)
                 else:
                     fp = open(pathname, 'rb')
@@ -1616,16 +1620,7 @@ class Freezer:
             # trouble importing it as a builtin module.  Synthesize a frozen
             # module that loads it as builtin.
             if '.' in moduleName and self.linkExtensionModules:
-                codeStr = '''
-import sys;
-del sys.modules["%s"];
-spec = importlib.machinery.BuiltinImporter.find_spec("%s")
-if spec is None:
-    raise ImportError(f'no built-in module named %s')
-module = importlib.util.module_from_spec(spec)
-sys.modules["%s"] = module
-'''
-                code = compile(codeStr % (moduleName, moduleName, moduleName, moduleName), moduleName, 'exec', optimize=self.optimize)
+                code = compile('import sys;del sys.modules["%s"];from importlib._bootstrap import _builtin_from_name;_builtin_from_name("%s")' % (moduleName, moduleName), moduleName, 'exec', optimize=self.optimize)
                 code = marshal.dumps(code)
                 mangledName = self.mangleName(moduleName)
                 moduleDefs.append(self.makeModuleDef(mangledName, code))
@@ -1914,25 +1909,19 @@ sys.modules["%s"] = module
             if '.' in moduleName and not self.platform.startswith('android'):
                 if self.platform.startswith("macosx") and not use_console:
                     # We write the Frameworks directory to sys.path[0].
-                    code = '''
-                        import sys;
-                        del sys.modules["%s"];
-                        import sys,os,importlib;
-                        spec = importlib.util.spec_from_file_location("%s", os.path.join(sys.path[0], "%s%s"))
-                        module = importlib.util.module_from_spec(spec)
-                        sys.modules[%s] = module
-                        spec.loader.exec_module(module)
-                        ''' % (moduleName, moduleName, moduleName, modext, moduleName)
+                    direxpr = 'sys.path[0]'
                 else:
-                    code = '''
-                        import sys;
-                        del sys.modules["%s"];
-                        import sys,os,importlib;
-                        spec = importlib.util.spec_from_file_location("%s",os.path.join(os.path.dirname(sys.executable), "%s%s"))
-                        module = importlib.util.module_from_spec(spec)
-                        sys.modules[%s] = module
-                        spec.loader.exec_module(module)
-                        ''' % (moduleName, moduleName, moduleName, modext, moduleName)
+                    direxpr = 'os.path.dirname(sys.executable)'
+
+                code = \
+                    f'import sys;' \
+                    f'del sys.modules["{moduleName}"];' \
+                    f'import sys,os;' \
+                    f'from importlib.machinery import ExtensionFileLoader,ModuleSpec;' \
+                    f'from importlib._bootstrap import _load;' \
+                    f'path=os.path.join({direxpr}, "{moduleName}{modext}");' \
+                    f'_load(ModuleSpec(name="{moduleName}", loader=ExtensionFileLoader("{moduleName}", path), origin=path))'
+
                 code = compile(code, moduleName, 'exec', optimize=self.optimize)
                 code = marshal.dumps(code)
                 moduleList.append((moduleName, len(pool), len(code)))
@@ -1967,6 +1956,9 @@ sys.modules["%s"] = module
         if self.platform.startswith('win'):
             # We don't use mmap on Windows.  Align just for good measure.
             blob_align = 32
+        elif self.platform.endswith('_aarch64') or self.platform.endswith('_arm64'):
+            # Most arm64 operating systems are configured with 16 KiB pages.
+            blob_align = 16384
         else:
             # Align to page size, so that it can be mmapped.
             blob_align = 4096
@@ -2443,9 +2435,6 @@ sys.modules["%s"] = module
         return True
 
 
-_PKG_NAMESPACE_DIRECTORY = object()
-
-
 class PandaModuleFinder(modulefinder.ModuleFinder):
 
     def __init__(self, *args, **kw):
@@ -2458,7 +2447,12 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
         self.builtin_module_names = kw.pop('builtin_module_names', sys.builtin_module_names)
 
-        self.suffixes = kw.pop('suffixes', get_suffixes())
+        self.suffixes = kw.pop('suffixes', (
+            [(s, 'rb', _C_EXTENSION) for s in machinery.EXTENSION_SUFFIXES] +
+            [(s, 'r', _PY_SOURCE) for s in machinery.SOURCE_SUFFIXES] +
+            [(s, 'rb', _PY_COMPILED) for s in machinery.BYTECODE_SUFFIXES]
+        ))
+
         self.optimize = kw.pop('optimize', -1)
 
         modulefinder.ModuleFinder.__init__(self, *args, **kw)
@@ -2606,7 +2600,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
         suffix, mode, type = file_info
         self.msgin(2, "load_module", fqname, fp and "fp", pathname)
-        if type == PKG_DIRECTORY:
+        if type == _PKG_DIRECTORY:
             m = self.load_package(fqname, pathname)
             self.msgout(2, "load_module ->", m)
             return m
@@ -2617,7 +2611,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
             m.__path__ = pathname
             return m
 
-        if type == PY_SOURCE:
+        if type == _PY_SOURCE:
             if fqname in overrideModules:
                 # This module has a custom override.
                 code = overrideModules[fqname]
@@ -2641,7 +2635,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
             code += b'\n' if isinstance(code, bytes) else '\n'
             co = compile(code, pathname, 'exec', optimize=self.optimize)
-        elif type == PY_COMPILED:
+        elif type == _PY_COMPILED:
             if sys.version_info >= (3, 7):
                 try:
                     data = fp.read()
@@ -2795,11 +2789,11 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
 
         # If we have a custom override for this module, we know we have it.
         if fullname in overrideModules:
-            return (None, '', ('.py', 'r', PY_SOURCE))
+            return (None, '', ('.py', 'r', _PY_SOURCE))
 
         # It's built into the interpreter.
         if fullname in self.builtin_module_names:
-            return (None, None, ('', '', C_BUILTIN))
+            return (None, None, ('', '', _C_BUILTIN))
 
         # If no search path is given, look for a built-in module.
         if path is None:
@@ -2849,7 +2843,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
             for suffix, mode, _ in self.suffixes:
                 init = os.path.join(basename, '__init__' + suffix)
                 if self._open_file(init, mode):
-                    return (None, basename, ('', '', PKG_DIRECTORY))
+                    return (None, basename, ('', '', _PKG_DIRECTORY))
 
             # This may be a namespace package.
             if self._dir_exists(basename):
@@ -2861,7 +2855,7 @@ class PandaModuleFinder(modulefinder.ModuleFinder):
             # Only if we're not looking on a particular path, though.
             if extend_frozen and extend_frozen.is_frozen_module(name):
                 # It's a frozen module.
-                return (None, name, ('', '', PY_FROZEN))
+                return (None, name, ('', '', _PY_FROZEN))
 
         # If we found folders on the path with this module name without an
         # __init__.py file, we should consider this a namespace package.

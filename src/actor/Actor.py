@@ -34,9 +34,9 @@ from panda3d.direct import CActor
 
 class Actor(DirectObject, CActor):
     """Actor re-implementation using the new animation system."""
-    
+
     notify = DirectNotifyGlobal.directNotify.newCategory("Actor")
-    
+
     def __init__(self, models=None, anims=None, other=None, copy=True,
                  lodNode=None, flattenable=True, setFinal=False,
                  okMissing=None):
@@ -47,7 +47,7 @@ class Actor(DirectObject, CActor):
             self.Actor_initialized = 1
 
         super().__init__(models, anims, other, copy, lodNode, flattenable, setFinal, okMissing)
-        
+
     def delete(self, removeNode=True):
         try:
             self.Actor_deleted
@@ -56,11 +56,11 @@ class Actor(DirectObject, CActor):
             self.Actor_deleted = 1
 
         self.cleanup(removeNode)
-        
+
     def actorInterval(self, *args, **kw):
         from direct.interval import ActorInterval
         return ActorInterval.ActorInterval(self, *args, **kw)
-        
+
     def unloadAnims(self, anims=None, partName=None, lodName=None):
         """unloadAnims(self, string:string{}, string='modelRoot',
         string='lodRoot')
@@ -73,20 +73,20 @@ class Actor(DirectObject, CActor):
         If any parameter is None or omitted, it means all of them.
         """
         assert Actor.notify.debug("in unloadAnims: %s, part: %s, lod: %s" % (anims, partName, lodName))
-        
+
     # The functions below are to wrap to the CActor arguments for backwards compatibility.
     # They are otherwise not needed.
-    
+
     def loadModel(self, modelPath, partName="modelRoot", lodName="lodRoot", copy = True, okMissing = None, autoBindAnims = True, keepModel = False):
         super().loadModel(modelPath, partName, lodName, copy, okMissing, keepModel)
-        
+
     def loadAnims(self, anims, partName="modelRoot", lodName="lodRoot", loadNow = False):
         super().loadAnims(anims, partName, lodName, loadNow)
-        
+
     def loop(self, animName=None, restart=True, partName="", fromFrame=0, toFrame=-1, layer=0, playRate=1.0, blendIn=0.0, channel=None):
         if not animName and not channel:
             return
-            
+
         if not partName:
             partName = ""
         if not fromFrame:
@@ -95,29 +95,29 @@ class Actor(DirectObject, CActor):
             toFrame = -1
         if not layer:
             layer = 0
-            
+
         if channel != None:
             super().loop(channel, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
             return
-        
+
         super().loop(animName, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
-        
+
     def pose(self, animName, frame, partName="", lodName="", layer=0, blendIn=0.0, blendOut=0.0):
         super().pose(animName, partName, lodName, frame, layer, blendIn, blendOut)
-        
+
     def setBlend(self, animBlend = None, frameBlend = False, blendType = None, partName = None, transitionBlend = True):
         if partName != None:
             super().setBlend(partName, frameBlend, transitionBlend)
             return
 
         super().setBlend(frameBlend, transitionBlend)
-        
+
     def setPlayRate(self, rate, anim="", partName="", layer=0):
         super().setPlayRate(rate, anim, partName, layer)
-        
+
     def drawInFront(self, frontPartName, backPartName, mode, root="", lodName=""):
         super().drawInFront(frontPartName, backPartName, mode, root, lodName)
-        
+
     def pingpong(self, animName=None, restart=1, partName=None,
                  fromFrame=None, toFrame=None, layer=0,
                  playRate=1.0, blendIn=0.0, channel=None):
@@ -127,13 +127,13 @@ class Actor(DirectObject, CActor):
             else:
                 super().pingpong(channel, restart, fromFrame, toFrame, layer, playRate, blendIn)
             return
-            
+
         if partName != None:
             super().pingpong(animName, partName, restart, fromFrame, toFrame, layer, playRate, blendIn)
             return
-            
+
         super().pingpong(animName, restart, fromFrame, toFrame, layer, playRate, blendIn)
-        
+
 '''
 
 class Actor(DirectObject, NodePath):
@@ -163,40 +163,40 @@ class Actor(DirectObject, NodePath):
             # Have to store play rate here because the character does not
             # remember play rates of channels as they are set on layers.
             self.playRate = 1.0
-            
+
         def setName(self, name):
             self.name = str(name)
-            
+
         def getName(self):
             return self.name
-            
+
         def setFilename(self, filename):
             self.filename = Filename(filename)
-            
+
         def getFilename(self):
             return self.filename
-            
+
         def setAnimationChannel(self, channel):
             self.channel = channel
-            
+
         def getAnimationChannel(self):
             return self.channel
-            
+
         def setCharacter(self, character):
             self.char = character
-            
+
         def getCharacter(self):
             return self.char
-            
+
         def setIndex(self, index):
             self.index = index
-            
+
         def getIndex(self):
             return self.index
-            
+
         def setPlayRate(self, playRate):
             self.playRate = playRate
-            
+
         def getPlayRate(self):
             return self.playRate
 
@@ -237,10 +237,10 @@ class Actor(DirectObject, NodePath):
             if not animDef:
                 return -1
             return animDef.index
-            
+
         def getCharacter(self):
             return self.char
-            
+
         def getCharacterNodepath(self):
             return self.charNP
 
@@ -269,7 +269,7 @@ class Actor(DirectObject, NodePath):
         self.__LODAnimation = None
         self.__LODCenter = Point3(0, 0, 0)
         self.switches = None
-        
+
         # Set of Actors that are joint merged to me.
         # When our model changes, we will redirect our children
         # to the new character to maintain joint merges.
@@ -320,9 +320,7 @@ class Actor(DirectObject, NodePath):
                         self.setLODNode(node = lodNode)
                         # preserve numerical order for lod's
                         # this will make it easier to set ranges
-                        sortedKeys = list(models.keys())
-                        sortedKeys.sort()
-                        for lodName in sortedKeys:
+                        for lodName in sorted(models):
                             # make a node under the LOD switch
                             # for each lod (just because!)
                             self.addLOD(str(lodName))
@@ -342,9 +340,7 @@ class Actor(DirectObject, NodePath):
                         # it is a single part actor w/LOD
                         self.setLODNode(node = lodNode)
                         # preserve order of LOD's
-                        sortedKeys = list(models.keys())
-                        sortedKeys.sort()
-                        for lodName in sortedKeys:
+                        for lodName in sorted(models):
                             self.addLOD(str(lodName))
                             # pass in dictionary of parts
                             self.loadModel(models[lodName], lodName=lodName,
@@ -363,9 +359,7 @@ class Actor(DirectObject, NodePath):
                         if type(models) == dict:
                             if type(models[next(iter(models))]) == dict:
                                 # then we have a multi-part w/ LOD
-                                sortedKeys = list(models.keys())
-                                sortedKeys.sort()
-                                for lodName in sortedKeys:
+                                for lodName in sorted(models):
                                     # iterate over both dicts
                                     for partName in anims:
                                         self.loadAnims(
@@ -376,9 +370,7 @@ class Actor(DirectObject, NodePath):
                                     self.loadAnims(anims[partName], partName)
                     elif type(models) == dict:
                         # then we have single-part w/ LOD
-                        sortedKeys = list(models.keys())
-                        sortedKeys.sort()
-                        for lodName in sortedKeys:
+                        for lodName in sorted(models):
                             self.loadAnims(anims, lodName=lodName)
                     else:
                         # else it is single-part w/o LOD
@@ -532,7 +524,7 @@ class Actor(DirectObject, NodePath):
         animDef.index = channelIndex
         animDef.channel = channel
         partDef.animsByIndex[channelIndex] = animDef
-        
+
         self.maintainJointMerges()
         return True
 
@@ -634,7 +626,7 @@ class Actor(DirectObject, NodePath):
             animDef.index = i
             partDef.animsByName[animDef.name] = animDef
             partDef.animsByIndex[i] = animDef
-            
+
         self.maintainJointMerges()
 
     def __prepareBundle(self, bundleNP, partModel,
@@ -657,7 +649,7 @@ class Actor(DirectObject, NodePath):
         # A model loaded from disk will always have just one bundle.
         #assert(node.getNumBundles() == 1)
         bundleHandle = node.getCharacter()
-    
+
         bundleDict[partName] = Actor.PartDef(bundleNP, bundleHandle, partModel)
 
     def setPlayRate(self, rate, anim=None, partName=None, layer=0):
@@ -985,7 +977,7 @@ class Actor(DirectObject, NodePath):
                         anyChanged = True
         else:
             self.notify.warning('update() - no lod: %d' % lod)
-            
+
         self.maintainJointMerges()
 
         return anyChanged
@@ -1000,9 +992,6 @@ class Actor(DirectObject, NodePath):
             self.setLODAnimation(*self.__LODAnimation)
 
     def __updateSortedLODNames(self):
-        # Cache the sorted LOD names so we don't have to grab them
-        # and sort them every time somebody asks for the list
-        self.__sortedLODNames = list(self.__partBundleDict.keys())
         # Reverse sort the doing a string->int
         def sortKey(x):
             if not str(x).isdigit():
@@ -1011,17 +1000,17 @@ class Actor(DirectObject, NodePath):
                         'l':1,
                         'f':0}
 
-                """
-                sx = smap.get(x[0], None)
-
-                if sx is None:
-                    self.notify.error('Invalid lodName: %s' % x)
-                """
+                #sx = smap.get(x[0], None)
+                #
+                #if sx is None:
+                #    self.notify.error('Invalid lodName: %s' % x)
                 return smap[x[0]]
             else:
                 return int(x)
 
-        self.__sortedLODNames.sort(key=sortKey, reverse=True)
+        # Cache the sorted LOD names so we don't have to grab them
+        # and sort them every time somebody asks for the list
+        self.__sortedLODNames = sorted(self.__partBundleDict, key=sortKey, reverse=True)
 
     def getLODNames(self):
         """
@@ -2042,7 +2031,7 @@ class Actor(DirectObject, NodePath):
 
         if not anyGood:
             self.notify.warning("Cannot control joint %s" % (jointName))
-        
+
         self.maintainJointMerges()
         return node
 
@@ -2056,14 +2045,14 @@ class Actor(DirectObject, NodePath):
             if joint == -1:
                 continue
             char.clearJointControllerNode(joint)
-            
+
     def getCharacter(self):
         character = None
-        characterNode = self.find("**/+CharacterNode") 
+        characterNode = self.find("**/+CharacterNode")
         if not characterNode.isEmpty():
             character = characterNode.node().getCharacter()
         return character
-            
+
     def setJointMergeParent(self, actor):
         """
         Same as addJointMergeChild(), but you call this on the child, passing
@@ -2077,7 +2066,7 @@ class Actor(DirectObject, NodePath):
 
         if actor.getCharacter() and self.getCharacter():
             self.getCharacter().setJointMergeCharacter(actor.getCharacter())
-            
+
         self.jointMergeParent = actor
         actor.jointMergeChildren.add(self)
 
@@ -2097,7 +2086,7 @@ class Actor(DirectObject, NodePath):
         self.jointMergeChildren.add(actor)
         if actor.getCharacter() and self.getCharacter():
             actor.getCharacter().setJointMergeCharacter(self.getCharacter())
-            
+
         actor.jointMergeParent = self
 
     def clearJointMergeParent(self):

@@ -1,5 +1,7 @@
 """Contains miscellaneous utility functions and classes."""
 
+from __future__ import annotations
+
 __all__ = [
 
     'indent', 'doc', 'adjust', 'difference', 'intersection', 'union',
@@ -45,6 +47,7 @@ import builtins
 import importlib
 from . import BpDb
 import functools
+from typing import Callable
 
 __report_indent = 3
 
@@ -1108,9 +1111,9 @@ if __debug__:
         return profileDecorator
 
     # intercept profile-related file operations to avoid disk access
-    movedOpenFuncs = []
-    movedDumpFuncs = []
-    movedLoadFuncs = []
+    movedOpenFuncs: list[Callable] = []
+    movedDumpFuncs: list[Callable] = []
+    movedLoadFuncs: list[Callable] = []
     profileFilenames = set()
     profileFilenameList = Stack()
     profileFilename2file = {}
@@ -3353,7 +3356,7 @@ class ClassTree:
         return self._getStr()
 
 class PStatScope:
-    collectors = {}
+    collectors: dict = {}
 
     def __init__(self, level = None):
         self.levels = []
@@ -3981,18 +3984,6 @@ def formatTimeCompact(seconds):
     return result
 
 
-if __debug__ and __name__ == '__main__':
-    ftc = formatTimeCompact
-    assert ftc(0) == '0s'
-    assert ftc(1) == '1s'
-    assert ftc(60) == '1m0s'
-    assert ftc(64) == '1m4s'
-    assert ftc(60*60) == '1h0m0s'
-    assert ftc(24*60*60) == '1d0h0m0s'
-    assert ftc(24*60*60 + 2*60*60 + 34*60 + 12) == '1d2h34m12s'
-    del ftc
-
-
 def formatTimeExact(seconds):
     # like formatTimeCompact but leaves off '0 seconds', '0 minutes' etc. for
     # times that are e.g. 1 hour, 3 days etc.
@@ -4017,19 +4008,6 @@ def formatTimeExact(seconds):
     if seconds or result == '':
         result += '%ss' % seconds
     return result
-
-
-if __debug__ and __name__ == '__main__':
-    fte = formatTimeExact
-    assert fte(0) == '0s'
-    assert fte(1) == '1s'
-    assert fte(2) == '2s'
-    assert fte(61) == '1m1s'
-    assert fte(60) == '1m'
-    assert fte(60*60) == '1h'
-    assert fte(24*60*60) == '1d'
-    assert fte((24*60*60) + (2 * 60)) == '1d0h2m'
-    del fte
 
 
 class AlphabetCounter:
@@ -4061,28 +4039,6 @@ class AlphabetCounter:
         return result
 
     __next__ = next
-
-
-if __debug__ and __name__ == '__main__':
-    def testAlphabetCounter():
-        tempList = []
-        ac = AlphabetCounter()
-        for i in range(26*3):
-            tempList.append(ac.next())
-        assert tempList == [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-                            'AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ','AK','AL','AM','AN','AO','AP','AQ','AR','AS','AT','AU','AV','AW','AX','AY','AZ',
-                            'BA','BB','BC','BD','BE','BF','BG','BH','BI','BJ','BK','BL','BM','BN','BO','BP','BQ','BR','BS','BT','BU','BV','BW','BX','BY','BZ',]
-        ac = AlphabetCounter()
-        num  = 26 # A-Z
-        num += (26*26) # AA-ZZ
-        num += 26 # AAZ
-        num += 1 # ABA
-        num += 2 # ABC
-        for i in range(num):
-            x = ac.next()
-        assert x == 'ABC'
-    testAlphabetCounter()
-    del testAlphabetCounter
 
 
 class Default:
@@ -4467,72 +4423,72 @@ def cmp(a, b):
     return (a > b) - (a < b)
 
 
-builtins.pdir = pdir
-builtins.isClient = isClient
-builtins.lerp = lerp
-builtins.triglerp = triglerp
-builtins.choice = choice
-builtins.cmp = cmp
+builtins.pdir = pdir # type: ignore[attr-defined]
+builtins.isClient = isClient # type: ignore[attr-defined]
+builtins.lerp = lerp # type: ignore[attr-defined]
+builtins.triglerp = triglerp # type: ignore[attr-defined]
+builtins.choice = choice # type: ignore[attr-defined]
+builtins.cmp = cmp # type: ignore[attr-defined]
 
-builtins.Functor = Functor
-builtins.Stack = Stack
-builtins.Queue = Queue
-builtins.Enum = Enum
-builtins.SerialNumGen = SerialNumGen
-builtins.SerialMaskedGen = SerialMaskedGen
-builtins.ScratchPad = ScratchPad
-builtins.DestructiveScratchPad = DestructiveScratchPad
-builtins.uniqueName = uniqueName
-builtins.serialNum = serialNum
+builtins.Functor = Functor # type: ignore[attr-defined]
+builtins.Stack = Stack # type: ignore[attr-defined]
+builtins.Queue = Queue # type: ignore[attr-defined]
+builtins.Enum = Enum # type: ignore[attr-defined]
+builtins.SerialNumGen = SerialNumGen # type: ignore[attr-defined]
+builtins.SerialMaskedGen = SerialMaskedGen # type: ignore[attr-defined]
+builtins.ScratchPad = ScratchPad # type: ignore[attr-defined]
+builtins.DestructiveScratchPad = DestructiveScratchPad # type: ignore[attr-defined]
+builtins.uniqueName = uniqueName # type: ignore[attr-defined]
+builtins.serialNum = serialNum # type: ignore[attr-defined]
 if __debug__:
-    builtins.profiled = profiled
-    builtins.set_trace = set_trace
-    builtins.setTrace = setTrace
-    builtins.pm = pm
-    builtins.exceptionLogged = exceptionLogged
-builtins.itype = itype
-builtins.appendStr = appendStr
-builtins.bound = bound
-builtins.clamp = clamp
-builtins.clampScalar = clampScalar
-builtins.lerp = lerp
-builtins.notNone = notNone
-builtins.makeList = makeList
-builtins.makeTuple = makeTuple
+    builtins.profiled = profiled # type: ignore[attr-defined]
+    builtins.set_trace = set_trace # type: ignore[attr-defined]
+    builtins.setTrace = setTrace # type: ignore[attr-defined]
+    builtins.pm = pm # type: ignore[attr-defined]
+    builtins.exceptionLogged = exceptionLogged # type: ignore[attr-defined]
+builtins.itype = itype # type: ignore[attr-defined]
+builtins.appendStr = appendStr # type: ignore[attr-defined]
+builtins.bound = bound # type: ignore[attr-defined]
+builtins.clamp = clamp # type: ignore[attr-defined]
+builtins.clampScalar = clampScalar # type: ignore[attr-defined]
+builtins.lerp = lerp # type: ignore[attr-defined]
+builtins.notNone = notNone # type: ignore[attr-defined]
+builtins.makeList = makeList # type: ignore[attr-defined]
+builtins.makeTuple = makeTuple # type: ignore[attr-defined]
 if __debug__:
-    builtins.printStack = printStack
-    builtins.printReverseStack = printReverseStack
-    builtins.printVerboseStack = printVerboseStack
-builtins.DelayedCall = DelayedCall
-builtins.DelayedFunctor = DelayedFunctor
-builtins.FrameDelayedCall = FrameDelayedCall
-builtins.SubframeCall = SubframeCall
-builtins.ArgumentEater = ArgumentEater
-builtins.ClassTree = ClassTree
-builtins.invertDict = invertDict
-builtins.invertDictLossless = invertDictLossless
-builtins.getBase = getBase
-builtins.getRepository = getRepository
-builtins.safeRepr = safeRepr
-builtins.fastRepr = fastRepr
-builtins.nullGen = nullGen
-builtins.flywheel = flywheel
-builtins.loopGen = loopGen
+    builtins.printStack = printStack # type: ignore[attr-defined]
+    builtins.printReverseStack = printReverseStack # type: ignore[attr-defined]
+    builtins.printVerboseStack = printVerboseStack # type: ignore[attr-defined]
+builtins.DelayedCall = DelayedCall # type: ignore[attr-defined]
+builtins.DelayedFunctor = DelayedFunctor # type: ignore[attr-defined]
+builtins.FrameDelayedCall = FrameDelayedCall # type: ignore[attr-defined]
+builtins.SubframeCall = SubframeCall # type: ignore[attr-defined]
+builtins.ArgumentEater = ArgumentEater # type: ignore[attr-defined]
+builtins.ClassTree = ClassTree # type: ignore[attr-defined]
+builtins.invertDict = invertDict # type: ignore[attr-defined]
+builtins.invertDictLossless = invertDictLossless # type: ignore[attr-defined]
+builtins.getBase = getBase # type: ignore[attr-defined]
+builtins.getRepository = getRepository # type: ignore[attr-defined]
+builtins.safeRepr = safeRepr # type: ignore[attr-defined]
+builtins.fastRepr = fastRepr # type: ignore[attr-defined]
+builtins.nullGen = nullGen # type: ignore[attr-defined]
+builtins.flywheel = flywheel # type: ignore[attr-defined]
+builtins.loopGen = loopGen # type: ignore[attr-defined]
 if __debug__:
-    builtins.StackTrace = StackTrace
-builtins.report = report
-builtins.pstatcollect = pstatcollect
-builtins.MiniLog = MiniLog
-builtins.MiniLogSentry = MiniLogSentry
-builtins.logBlock = logBlock
-builtins.HierarchyException = HierarchyException
-builtins.pdir = pdir
-builtins.deeptype = deeptype
-builtins.Default = Default
-builtins.configIsToday = configIsToday
-builtins.typeName = typeName
-builtins.safeTypeName = safeTypeName
-builtins.histogramDict = histogramDict
-builtins.repeatableRepr = repeatableRepr
-builtins.bpdb = bpdb
-builtins.u2ascii = u2ascii
+    builtins.StackTrace = StackTrace # type: ignore[attr-defined]
+builtins.report = report # type: ignore[attr-defined]
+builtins.pstatcollect = pstatcollect # type: ignore[attr-defined]
+builtins.MiniLog = MiniLog # type: ignore[attr-defined]
+builtins.MiniLogSentry = MiniLogSentry # type: ignore[attr-defined]
+builtins.logBlock = logBlock # type: ignore[attr-defined]
+builtins.HierarchyException = HierarchyException # type: ignore[attr-defined]
+builtins.pdir = pdir # type: ignore[attr-defined]
+builtins.deeptype = deeptype # type: ignore[attr-defined]
+builtins.Default = Default # type: ignore[attr-defined]
+builtins.configIsToday = configIsToday # type: ignore[attr-defined]
+builtins.typeName = typeName # type: ignore[attr-defined]
+builtins.safeTypeName = safeTypeName # type: ignore[attr-defined]
+builtins.histogramDict = histogramDict # type: ignore[attr-defined]
+builtins.repeatableRepr = repeatableRepr # type: ignore[attr-defined]
+builtins.bpdb = bpdb # type: ignore[attr-defined]
+builtins.u2ascii = u2ascii # type: ignore[attr-defined]
