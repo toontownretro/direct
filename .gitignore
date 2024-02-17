@@ -18,6 +18,7 @@ src/configfiles/40_direct.prc
 src/dcparser/dcLexer.cxx
 src/dcparser/dcParser.cxx
 src/dcparser/dcParser.h
+src/dcparser/dcParser.yxx.h
 
 # Python 3
 **/__pycache__
