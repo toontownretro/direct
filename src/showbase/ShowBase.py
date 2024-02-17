@@ -84,14 +84,7 @@ def exitfunc():
 # *seem* to cause anyone any problems.
 class ShowBase(HostBase):
 
-    #: The deprecated `.DConfig` interface for accessing config variables.
-    config: ClassVar = DConfig
-    notify: ClassVar[Notifier] = directNotify.newCategory("ShowBase")
-    guiItems: ClassVar[dict]
-
-    render2d: NodePath
-    aspect2d: NodePath
-    pixel2d: NodePath
+    notify = directNotify.newCategory("ShowBase")
 
     def __init__(self, fStartDirect=True, windowType=None):
         """Opens a window, sets up a 3-D and several 2-D scene graphs, and
