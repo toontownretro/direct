@@ -37,7 +37,7 @@ class LandingPage:
         searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars('direct/http')))
         found = vfs.resolveFilename(filename,searchPath)
         if not found:
-            raise NotImplementedError("Couldn't find direct/http/favicon.ico")
+            self.notify.info("Couldn't find direct/http/favicon.ico")
 
         return vfs.readFile(filename, 1)
 
@@ -109,8 +109,8 @@ class LandingPage:
 
         # extract names of handlers
         filteredList = {}
-        for uri, handler in list(uriToHandler.items()):
-            if type(uri) == type(tuple):
+        for uri, handler in uriToHandler.items():
+            if isinstance(uri, tuple):
                 key = uri[0]
             else:
                 key = uri
@@ -119,7 +119,7 @@ class LandingPage:
             filteredList[key] = handler
 
         uriList = list(filteredList.keys())
-        #uriList.sort()
+        uriList.sort()
 
         autoList = []
 

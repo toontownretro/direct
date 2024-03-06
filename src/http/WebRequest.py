@@ -294,8 +294,8 @@ class WebRequestDispatcher(object):
                                         numArgs = 0)
                 self.registerGETHandler("/services", self._services, returnsResponse = True,
                                         autoSkin = True, numArgs = 0)
-                self.registerGETHandler("/default.css", self._stylesheet)
-                self.registerGETHandler("/favicon.ico", self._favicon)
+                self.registerGETHandler("/default.css", self._stylesheet, numArgs = 0)
+                self.registerGETHandler("/favicon.ico", self._favicon, numArgs = 0)
                 self.landingPage.addTab("Main", "/")
                 self.landingPage.addTab("Services", "/services")
         else:
