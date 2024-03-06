@@ -28,7 +28,7 @@ class aiWebServer(SystemInformation):
         self.air = simbase.air
         # self.taskMgr = Task.TaskManager()
         if __debug__:
-            print("Listen port set to: %d" % self.listenPort)
+            print(("Listen port set to: %d" % self.listenPort))
         # Start dispatcher
         self.web = WebRequest.WebRequestDispatcher()
         self.web.listenOnPort(self.listenPort)
@@ -179,7 +179,7 @@ class aiWebServer(SystemInformation):
     def genQuestSelect(self):
         # Will generate an HTML select widget, with the Key vals from the QuestDB
         selectWidget = '<select name="questId">\n'
-        for k, v in QuestDict.items():
+        for k, v in list(QuestDict.items()):
             selectWidget = '%s<option>%s</option>\n' % (selectWidget, k)
         selectWidget = '%s</select><br>\n' % selectWidget
         return selectWidget
@@ -199,7 +199,7 @@ class aiWebServer(SystemInformation):
         foot = '</ul></body></HTML>'
         body = ''
         doIdRequested = ''
-        for j, k in kw.items():
+        for j, k in list(kw.items()):
             doIdRequested = int(k)
             #print j,k
         try:
@@ -295,7 +295,7 @@ def inspectorFor(anObject):
     if typeName in _InspectorMap:
         inspectorName = _InspectorMap[typeName]
     else:
-        print("Can't find an inspector for " + typeName)
+        print(("Can't find an inspector for " + typeName))
         inspectorName = 'Inspector'
     inspector = globals()[inspectorName](anObject)
     return inspector
@@ -411,7 +411,7 @@ class ModuleInspector(Inspector):
 
 class ClassInspector(Inspector):
     def namedParts(self):
-        return ['__bases__'] + self.object.__dict__.keys()
+        return ['__bases__'] + list(self.object.__dict__.keys())
 
     def title(self):
         return self.object.__name__ + ' Class'
@@ -430,7 +430,7 @@ class FunctionInspector(Inspector):
 
 class InstanceMethodInspector(Inspector):
     def title(self):
-        return str(self.object.im_class) + "." + self.object.__name__ + "()"
+        return str(self.object.__self__.__class__) + "." + self.object.__name__ + "()"
 
 class CodeInspector(Inspector):
     def title(self):
@@ -448,7 +448,7 @@ class DictionaryInspector(Inspector):
 
     def initializePartsList(self):
         Inspector.initializePartsList(self)
-        keys = self.object.keys()
+        keys = list(self.object.keys())
         keys.sort()
         for each in keys:
             self._partsList.append(each)

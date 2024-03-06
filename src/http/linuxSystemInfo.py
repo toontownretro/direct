@@ -129,6 +129,6 @@ class SystemInformation:
 
 if __name__ == "__main__":
 	s = SystemInformation()
-	print(s.cpu)
-	print(s.totalRAM)
-	print(s.os)
+	print((s.cpu))
+	print((s.totalRAM))
+	print((s.os))

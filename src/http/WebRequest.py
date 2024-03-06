@@ -40,14 +40,14 @@ class WebRequest(object):
 
     def respondHTTP(self,status,body):
         status = str(status)
-        msg = u"HTTP/1.0 %s\r\nContent-Type: text/html\r\n\r\n%s" % (status,body)
+        msg = "HTTP/1.0 %s\r\nContent-Type: text/html\r\n\r\n%s" % (status,body)
         self.connection.SendThisResponse(msg)
 
     def respond(self,body):
         self.respondHTTP("200 OK",body)
 
     def respondXML(self,body):
-        msg = u"HTTP/1.0 200 OK\r\nContent-Type: text/xml\r\n\r\n%s" % body
+        msg = "HTTP/1.0 200 OK\r\nContent-Type: text/xml\r\n\r\n%s" % body
         self.connection.SendThisResponse(msg)
 
     def respondCustom(self,contentType,body):
@@ -266,7 +266,7 @@ class WebRequestDispatcher(object):
         if uri[0] != "/":
             uri = "/" + uri
         for currHandler in list(self.uriToHandler.keys()):
-            if type(currHandler) is types.TupleType and currHandler[0] == uri or currHandler == uri:
+            if type(currHandler) is tuple and currHandler[0] == uri or currHandler == uri:
                 self.uriToHandler.pop(currHandler)
         
 

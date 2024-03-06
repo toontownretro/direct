@@ -2,7 +2,7 @@
 # http://pypi.python.org/pypi/recaptcha-client
 # http://recaptcha.net/resources.html
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 API_SSL_SERVER="https://api-secure.recaptcha.net"
 API_SERVER="http://api.recaptcha.net"
@@ -65,18 +65,18 @@ def submit (recaptcha_challenge_field,
     
 
     def encode_if_necessary(s):
-        if isinstance(s, unicode):
+        if isinstance(s, str):
             return s.encode('utf-8')
         return s
 
-    params = urllib.urlencode ({
+    params = urllib.parse.urlencode ({
             'privatekey': encode_if_necessary(private_key),
             'remoteip' :  encode_if_necessary(remoteip),
             'challenge':  encode_if_necessary(recaptcha_challenge_field),
             'response' :  encode_if_necessary(recaptcha_response_field),
             })
 
-    request = urllib2.Request (
+    request = urllib.request.Request (
         url = "http://%s/verify" % VERIFY_SERVER,
         data = params,
         headers = {
@@ -85,7 +85,7 @@ def submit (recaptcha_challenge_field,
             }
         )
     
-    httpresp = urllib2.urlopen (request)
+    httpresp = urllib.request.urlopen (request)
 
     return_values = httpresp.read ().splitlines ();
     # DCR: prevent garbage leak (really)
