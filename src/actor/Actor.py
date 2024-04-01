@@ -8,6 +8,8 @@ __all__ = ['Actor']
 
 from panda3d.core import (
     CharacterNode,
+    WeightList,
+    WeightListDesc,
     ConfigVariableBool,
     DecalEffect,
     Filename,
