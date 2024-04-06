@@ -16,6 +16,7 @@ totalRAM
 totalVM
 availableVM
 availableRAM
+extendedVM
 
 Example:
 
@@ -37,16 +38,17 @@ def get_registry_value(key, subkey, value):
 c_ulong = ctypes.c_ulong
 
 class MEMORYSTATUS(ctypes.Structure):
-            _fields_ = [
-                ('dwLength', c_ulong),
-                ('dwMemoryLoad', c_ulong),
-                ('dwTotalPhys', c_ulong),
-                ('dwAvailPhys', c_ulong),
-                ('dwTotalPageFile', c_ulong),
-                ('dwAvailPageFile', c_ulong),
-                ('dwTotalVirtual', c_ulong),
-                ('dwAvailVirtual', c_ulong)
-            ]
+    _fields_ = [
+        ('dwLength', ctypes.c_long),
+        ('dwMemoryLoad', ctypes.c_long),
+        ('ullTotalPhys', ctypes.c_ulonglong),
+        ('ullAvailPhys', ctypes.c_ulonglong),
+        ('ullTotalPageFile', ctypes.c_ulonglong),
+        ('ullAvailPageFile', ctypes.c_ulonglong),
+        ('ullTotalVirtual', ctypes.c_ulonglong),
+        ('ullAvailVirtual', ctypes.c_ulonglong),
+        ('ullAvailExtendedVirtual', ctypes.c_ulonglong)
+    ]
 
 class SystemInformation:
     def __init__(self):
@@ -66,7 +68,7 @@ class SystemInformation:
 
         self.cpu = self._cpu().strip()
 
-        self.totalRAM, self.availableRAM, self.totalPF, self.availablePF, self.memoryLoad, self.totalVM, self.availableVM = self._ram()
+        self.totalRAM, self.availableRAM, self.totalPF, self.availablePF, self.memoryLoad, self.totalVM, self.availableVM, self.extendedVM = self._ram()
 
         # totalRam contains the total amount of RAM in the system
 
@@ -80,16 +82,21 @@ class SystemInformation:
         
         self.availableVM = self.availableVM / 1024
 
-        # availableRam: Ammount of available RAM in the system
+        # availableRam: Amount of available RAM in the system
         
         self.availableRAM = self.availableRAM / 1024
 
+        # extendedVM: Amount of available extended VM in the system
+
+        self.extendedVM = self.extendedVM / 1024
+
     def refresh(self):
-         self.totalRAM, self.availableRAM, self.totalPF, self.availablePF, self.memoryLoad, self.totalVM, self.availableVM = self._ram()
+         self.totalRAM, self.availableRAM, self.totalPF, self.availablePF, self.memoryLoad, self.totalVM, self.availableVM, self.extendedVM = self._ram()
          self.totalRAM = self.totalRAM / 1024
          self.totalVM = self.totalVM / 1024
          self.availableVM = self.availableVM / 1024
          self.availableRAM = self.availableRAM / 1024
+         self.extendedVM = self.extendedVM / 1024
 
     def _os_version(self):
         def get(key):
@@ -98,7 +105,8 @@ class SystemInformation:
                 "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
                 key)
         os = get("ProductName")
-        sp = get("CSDVersion")
+        # Used to be CSDVersion, doesn't work on modern OS
+        sp = get("DisplayVersion")
         build = get("CurrentBuildNumber")
         return "%s %s (build %s)" % (os, sp, build)
             
@@ -114,16 +122,17 @@ class SystemInformation:
 
         memoryStatus = MEMORYSTATUS()
         memoryStatus.dwLength = ctypes.sizeof(MEMORYSTATUS)
-        kernel32.GlobalMemoryStatus(ctypes.byref(memoryStatus))
-        return (memoryStatus.dwTotalPhys, memoryStatus.dwAvailPhys, memoryStatus.dwTotalPageFile, memoryStatus.dwAvailPageFile, memoryStatus.dwMemoryLoad, memoryStatus.dwTotalVirtual, memoryStatus.dwAvailVirtual)
+        kernel32.GlobalMemoryStatusEx(ctypes.byref(memoryStatus))
+        return (memoryStatus.ullTotalPhys, memoryStatus.ullAvailPhys, memoryStatus.ullTotalPageFile, memoryStatus.ullAvailPageFile, memoryStatus.dwMemoryLoad, memoryStatus.ullTotalVirtual, memoryStatus.ullAvailVirtual, memoryStatus.ullAvailExtendedVirtual)
 
 # To test, execute the script standalone.
 
 if __name__ == "__main__":
     s = SystemInformation()
-    print((s.os))
-    print((s.cpu))
-    print(("RAM : %dKb total" % s.totalRAM))
-    print(("RAM : %dKb free" % s.availableRAM))
-    print(("Total VM: %dKb" % s.totalVM))
-    print(("Available VM: %dKb" % s.availableVM))
+    print(s.os)
+    print(s.cpu)
+    print("RAM : %dKb total" % s.totalRAM)
+    print("RAM : %dKb free" % s.availableRAM)
+    print("Total VM: %dKb" % s.totalVM)
+    print("Available VM: %dKb" % s.availableVM)
+    print("Extended VM: %dKb (Always returns 0))" % s.extendedVM)

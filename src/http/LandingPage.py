@@ -109,7 +109,7 @@ class LandingPage:
 
         # extract names of handlers
         filteredList = {}
-        for uri, handler in list(uriToHandler.items()):
+        for uri, handler in uriToHandler.items():
             if isinstance(uri, tuple):
                 key = uri[0]
             else:

@@ -28,7 +28,7 @@ class aiWebServer(SystemInformation):
         self.air = simbase.air
         # self.taskMgr = Task.TaskManager()
         if __debug__:
-            print(("Listen port set to: %d" % self.listenPort))
+            print("Listen port set to: %d" % self.listenPort)
         # Start dispatcher
         self.web = WebRequest.WebRequestDispatcher()
         self.web.listenOnPort(self.listenPort)
@@ -295,7 +295,7 @@ def inspectorFor(anObject):
     if typeName in _InspectorMap:
         inspectorName = _InspectorMap[typeName]
     else:
-        print(("Can't find an inspector for " + typeName))
+        print("Can't find an inspector for " + typeName)
         inspectorName = 'Inspector'
     inspector = globals()[inspectorName](anObject)
     return inspector
