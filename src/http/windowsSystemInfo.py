@@ -135,4 +135,4 @@ if __name__ == "__main__":
     print("RAM : %dKb free" % s.availableRAM)
     print("Total VM: %dKb" % s.totalVM)
     print("Available VM: %dKb" % s.availableVM)
-    print("Extended VM: %dKb (Always returns 0))" % s.extendedVM)
+    print("Extended VM: %dKb (Always returns 0)" % s.extendedVM)
