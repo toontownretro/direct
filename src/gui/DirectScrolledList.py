@@ -57,7 +57,7 @@ class DirectScrolledList(DirectFrame):
     def __init__(self, parent = None, **kw):
         assert self.notify.debugStateCall(self)
         self.index = 0
-        self.__forceHeight = None
+        self.forceHeight = None
 
         """ If one were to want a scrolledList that makes and adds its items
            as needed, simply pass in an items list of strings (type 'str')
@@ -123,12 +123,12 @@ class DirectScrolledList(DirectFrame):
 
     def setForceHeight(self):
         assert self.notify.debugStateCall(self)
-        self.__forceHeight = self["forceHeight"]
+        self.forceHeight = self["forceHeight"]
 
     def recordMaxHeight(self):
         assert self.notify.debugStateCall(self)
-        if self.__forceHeight is not None:
-            self.maxHeight = self.__forceHeight
+        if self.forceHeight is not None:
+            self.maxHeight = self.forceHeight
         else:
             self.maxHeight = 0.0
             for item in self["items"]:
@@ -138,14 +138,14 @@ class DirectScrolledList(DirectFrame):
     def setScrollSpeed(self):
         assert self.notify.debugStateCall(self)
         # Items per second to move
-        self.__scrollSpeed = self["scrollSpeed"]
-        if self.__scrollSpeed <= 0:
-            self.__scrollSpeed = 1
+        self.scrollSpeed = self["scrollSpeed"]
+        if self.scrollSpeed <= 0:
+            self.scrollSpeed = 1
 
     def setNumItemsVisible(self):
         assert self.notify.debugStateCall(self)
         # Items per second to move
-        self.__numItemsVisible = self["numItemsVisible"]
+        self.numItemsVisible = self["numItemsVisible"]
 
     def destroy(self):
         assert self.notify.debugStateCall(self)

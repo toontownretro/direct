@@ -17,7 +17,7 @@ stylesheet = '''
   body
   {
   margin: 0;
-  padding: 0;
+  padding: 0px;
   font-size: 90%;
   font-family: Verdana, sans-serif;
   background-color: #fff;
@@ -69,7 +69,7 @@ stylesheet = '''
   #header
   {
   margin: 0;
-  padding: 0;
+  padding: 0px;
   background-color: #fff;
   }
 
@@ -86,7 +86,7 @@ stylesheet = '''
   #contents
   {
   margin: 0;
-  padding: 25;
+  padding: 25px;
   background-color: #eee;
   min-height:600px;
   height:auto !important;
@@ -98,7 +98,7 @@ stylesheet = '''
   #navcontainer
   {
   margin:0;
-  padding: 0;
+  padding: 0px;
   }
 
   #navlist
@@ -209,7 +209,7 @@ stylesheet = '''
   
   tbody tr td
   {
-  text-align: left
+  text-align: left;
   height: 30px;
   background: #ffffff;
   border: 1px solid #ffffff;

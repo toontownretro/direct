@@ -51,7 +51,8 @@ from typing import Callable
 
 __report_indent = 3
 
-from panda3d.core import ConfigVariableBool, ClockObject
+from panda3d.core import ConfigVariableBool, ConfigVariableString, ConfigFlags
+from panda3d.core import ClockObject
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 
