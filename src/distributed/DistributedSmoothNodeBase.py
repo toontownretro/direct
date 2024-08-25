@@ -28,14 +28,22 @@ class DistributedSmoothNodeBase:
 
     def __init__(self):
         self.__broadcastPeriod = None
+        self.cnode = None
 
-    def generate(self):
+    def preGenerate(self):
         self.cnode = CDistributedSmoothNodeBase()
         self.cnode.setClockDelta(globalClockDelta)
         self.d_broadcastPosHpr = None
+        pass
+
+    def generate(self):
+        if not self.cnode:
+            # We may have been disabled and are now being brought back to life
+            self.cnode = CDistributedSmoothNodeBase()
+            pass
 
     def disable(self):
-        del self.cnode
+        self.cnode = None
         # make sure our task is gone
         self.stopPosHprBroadcast()
 
@@ -74,7 +82,7 @@ class DistributedSmoothNodeBase:
     def wantSmoothPosBroadcastTask(self):
         return True
 
-    def startPosHprBroadcast(self, period=.2, stagger=0, type=None):
+    def startPosHprBroadcast(self, period=.1, stagger=0, type=None):
         if self.cnode is None:
             self.initializeCnode()
 
@@ -124,6 +132,8 @@ class DistributedSmoothNodeBase:
         return Task.again
 
     def sendCurrentPosition(self):
+        # broadcasts the current telemetry and embedded data stored in cnode
+
         # if we're not currently broadcasting, make sure things are set up
         if self.d_broadcastPosHpr is None:
             self.cnode.initialize(self, self.dclass, self.doId)

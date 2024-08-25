@@ -44,14 +44,18 @@ PUBLISHED:
   void initialize(const NodePath &node_path, DCClass *dclass,
                   CHANNEL_TYPE do_id);
 
+  int refresh_pos_hpr();
   void send_everything();
 
   void broadcast_pos_hpr_full();
   void broadcast_pos_hpr_xyh();
   void broadcast_pos_hpr_xy();
 
-  void set_curr_l(uint64_t l);
-  void print_curr_l();
+  // This value is used to embed another data point into the telemetry stream. 
+  // For instance, an object on a grid would need to have a way to switch grid
+  // cells at the same instant the positional data wraps.
+  void set_embedded_val(uint64_t e);
+  uint64_t get_embedded_val() const;
 
 private:
   INLINE static bool only_changed(int flags, int compare);
@@ -66,7 +70,7 @@ private:
   INLINE void d_setSmXYH(PN_stdfloat x, PN_stdfloat y, PN_stdfloat h);
   INLINE void d_setSmXYZH(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h);
   INLINE void d_setSmPosHpr(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r);
-  INLINE void d_setSmPosHprL(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t l);
+  INLINE void d_setSmPosHprE(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t e);
 
   void begin_send_update(DCPacker &packer, const std::string &field_name);
   void finish_send_update(DCPacker &packer);
@@ -78,6 +82,7 @@ private:
     F_new_h     = 0x08,
     F_new_p     = 0x10,
     F_new_r     = 0x20,
+    F_new_e     = 0x40,
   };
 
   NodePath _node_path;
@@ -93,10 +98,10 @@ private:
 
   LPoint3 _store_xyz;
   LVecBase3 _store_hpr;
+  uint64_t _store_e;
+  bool _dirty_e; // set when _store_e has been changed;
   bool _store_stop;
-  // contains most recently sent location info as index 0, index 1 contains
-  // most recently set location info
-  uint64_t _currL[2];
+
 };
 
 #include "cDistributedSmoothNodeBase.I"

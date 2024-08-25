@@ -184,17 +184,17 @@ d_setSmPosHpr(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_std
  *
  */
 INLINE void CDistributedSmoothNodeBase::
-d_setSmPosHprL(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t l) {
-  // cout << "d_setSmPosHprL: " << x << ", " << y << ", " << z << ", " << h <<
-  // ", " << p << ", " << r << l << std::endl;
+d_setSmPosHprE(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t e) {
+  // cout << "d_setSmPosHprE: " << x << ", " << y << ", " << z << ", " << h <<
+  // ", " << p << ", " << r << e << std::endl;
   DCPacker packer;
-  begin_send_update(packer, "setSmPosHprL");
-  packer.pack_uint64(_currL[0]);
+  begin_send_update(packer, "setSmPosHprE");
   packer.pack_double(x);
   packer.pack_double(y);
   packer.pack_double(z);
   packer.pack_double(h);
   packer.pack_double(p);
   packer.pack_double(r);
+  packer.pack_uint64(e);
   finish_send_update(packer);
 }
