@@ -962,65 +962,25 @@ describe_message(std::ostream &out, const string &prefix,
     // It's an update message.  Figure out what dclass the object is based on
     // its doId, so we can decode the rest of the message.
     do_id = packer.raw_unpack_uint32();
-    DCClass *dclass = nullptr;
-
-    #ifdef HAVE_PYTHON
-    if (_python_repository != nullptr) {
-#if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
-      PyGILState_STATE gstate;
-      gstate = PyGILState_Ensure();
-#endif
-
-      PyObject *doId2do =
-        PyObject_GetAttrString(_python_repository, "doId2do");
-      nassertv(doId2do != nullptr);
-
-      PyObject *doId = PyLong_FromUnsignedLong(do_id);
-      PyObject *distobj = PyDict_GetItem(doId2do, doId);
-      Py_DECREF(doId);
-      Py_DECREF(doId2do);
-
-      if (distobj != nullptr) {
-        PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
-        nassertv(dclass_obj != nullptr);
-
-        PyObject *dclass_this = PyObject_GetAttrString(dclass_obj, "this");
-        Py_DECREF(dclass_obj);
-        nassertv(dclass_this != nullptr);
-
-        dclass = (DCClass *)PyLong_AsVoidPtr(dclass_this);
-        Py_DECREF(dclass_this);
-      }
-
-#if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
-      PyGILState_Release(gstate);
-#endif
-    }
-    #endif  // HAVE_PYTHON
 
     int field_id = packer.raw_unpack_uint16();
 
-    if (dclass == nullptr) {
-      out << full_prefix << "update for unknown object " << do_id
-          << ", field " << field_id << "\n";
+    DCField *field = DCField::get_field_from_number(field_id);
+    if (field == (DCField *)NULL) {
+      out << "unknown field " << field_id << "\n";
 
     } else {
+      DCClass *dclass = field->get_class();
       out << full_prefix <<
         ":" << dclass->get_name() << "(" << do_id << ").";
-      DCField *field = dclass->get_field_by_index(field_id);
-      if (field == nullptr) {
-        out << "unknown field " << field_id << "\n";
-
-      } else {
-        out << field->get_name();
-        packer.begin_unpack(field);
-        packer.unpack_and_format(out);
-        packer.end_unpack();
-        out << "\n";
+      out << field->get_name();
+      packer.begin_unpack(field);
+      packer.unpack_and_format(out);
+      packer.end_unpack();
+      out << "\n";
       }
     }
   }
-}
 
 #ifdef HAVE_PYTHON
 #ifdef WANT_NATIVE_NET
@@ -1085,7 +1045,7 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
               if (_time_warning > 0) {
                 endTime = ClockObject::get_global_clock()->get_real_time(); 
                 if ( _time_warning < (endTime - startTime)) {
-                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << " secs to process\n";
                   _dg.dump_hex(nout,2);
                 }
               }
@@ -1106,7 +1066,7 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
               if (_time_warning > 0) {
                 endTime = ClockObject::get_global_clock()->get_real_time(); 
                 if ( _time_warning < (endTime - startTime)) {
-                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << " secs to process\n";
                   _dg.dump_hex(nout,2);                
                 }
               }
@@ -1120,7 +1080,7 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
       if (_time_warning > 0) {
         endTime = ClockObject::get_global_clock()->get_real_time(); 
         if ( _time_warning < (endTime - startTime)) {
-          nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+          nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << " secs to process\n";
           _dg.dump_hex(nout,2);   
         }
       }

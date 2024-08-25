@@ -23,6 +23,8 @@
 
 #ifdef HAVE_PYTHON
 
+//#define ALLOW_NON_MEMBER_FIELDS
+
 /**
  * Returns true if the DCClass object has an associated Python class
  * definition, false otherwise.
@@ -442,11 +444,28 @@ client_format_update(const std::string &field_name, DOID_TYPE do_id,
                      PyObject *args) const {
   DCField *field = _this->get_field_by_name(field_name);
   if (field == nullptr) {
+#ifdef ALLOW_NON_MEMBER_FIELDS
+    int i = 0;
+    while (1) {
+      field = get_dc_file()->get_field_by_index(i++);
+      if (field == (DCField *)NULL) {
+        ostringstream strm;
+        strm << "No field named " << field_name << " in class " << get_name()
+             << "\n";
+        nassert_raise(strm.str());
+        return Datagram();
+      }
+      if (field->get_name() == field_name) {
+        break;
+      }
+    }
+#else
     std::ostringstream strm;
     strm << "No field named " << field_name << " in class " << _this->get_name()
          << "\n";
     nassert_raise(strm.str());
     return Datagram();
+#endif
   }
 
   return invoke_extension(field).client_format_update(do_id, args);

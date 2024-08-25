@@ -83,6 +83,9 @@ PUBLISHED:
   INLINE void set_handle_datagrams_internally(bool handle_datagrams_internally);
   INLINE bool get_handle_datagrams_internally() const;
 
+  INLINE void set_track_clsends(bool track_clsends);
+  INLINE bool get_track_clsends() const;
+
   void set_tcp_header_size(int tcp_header_size);
   INLINE int get_tcp_header_size() const;
 
@@ -162,6 +165,11 @@ PUBLISHED:
   INLINE void set_time_warning(float time_warning);
   INLINE float get_time_warning() const;
 
+  INLINE void describe_datagram(const Datagram &dg) const;
+
+  void describe_message(std::ostream &out, const std::string &prefix,
+                        const Datagram &dg) const;
+
 private:
 #ifdef HAVE_PYTHON
 #ifdef WANT_NATIVE_NET
@@ -172,9 +180,6 @@ private:
   bool do_check_datagram();
   bool handle_update_field();
   bool handle_update_field_owner();
-
-  void describe_message(std::ostream &out, const std::string &prefix,
-                        const Datagram &dg) const;
 
 private:
   ReMutex _lock;
@@ -205,6 +210,7 @@ private:
   bool _handle_c_updates;
   bool _client_datagram;
   bool _handle_datagrams_internally;
+  bool _track_clsends;
   int _tcp_header_size;
   bool _simulated_disconnect;
   bool _verbose;

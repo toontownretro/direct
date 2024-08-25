@@ -356,6 +356,9 @@ class ClusterServer(DirectObject.DirectObject):
         """ Handle arbitrary command string from client """
         command = self.msgHandler.parseCommandStringDatagram(dgi)
         try:
+            if not isClient():
+                print("EXECWARNING ClusterServer: %s"%command)
+                printStack()
             exec(command, __builtins__)
         except Exception:
             pass

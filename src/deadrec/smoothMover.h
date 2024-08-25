@@ -24,6 +24,16 @@
 static const int max_position_reports = 10;
 static const int max_timestamp_delays = 10;
 
+class EXPCL_DIRECT_DEADREC EmbeddedValue {
+  uint64_t _v;
+
+ PUBLISHED:
+  EmbeddedValue(): _v(0) {}
+  ~EmbeddedValue() {}
+
+  void set(uint64_t v) { _v = v; }
+  uint64_t get() const { return _v; }
+};
 
 /**
  * This class handles smoothing of sampled motion points over time, e.g.  for
@@ -59,11 +69,17 @@ PUBLISHED:
   INLINE bool set_p(PN_stdfloat p);
   INLINE bool set_r(PN_stdfloat r);
 
+  INLINE bool set_e(uint64_t e);
+
   INLINE bool set_pos_hpr(const LVecBase3 &pos, const LVecBase3 &hpr);
   INLINE bool set_pos_hpr(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r);
 
+  INLINE bool set_pos_hpr_e(const LVecBase3 &pos, const LVecBase3 &hpr, uint64_t e);
+  INLINE bool set_pos_hpr_e(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t e);
+
   INLINE const LPoint3 &get_sample_pos() const;
   INLINE const LVecBase3 &get_sample_hpr() const;
+  INLINE uint64_t get_sample_e() const;
 
   INLINE void set_phony_timestamp(double timestamp = 0.0, bool period_adjust = false);
 
@@ -81,14 +97,19 @@ PUBLISHED:
 
   INLINE const LPoint3 &get_smooth_pos() const;
   INLINE const LVecBase3 &get_smooth_hpr() const;
+  INLINE uint64_t get_smooth_e() const;
 
   INLINE void apply_smooth_pos(NodePath &node) const;
-  INLINE void apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node) const;
   INLINE void apply_smooth_hpr(NodePath &node) const;
+  INLINE void apply_smooth_e(EmbeddedValue &node) const;
+  INLINE void apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node) const;
+  INLINE void apply_smooth_pos_hpr_e(NodePath &pos_node, NodePath &hpr_node, EmbeddedValue& e) const;
 
-  INLINE void compute_and_apply_smooth_pos(NodePath &node);
-  INLINE void compute_and_apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node);
-  INLINE void compute_and_apply_smooth_hpr(NodePath &hpr_node);
+  INLINE bool compute_and_apply_smooth_pos(NodePath &node);
+  INLINE bool compute_and_apply_smooth_hpr(NodePath &hpr_node);
+  INLINE bool compute_and_apply_smooth_e(EmbeddedValue& e);
+  INLINE bool compute_and_apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node);
+  INLINE bool compute_and_apply_smooth_pos_hpr_e(NodePath &pos_node, NodePath &hpr_node, EmbeddedValue& e);
 
   INLINE PN_stdfloat get_smooth_forward_velocity() const;
   INLINE PN_stdfloat get_smooth_lateral_velocity() const;
@@ -142,6 +163,7 @@ PUBLISHED:
 
 private:
   void set_smooth_pos(const LPoint3 &pos, const LVecBase3 &hpr,
+                      uint64_t embedded,
                       double timestamp);
   void linear_interpolate(int point_before, int point_after, double timestamp);
   void compute_velocity(const LVector3 &pos_delta,
@@ -157,6 +179,7 @@ public:
   public:
     LPoint3 _pos;
     LVecBase3 _hpr;
+    uint64_t _embedded; // arbitrary embedded data
     double _timestamp;
   };
 
@@ -170,7 +193,7 @@ private:
   bool _smooth_position_known;
   bool _smooth_position_changed;
   bool _computed_forward_axis;
-
+  uint64_t _smooth_embedded;
   double _smooth_forward_velocity;
   double _smooth_lateral_velocity;
   double _smooth_rotational_velocity;

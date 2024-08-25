@@ -71,6 +71,8 @@ class InterestHandle:
     """This class helps to ensure that valid handles get passed in to DoInterestManager funcs"""
     def __init__(self, id):
         self._id = id
+    def __hash__(self):
+        return self._id
     def asInt(self):
         return self._id
     def __eq__(self, other):
@@ -138,8 +140,43 @@ class DoInterestManager(DirectObject.DirectObject):
         else:
             self._allInterestsCompleteCallbacks.append(callback)
 
+    def removeAllInterestsCompleteCallback(self, callback):
+        if callback in self._allInterestsCompleteCallbacks:
+            self._allInterestsCompleteCallbacks.remove(callback)
+            pass
+        pass
+
     def getAllInterestsCompleteEvent(self):
         return 'allInterestsComplete-%s' % DoInterestManager._SerialNum
+
+    def cleanupWaitAllInterestsComplete(self):
+        if self._completeDelayedCallback is not None:
+            self._completeDelayedCallback.destroy()
+            self._completeDelayedCallback = None
+
+    def queueAllInterestsCompleteEvent(self, frames=5):
+        # wait for N frames, if no new interests, send out all-done event
+        # calling this is OK even if there are no pending interest completes
+        def checkMoreInterests():
+            # if there are new interests, cancel this delayed callback, another
+            # will automatically be scheduled when all interests complete
+            # print 'checkMoreInterests(',self._completeEventCount.num,'):',globalClock.getFrameCount()
+            return self._completeEventCount.num > 0
+        def sendEvent():
+            messenger.send(self.getAllInterestsCompleteEvent())
+            callbacks = self._allInterestsCompleteCallbacks[:]
+            self._allInterestsCompleteCallbacks = []
+            for callback in callbacks:
+                callback()
+                pass
+        self.cleanupWaitAllInterestsComplete()
+        self._completeDelayedCallback = FrameDelayedCall(
+            'waitForAllInterestCompletes',
+            callback=sendEvent,
+            frames=frames,
+            cancelFunc=checkMoreInterests)
+        checkMoreInterests = None
+        sendEvent = None
 
     def resetInterestStateForConnectionLoss(self):
         DoInterestManager._interests.clear()
@@ -158,6 +195,19 @@ class DoInterestManager(DirectObject.DirectObject):
         iState = DoInterestManager._interests.get(handle.asInt())
         if iState:
             iState.setDesc(desc)
+
+    def getInterestLocations(self, handle):
+        if self.isValidInterestHandle(handle):
+            iState = DoInterestManager._interests.get(handle.asInt())
+            if isinstance(iState.zoneIdList, types.ListType):
+                locations = [(iState.parentId,zoneId) for zoneId in iState.zoneIdList]
+            else:
+                locations = [(iState.parentId,iState.zoneIdList)]
+        else:
+            locations = []
+            pass
+        assert locations
+        return locations
 
     def addInterest(self, parentId, zoneIdList, description, event=None):
         """
@@ -386,7 +436,7 @@ class DoInterestManager(DirectObject.DirectObject):
         obj._autoInterestHandle = None
         if len(autoInterests) == 0:
             return
-        obj._autoInterestHandle = self.addAutoInterest(obj.doId, autoInterests, '%s-autoInterest' % obj.__class__.__name__)
+        obj._autoInterestHandle = self.addAutoInterest(obj.doId, autoInterests, '%s - (auto)' % obj.__class__.__name__)
     def closeAutoInterests(self, obj):
         if not hasattr(obj, '_autoInterestHandle'):
             # must be multiple inheritance
@@ -558,33 +608,6 @@ class DoInterestManager(DirectObject.DirectObject):
         datagram.addUint16(CLIENT_REMOVE_INTEREST)
         datagram.addUint16((1<<15) + handle)
         self.send(datagram)
-
-    def cleanupWaitAllInterestsComplete(self):
-        if self._completeDelayedCallback is not None:
-            self._completeDelayedCallback.destroy()
-            self._completeDelayedCallback = None
-
-    def queueAllInterestsCompleteEvent(self, frames=5):
-        # wait for N frames, if no new interests, send out all-done event
-        # calling this is OK even if there are no pending interest completes
-        def checkMoreInterests():
-            # if there are new interests, cancel this delayed callback, another
-            # will automatically be scheduled when all interests complete
-            # print 'checkMoreInterests(',self._completeEventCount.num,'):',base.clock.getFrameCount()
-            return self._completeEventCount.num > 0
-        def sendEvent():
-            messenger.send(self.getAllInterestsCompleteEvent())
-            for callback in self._allInterestsCompleteCallbacks:
-                callback()
-            self._allInterestsCompleteCallbacks = []
-        self.cleanupWaitAllInterestsComplete()
-        self._completeDelayedCallback = FrameDelayedCall(
-            'waitForAllInterestCompletes',
-            callback=sendEvent,
-            frames=frames,
-            cancelFunc=checkMoreInterests)
-        checkMoreInterests = None
-        sendEvent = None
 
     def handleInterestDoneMessage(self, di):
         """

@@ -87,6 +87,26 @@ get_handle_datagrams_internally() const {
 }
 
 /**
+ * Sets the handle_datagrams_internally flag.  When
+ * true, certain message types can be handled by the C++
+ * code in in this module.  When false, all datagrams,
+ * regardless of message type, are passed up to Python
+ * for processing.
+ */
+INLINE void CConnectionRepository::
+set_track_clsends(bool track_clsends) {
+  _track_clsends = track_clsends;
+}
+
+/**
+ * Returns the handle_datagrams_internally flag.
+ */
+INLINE bool CConnectionRepository::
+get_track_clsends() const {
+  return _track_clsends;
+}
+
+/**
  * Returns the current setting of TCP header size.  See set_tcp_header_size().
  */
 INLINE int CConnectionRepository::
@@ -336,4 +356,12 @@ set_time_warning(float time_warning) {
 INLINE float CConnectionRepository::
 get_time_warning() const {
   return _time_warning;
+}
+
+/**
+ * Prints user-friendly description of a datagram
+ */
+INLINE void CConnectionRepository::
+describe_datagram(const Datagram &dg) const {
+  describe_message(nout, "", dg);
 }

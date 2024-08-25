@@ -20,6 +20,9 @@ class Transitions:
     IrisModelName = "models/misc/iris"
     FadeModelName = "models/misc/fade"
 
+    FadeOutEvent = 'fadeout-done'
+    FadeInEvent =  'fadein-done'
+
     def __init__(self, loader,
                  model=None,
                  scale=3.0,
@@ -34,13 +37,13 @@ class Transitions:
         self.fadeModel = model
         self.imagePos = pos
         if model:
-            self.alphaOff = Vec4(1, 1, 1, 0)
-            self.alphaOn = Vec4(1, 1, 1, 1)
+            self.alphaTransparent = Vec4(1, 1, 1, 0)
+            self.alphaOpaque = Vec4(1, 1, 1, 1)
             model.setTransparency(1)
             self.lerpFunc = LerpColorScaleInterval
         else:
-            self.alphaOff = Vec4(0, 0, 0, 0)
-            self.alphaOn = Vec4(0, 0, 0, 1)
+            self.alphaTransparent = Vec4(0, 0, 0, 0)
+            self.alphaOpaque = Vec4(0, 0, 0, 1)
             self.lerpFunc = LerpColorInterval
 
         self.irisTaskName = "irisTask"
@@ -60,7 +63,7 @@ class Transitions:
     def setFadeModel(self, model, scale=1.0):
         self.fadeModel = model
         # We have to change some default parameters for a custom fadeModel
-        self.alphaOn = Vec4(1, 1, 1, 1)
+        self.alphaOpaque = Vec4(1, 1, 1, 1)
 
         # Reload fade if its already been created
         if self.fade:
@@ -69,7 +72,7 @@ class Transitions:
             self.loadFade()
 
     def loadFade(self):
-        if self.fade is None:
+        if not self.fade:
             # We create a DirectFrame for the fade polygon, instead of
             # simply loading the polygon model and using it directly,
             # so that it will also obscure mouse events for objects
@@ -98,17 +101,16 @@ class Transitions:
         Returns an interval without starting it.  This is particularly useful in
         cutscenes, so when the cutsceneIval is escaped out of we can finish the fade immediately
         """
-        #self.noTransitions() masad: this creates a one frame pop, is it necessary?
         self.loadFade()
 
         transitionIval = Sequence(Func(self.fade.reparentTo, ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX),
                                   Func(self.fade.showThrough),  # in case aspect2d is hidden for some reason
                                   self.lerpFunc(self.fade, t,
-                                                self.alphaOff,
-                                                # self.alphaOn,
+                                                self.alphaTransparent,
                                                 blendType=blendType
                                                 ),
                                   Func(self.fade.detachNode),
+                                  Func(messenger.send,self.FadeInEvent),
                                   name = self.fadeTaskName,
                                   )
         if finishIval:
@@ -120,16 +122,15 @@ class Transitions:
         Create a sequence that lerps the color out, then
         parents the fade to hidden
         """
-        self.noTransitions()
         self.loadFade()
 
         transitionIval = Sequence(Func(self.fade.reparentTo, ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX),
                                   Func(self.fade.showThrough),  # in case aspect2d is hidden for some reason
                                   self.lerpFunc(self.fade, t,
-                                                self.alphaOn,
-                                                # self.alphaOff,
+                                                self.alphaOpaque,
                                                 blendType=blendType
                                                 ),
+                                  Func(messenger.send,self.FadeOutEvent),
                                   name = self.fadeTaskName,
                                   )
         if finishIval:
@@ -142,7 +143,11 @@ class Transitions:
         Places a polygon on the aspect2d plane then lerps the color
         from black to transparent. When the color lerp is finished, it
         parents the fade polygon to hidden.
+
+        It will send a Transitions.FadeInEvent when the fade is complete.
         """
+        self.noTransitions()
+
         gsg = base.win.getGsg()
         if gsg:
             # If we're about to fade in from black, go ahead and
@@ -157,6 +162,7 @@ class Transitions:
             self.noTransitions()
             self.loadFade()
             self.fade.detachNode()
+            messenger.send(self.FadeInEvent)
             fut = AsyncFuture()
             fut.setResult(None)
             return fut
@@ -177,18 +183,17 @@ class Transitions:
         it leaves the fade polygon covering the aspect2d plane until you
         fadeIn or call noFade.
         lerp
-        """
-        if t == 0:
-            # Fade out immediately with no lerp
-            self.noTransitions()
-            self.loadFade()
 
+        It will send a Transitions.FadeOutEvent when the fade is complete.
+        """
+        # no longer sets the color of self.fade 
+        self.noTransitions() 
+
+        if t == 0:
+            self.loadFade()
             self.fade.reparentTo(ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX)
-            self.fade.setColor(self.alphaOn)
-        elif ConfigVariableBool('no-loading-screen', False):
-            if finishIval:
-                self.transitionIval = finishIval
-                self.transitionIval.start()
+            self.fade.setColor(self.alphaOpaque)
+            messenger.send(self.FadeOutEvent)
         else:
             # Create a sequence that lerps the color out, then
             # parents the fade to hidden
@@ -203,9 +208,6 @@ class Transitions:
         fut.setResult(None)
         return fut
 
-    def fadeOutActive(self):
-        return self.fade and self.fade.getColor()[3] > 0
-
     def fadeScreen(self, alpha=0.5):
         """
         Put a semitransparent screen over the camera plane
@@ -217,9 +219,9 @@ class Transitions:
         self.loadFade()
 
         self.fade.reparentTo(ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX)
-        self.fade.setColor(self.alphaOn[0],
-                           self.alphaOn[1],
-                           self.alphaOn[2],
+        self.fade.setColor(self.alphaOpaque[0],
+                           self.alphaOpaque[1],
+                           self.alphaOpaque[2],
                            alpha)
 
     def fadeScreenColor(self, color):
@@ -228,7 +230,7 @@ class Transitions:
         to darken out the world. Useful for drawing attention to
         a dialog box for instance
         """
-        #print "transitiosn: fadeScreenColor"
+        #print "transition: fadeScreenColor"
         self.noTransitions()
         self.loadFade()
 
@@ -239,7 +241,6 @@ class Transitions:
         """
         Removes any current fade tasks and parents the fade polygon away
         """
-        #print "transitiosn: noFade"
         if self.transitionIval:
             self.transitionIval.pause()
             self.transitionIval = None
@@ -247,13 +248,11 @@ class Transitions:
             self.__transitionFuture.cancel()
             self.__transitionFuture = None
         if self.fade:
-            # Make sure to reset the color, since fadeOutActive() is looking at it
-            self.fade.setColor(self.alphaOff)
             self.fade.detachNode()
 
     def setFadeColor(self, r, g, b):
-        self.alphaOn.set(r, g, b, 1)
-        self.alphaOff.set(r, g, b, 0)
+        self.alphaOpaque.set(r, g, b, 1)
+        self.alphaTransparent.set(r, g, b, 0)
 
     ##################################################
     # Iris
@@ -437,6 +436,12 @@ class Transitions:
             self.__letterboxFuture = None
         if self.letterbox:
             self.letterbox.stash()
+
+    def fadeOutActive(self):
+        if self.fade and self.fade.getColor()[3] > 0 and self.fade.getParent():
+            return True
+        else:
+            return False
 
     def __finishLetterbox(self):
         if self.__letterboxFuture:

@@ -992,6 +992,9 @@ class Freezer:
         __path__. """
 
         str = 'import %s' % (moduleName)
+        if not isClient():
+            print("EXECWARNING FreezeTool: %s"%str)
+            printStack()
         exec(str)
 
         module = sys.modules[moduleName]

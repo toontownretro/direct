@@ -64,7 +64,7 @@ class LandingPage:
 
         fileStr = BytesIO()
         ET.ElementTree(headTag).write(fileStr, encoding='utf-8')
-        headTagStr = fileStr.getvalue().decode()
+        headTagStr = unicodeUtf8(fileStr.getvalue())
         # remove the tag closer
         # </head>
         headTagStr = headTagStr[:headTagStr.rindex('<')]
@@ -76,7 +76,7 @@ class LandingPage:
 
         fileStr = BytesIO()
         ET.ElementTree(landing).write(fileStr, encoding='utf-8')
-        landingStr = fileStr.getvalue().decode()
+        landingStr = unicodeUtf8(fileStr.getvalue())
         # remove <body>
         landingStr = landingStr[landingStr.index('>')+1:]
         # remove tag closers
@@ -88,7 +88,7 @@ class LandingPage:
         
         fileStr = BytesIO()
         ET.ElementTree(bodyTag).write(fileStr, encoding='utf-8')
-        bodyTagStr = fileStr.getvalue().decode()
+        bodyTagStr = unicodeUtf8(fileStr.getvalue())
         # extract <body>
         bodyStr = bodyTagStr[bodyTagStr.index('>')+1:]
         bodyTagStr = bodyTagStr[:bodyTagStr.index('>')+1]

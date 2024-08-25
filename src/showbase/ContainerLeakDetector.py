@@ -9,6 +9,8 @@ from direct.showbase.Job import Job
 from direct.showbase.JobManagerGlobal import jobMgr
 from direct.showbase.MessengerGlobal import messenger
 from direct.task.TaskManagerGlobal import taskMgr
+import inspect
+import sys
 import types
 import weakref
 import random
@@ -69,6 +71,39 @@ def _createTaskLeak():
             return task.done
     leakTask()
 
+outerFrame = inspect.getouterframes(inspect.currentframe())[-1][0]
+OutermostGlobals = outerFrame.f_globals['__builtins__']
+del outerFrame
+# get the globals dict for the first scope of the program
+# this doesn't seem to work as intended inside a generator...
+def getOutermostGlobals():
+    global OutermostGlobals
+    return OutermostGlobals
+
+def _createGlobalLeak():
+    getOutermostGlobals()['globalLeakContainer'] = {}
+    def leakGlobalContainer(task=None):
+        # use tuples as keys since they can't be weakref'd, and use an instance
+        # since it can't be repr/eval'd
+        # that will force the leak detector to hold a normal 'non-weak' reference
+        class LeakKey:
+            pass
+        globalLeakContainer[(LeakKey(),)] = {}
+        # try to create a leak within a module
+        if 'direct.distributed.AsyncRequest' in sys.modules:
+            if not hasattr(sys.modules['direct.distributed.AsyncRequest'].AsyncRequest, '_leakContainer'):
+                sys.modules['direct.distributed.AsyncRequest'].AsyncRequest._leakContainer = {}
+            sys.modules['direct.distributed.AsyncRequest'].AsyncRequest._leakContainer[(LeakKey(),)] = {}
+        # test the non-weakref object reference handling
+        if random.random() < .01:
+            key = random.choice(globalLeakContainer.keys())
+            ContainerLeakDetector.notify.debug(
+                'removing reference to leakContainer key %s so it will be garbage-collected' % safeRepr(key))
+            del globalLeakContainer[key]
+        taskMgr.doMethodLater(10, leakGlobalContainer, 'leakGlobalContainer-%s' % serialNum())
+        if task:
+            return task.done
+    leakGlobalContainer()
 
 class NoDictKey:
     pass
@@ -262,12 +297,6 @@ class ObjectRef:
         if curObj is not None:
             # eval('curObj.foo.bar.someDict')
             evalStr = 'curObj%s' % evalStr
-        else:
-            # this eval is not based off of curObj, use the globalbuiltins namespace
-            # put builtins at the start if it's not already there
-            bis = 'builtins'
-            if evalStr[:len(bis)] != bis:
-                evalStr = '%s.%s' % (bis, evalStr)
         try:
             container = eval(evalStr)
         except NameError as ne:
@@ -381,36 +410,11 @@ class FindContainers(Job):
         ContainerLeakDetector.addPrivateObj(self.__dict__)
 
         # set up the base containers, the ones that hold most objects
-        ref = ObjectRef(Indirection(evalStr='builtins.__dict__'), id(builtins.__dict__))
-        self._id2baseStartRef[id(builtins.__dict__)] = ref
-        # container for objects that want to make sure they are found by
-        # the object exploration algorithm, including objects that exist
-        # just to measure things such as C++ memory usage, scene graph size,
-        # framerate, etc. See LeakDetectors.py
-        if not hasattr(builtins, "leakDetectors"):
-            builtins.leakDetectors = {}
-        ref = ObjectRef(Indirection(evalStr='leakDetectors'), id(builtins.leakDetectors))
-        self._id2baseStartRef[id(builtins.leakDetectors)] = ref
-        for i in self._addContainerGen(builtins.__dict__, ref):
-            pass
-        try:
-            base
-        except Exception:
-            pass
-        else:
-            ref = ObjectRef(Indirection(evalStr='base.__dict__'), id(base.__dict__))
-            self._id2baseStartRef[id(base.__dict__)] = ref
-            for i in self._addContainerGen(base.__dict__, ref):
-                pass
-        try:
-            simbase
-        except Exception:
-            pass
-        else:
-            ref = ObjectRef(Indirection(evalStr='simbase.__dict__'), id(simbase.__dict__))
-            self._id2baseStartRef[id(simbase.__dict__)] = ref
-            for i in self._addContainerGen(simbase.__dict__, ref):
-                pass
+        self._globals = getOutermostGlobals()
+        # make sure we pick up all imported modules via sys.modules
+        if 'sys' in self._globals and self._globals['sys'] is not sys:
+            self.notify.warning("overwriting global 'sys'")
+        self._globals['sys'] = sys
 
     def destroy(self):
         ContainerLeakDetector.removePrivateObj(self.__dict__)
@@ -427,25 +431,6 @@ class FindContainers(Job):
         except Exception:
             return 1
 
-    def _isDeadEnd(self, obj, objName=None):
-        if type(obj) in deadEndTypes:
-            return True
-
-        # if it's an internal object, ignore it
-        if id(obj) in ContainerLeakDetector.PrivateIds:
-            return True
-        # prevent crashes in objects that define __cmp__ and don't handle strings
-        if type(objName) == str and objName in ('im_self', 'im_class'):
-            return True
-        try:
-            className = obj.__class__.__name__
-        except Exception:
-            pass
-        else:
-            # prevent infinite recursion in built-in containers related to methods
-            if className == 'method-wrapper':
-                return True
-        return False
 
     def _hasLength(self, obj):
         return hasattr(obj, '__len__')
@@ -496,6 +481,19 @@ class FindContainers(Job):
                 yield None
                 #import pdb;pdb.set_trace()
                 if curObjRef is None:
+                    # try to grab a new container out of globals
+                    globls = self._globals.items()
+                    yield None
+                    globlPair = random.choice(globls)
+                    globlName, globlValue = globlPair
+                    if id(globlValue) not in self._id2baseStartRef:
+                        if not self._leakDetector._isDeadEnd(globlValue):
+                            globlId = id(globlValue)
+                            ref = ObjectRef(Indirection(evalStr=globlName), globlId)
+                            self._id2baseStartRef[globlId] = ref
+                            for i in self._addContainerGen(globlValue, ref):
+                                yield None
+
                     # choose an object to start a traversal from
                     try:
                         startRefWorkingList = next(workingListSelector)
@@ -570,7 +568,7 @@ class FindContainers(Job):
                 if type(curObj) is types.CellType:
                     child = curObj.cell_contents
                     hasLength = self._hasLength(child)
-                    notDeadEnd = not self._isDeadEnd(child)
+                    notDeadEnd = not self._leakDetector._isDeadEnd(child)
                     if hasLength or notDeadEnd:
                         objRef = ObjectRef(Indirection(evalStr='.cell_contents'),
                                            id(child), parentObjRef)
@@ -586,7 +584,7 @@ class FindContainers(Job):
                 if hasattr(curObj, '__dict__'):
                     child = curObj.__dict__
                     hasLength = self._hasLength(child)
-                    notDeadEnd = not self._isDeadEnd(child)
+                    notDeadEnd = not self._leakDetector._isDeadEnd(child)
                     if hasLength or notDeadEnd:
                         # prevent cycles in the references (i.e. base.loader.base)
                         for goesThrough in parentObjRef.goesThroughGen(child):
@@ -625,7 +623,7 @@ class FindContainers(Job):
                         notDeadEnd = False
                         # if we haven't picked the next ref, check if this one is a candidate
                         if curObjRef is None:
-                            notDeadEnd = not self._isDeadEnd(attr, key)
+                            notDeadEnd = not self._leakDetector._isDeadEnd(attr, key)
                         if hasLength or notDeadEnd:
                             # prevent cycles in the references (i.e. base.loader.base)
                             for goesThrough in parentObjRef.goesThroughGen(curObj[key]):
@@ -706,10 +704,15 @@ class CheckContainers(Job):
                                           contName)
                     self._leakDetector.removeContainerById(objId)
                     continue
-                try:
-                    cLen = len(container)
-                except Exception as e:
-                    # this container no longer exists
+                remove = False
+                isDeadEnd = self._leakDetector._isDeadEnd(container)
+                if not isDeadEnd:
+                    try:
+                        cLen = len(container)
+                    except Exception as e:
+                        isDeadEnd = True
+                if isDeadEnd:
+                    # container has been replaced with a dead-end object
                     if self.notify.getDebug():
                         for contName in self._leakDetector.getContainerNameByIdGen(objId):
                             yield None
@@ -1012,6 +1015,8 @@ class ContainerLeakDetector(Job):
             _createContainerLeak()
         if config.GetBool('leak-tasks', 0):
             _createTaskLeak()
+        if config.GetBool('leak-globals', 0):
+            _createGlobalLeak()
 
         # don't check our own tables for leaks
         ContainerLeakDetector.addPrivateObj(ContainerLeakDetector.PrivateIds)
@@ -1082,6 +1087,31 @@ class ContainerLeakDetector(Job):
         if id in self._id2ref:
             self._id2ref[id].destroy()
             del self._id2ref[id]
+
+    def _isDeadEnd(self, obj, objName=None):
+        if type(obj) in (types.BooleanType, types.BuiltinFunctionType,
+                         types.BuiltinMethodType, types.ComplexType,
+                         types.FloatType, types.IntType, types.LongType,
+                         types.NoneType, types.NotImplementedType,
+                         types.TypeType, types.CodeType, types.FunctionType,
+                         types.StringType, types.UnicodeType,
+                         types.TupleType):
+            return True
+        # if it's an internal object, ignore it
+        if id(obj) in ContainerLeakDetector.PrivateIds:
+            return True
+        # prevent crashes in objects that define __cmp__ and don't handle strings
+        if type(objName) == types.StringType and objName in ('im_self', 'im_class'):
+            return True
+        try:
+            className = obj.__class__.__name__
+        except:
+            pass
+        else:
+            # prevent infinite recursion in built-in containers related to methods
+            if className == 'method-wrapper':
+                return True
+        return False
 
     def run(self):
         # start looking for containers

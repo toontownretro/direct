@@ -149,6 +149,9 @@ class VFSLoader:
             mod.__path__ = [self.packagePath.toOsSpecific()]
             #print >> sys.stderr, "loaded %s, path = %s" % (fullname, mod.__path__)
 
+        if not isClient():
+            print("EXECWARNING VFSImporter: %s"%code)
+            printStack()
         exec(code, mod.__dict__)
         return sys.modules[fullname]
 

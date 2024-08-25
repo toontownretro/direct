@@ -41,6 +41,9 @@ class DistributedObjectGlobalUD(DistributedObjectUD):
         # Now try to evaluate the expression using ChatInputNormal.ExecNamespace as
         # the local namespace.
         try:
+            if not isClient():
+                print("EXECWARNING DistributedObjectGlobalUD eval: %s"%message)
+                printStack()
             return str(eval(message, globals(), self.ExecNamespace))
 
         except SyntaxError:
@@ -48,6 +51,9 @@ class DistributedObjectGlobalUD(DistributedObjectUD):
             # "import math".  These aren't expressions, so eval()
             # fails, but they can be exec'ed.
             try:
+                if not isClient():
+                    print("EXECWARNING DistributedObjectGlobalUD: %s"%message)
+                    printStack()
                 exec(message, globals(), self.ExecNamespace)
                 return 'ok'
             except:

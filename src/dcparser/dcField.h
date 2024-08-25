@@ -45,6 +45,8 @@ PUBLISHED:
   INLINE int get_number() const;
   INLINE DCClass *get_class() const;
 
+  static DCField *get_field_from_number(int number);
+
   virtual DCField *as_field();
   virtual const DCField *as_field() const;
   virtual DCAtomicField *as_atomic_field();
@@ -63,6 +65,9 @@ PUBLISHED:
   INLINE const vector_uchar &get_default_value() const;
 
   INLINE bool is_bogus_field() const;
+
+  typedef pmap<int, DCField *> FieldsByIndex;
+  static FieldsByIndex all_fields_by_index;
 
   INLINE bool is_required() const;
   INLINE bool is_broadcast() const;

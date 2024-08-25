@@ -243,6 +243,7 @@ class DistributedObject(DistributedObjectBase):
     def _deactivateDO(self):
         # after this is called, the object is no longer an active DistributedObject
         # and it may be placed in the cache
+        self.networkDelete()
         if not self.cr:
             # we are going to crash, output the destroyDo stacktrace
             self.notify.warning('self.cr is none in _deactivateDO %d' % self.doId)
@@ -252,6 +253,10 @@ class DistributedObject(DistributedObjectBase):
         self.cr.closeAutoInterests(self)
         self.setLocation(0,0)
         self.cr.deleteObjectLocation(self, self.parentId, self.zoneId)
+
+    def networkDelete(self):
+        # more user-friendly method for overriding and readibility; same purpose as _deactivateDO
+        pass
 
     def _destroyDO(self):
         # after this is called, the object is no longer a DistributedObject
@@ -304,8 +309,6 @@ class DistributedObject(DistributedObjectBase):
         """
         assert self.notify.debugStateCall(self)
         self.activeState = ESGenerating
-        # this has already been set at this point
-        #self.cr.storeObjectLocation(self, self.parentId, self.zoneId)
         # semi-hack: we seem to be calling generate() more than once for objects that multiply-inherit
         if not hasattr(self, '_autoInterestHandle'):
             self.cr.openAutoInterests(self)
@@ -354,6 +357,9 @@ class DistributedObject(DistributedObjectBase):
 
     def sendUpdate(self, fieldName, args = [], sendToId = None):
         if self.cr:
+            # commenting out, provides an easy way for hackers to examine distributed functions
+            #if self.cr.wantUpdateCalls:
+            #    self.notify.warning("fieldName = %s, args = %s" % (fieldName, args))
             dg = self.dclass.clientFormatUpdate(
                 fieldName, sendToId or self.doId, args)
             self.cr.send(dg)
@@ -513,9 +519,9 @@ class DistributedObject(DistributedObjectBase):
         # avatar class overrides this to return true.
         return self.cr and self.cr.isLocalId(self.doId)
 
-    def isGridParent(self):
-        # If this distributed object is a DistributedGrid return 1.  0 by default
-        return 0
-
     def execCommand(self, string, mwMgrId, avId, zoneId):
+        pass
+
+    def printDoTree(self):
+        self.cr.printDoTree(self.doId)
         pass

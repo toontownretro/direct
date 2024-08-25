@@ -107,6 +107,9 @@ MsgName2Id = {
 MsgId2Names = invertDictLossless(MsgName2Id)
 
 # put msg names in module scope, assigned to msg value
+if not isClient():
+    print("EXECWARNING MsgTypes: %s"%MsgName2Id)
+    printStack()
 globals().update(MsgName2Id)
 
 # These messages are ignored when the client is headed to the quiet zone

@@ -157,6 +157,7 @@ write(std::ostream &out, int indent_level) const {
 INLINE void DCField::
 set_number(int number) {
   _number = number;
+  all_fields_by_index[_number] = this;
 }
 
 /**

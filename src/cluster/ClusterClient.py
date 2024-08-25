@@ -345,6 +345,9 @@ class ClusterClient(DirectObject.DirectObject):
                 server.sendCommandString(commandString)
         if fLocally:
             # Execute locally
+            if not isClient():
+                print("EXECWARNING ClusterClient: %s"%commandString)
+                printStack()
             exec(commandString, __builtins__)
 
     def handleDatagram(self,dgi,type,server):
@@ -674,4 +677,7 @@ class DummyClusterClient(DirectObject.DirectObject):
     def __call__(self, commandString, fLocally = 1, serverList = None):
         if fLocally:
             # Execute locally
+            if not isClient():
+                print("EXECWARNING ClusterClient: %s"%commandString)
+                printStack()
             exec(commandString, __builtins__)

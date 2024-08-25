@@ -16,7 +16,7 @@
 
 #define COMPONENT_LIBS \
   actor directbase dcparser showbase deadrec directd interval distributed motiontrail http \
-  distributed2 foundry
+  dxml distributed2 foundry
 
 #define OTHER_LIBS \
   panda:m \

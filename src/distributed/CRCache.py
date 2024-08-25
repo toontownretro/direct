@@ -11,7 +11,7 @@ class CRCache:
 
     def __init__(self, maxCacheItems=10):
         self.maxCacheItems = maxCacheItems
-        self.storedCacheItems = maxCacheItems
+        self.storedMaxCache = maxCacheItems
         self.dict = {}
         self.fifo = []
 

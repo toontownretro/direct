@@ -168,6 +168,21 @@ set_r(PN_stdfloat r) {
 }
 
 /**
+ * Sets the embedded value only.
+ */
+INLINE bool SmoothMover::
+set_e(uint64_t e) {
+  bool result = (e != _sample._embedded);
+  /*
+  if (deadrec_cat.is_debug()) {
+    deadrec_cat.debug() << "set_r " << r << "\n";
+  }
+  */
+  _sample._embedded = e;
+  return result;
+}
+
+/**
  * Specifies the position and orientation of the SmoothMover at a particular
  * time in the past.  When mark_position() is called, this will be recorded
  * (along with timestamp) in a position report, which will then be used along
@@ -202,6 +217,44 @@ set_pos_hpr(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfl
 }
 
 /**
+ * Specifies the position and orientation of the SmoothMover at a
+ * particular time in the past.  When mark_position() is
+ * called, this will be recorded (along with
+ * timestamp) in a position report, which will then be
+ * used along with all other position reports to
+ * determine the smooth position at any particular
+ * instant.
+ * 
+ * The return value is true if any parameter has changed
+ * since the last call to set_pos_hpr(), or false if they
+ * are the same.
+ */
+INLINE bool SmoothMover::
+set_pos_hpr_e(const LVecBase3 &pos, const LVecBase3 &hpr, uint64_t e) {
+  return (set_x(pos[0]) | set_y(pos[1]) | set_z(pos[2]) |
+          set_h(hpr[0]) | set_p(hpr[1]) | set_r(hpr[2]) |
+          set_e(e));
+}
+
+/**
+ * Specifies the position of the SmoothMover at a
+ * particular time in the past.  When mark_position() is
+ * called, this will be recorded (along with
+ * timestamp) in a position report, which will then be
+ * used along with all other position reports to
+ * determine the smooth position at any particular
+ * instant.
+ * 
+ * The return value is true if any parameter has changed
+ * since the last call to set_pos_hpr(), or false if they
+ * are the same.
+ */
+INLINE bool SmoothMover::
+set_pos_hpr_e(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t e) {
+  return set_x(x) | set_y(y) | set_z(z) | set_h(h) | set_p(p) | set_r(r) | set_e(e);
+}
+
+/**
  * Returns the current position of the working sample point.  This position is
  * updated periodically by set_x(), set_y(), etc., and its current value is
  * copied to the sample point table when mark_position() is called.
@@ -220,6 +273,19 @@ get_sample_pos() const {
 INLINE const LVecBase3 &SmoothMover::
 get_sample_hpr() const {
   return _sample._hpr;
+}
+
+/**
+ * Returns the current embedded value of the working sample
+ * point.  This value is updated periodically by
+ * set_e(), and its current value is copied to the sample
+ * point table when mark_position() is called.
+ * The semantics(meaning) of the value is determined
+ * by the needs of the smoothed object.
+ */
+INLINE uint64_t SmoothMover::
+get_sample_e() const {
+  return _sample._embedded;
 }
 
 /**
@@ -323,6 +389,15 @@ get_smooth_hpr() const {
 }
 
 /**
+ * Returns the embedded value as computed by a
+ * previous call to compute_smooth_position().
+ */
+INLINE uint64_t SmoothMover::
+get_smooth_e() const {
+  return _smooth_embedded;
+}
+
+/**
  * Applies the smoothed position to the indicated NodePath.  This is
  * equivalent to calling node.set_pos(smooth_mover->get_smooth_pos()).  It
  * exists as an optimization only, to avoid the overhead of passing the return
@@ -331,6 +406,29 @@ get_smooth_hpr() const {
 INLINE void SmoothMover::
 apply_smooth_pos(NodePath &node) const {
   node.set_pos(get_smooth_pos());
+}
+
+/**
+ * Applies the smoothed orientation to the indicated
+ * NodePath.  This is equivalent to calling
+ * node.set_hpr(smooth_mover->get_smooth_hpr()).  It
+ * exists as an optimization only, to avoid the overhead
+ * of passing the return value through Python.
+ */
+INLINE void SmoothMover::
+apply_smooth_hpr(NodePath &node) const {
+  node.set_hpr(get_smooth_hpr());
+}
+
+/**
+ * Applies the smoothed e to the indicated
+ * EmbeddedValue. You can get the same data
+ * from get_smooth_e(), but this is provided
+ * for completeness.
+ */
+INLINE void SmoothMover::
+apply_smooth_e(EmbeddedValue &e) const {
+  e.set(get_smooth_e());
 }
 
 /**
@@ -347,25 +445,32 @@ apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node) const {
 }
 
 /**
- * Applies the smoothed orientation to the indicated NodePath.  This is
- * equivalent to calling node.set_hpr(smooth_mover->get_smooth_hpr()).  It
- * exists as an optimization only, to avoid the overhead of passing the return
- * value through Python.
+ * Applies the smoothed position and orientation to the
+ * indicated NodePath.  Also applies the current embedded
+ * value to EmbeddedValue, This is equivalent to calling
+ * node.set_pos_hpr(smooth_mover->get_smooth_pos(),
+ * smooth_mover->get_smooth_hpr()).  It exists as an
+ * optimization only, to avoid the overhead of passing
+ * the return value through Python.
  */
 INLINE void SmoothMover::
-apply_smooth_hpr(NodePath &node) const {
-  node.set_hpr(get_smooth_hpr());
+apply_smooth_pos_hpr_e(NodePath &pos_node, NodePath &hpr_node, EmbeddedValue &e) const {
+  pos_node.set_pos(get_smooth_pos());
+  hpr_node.set_hpr(get_smooth_hpr());
+  e.set(get_smooth_e());
 }
 
 /**
  * A further optimization to reduce Python calls.  This computes the smooth
  * position and applies it to the indicated node in one call.
  */
-INLINE void SmoothMover::
+INLINE bool SmoothMover::
 compute_and_apply_smooth_pos(NodePath &node) {
   if (compute_smooth_position()) {
     apply_smooth_pos(node);
+    return true;
   }
+  return false;
 }
 
 /**
@@ -373,24 +478,56 @@ compute_and_apply_smooth_pos(NodePath &node) {
  * position and applies it to the indicated node or nodes in one call.  The
  * pos_node and hpr_node might be the same NodePath.
  */
-INLINE void SmoothMover::
-compute_and_apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node) {
-  if (compute_smooth_position()) {
-    apply_smooth_pos(pos_node);
-    apply_smooth_hpr(hpr_node);
-  }
-}
-
-/**
- * A further optimization to reduce Python calls.  This computes the smooth
- * position and applies it to the indicated node or nodes in one call.  The
- * pos_node and hpr_node might be the same NodePath.
- */
-INLINE void SmoothMover::
+INLINE bool SmoothMover::
 compute_and_apply_smooth_hpr(NodePath &hpr_node) {
   if (compute_smooth_position()) {
     apply_smooth_hpr(hpr_node);
+    return true;
   }
+  return false;
+}
+
+/**
+ * A further optimization to reduce Python calls.  This
+ * computes the smooth position and applies it to the
+ * indicated node in one call.
+ */
+INLINE bool SmoothMover::
+compute_and_apply_smooth_e(EmbeddedValue& e) {
+  if (compute_smooth_position()) {
+    apply_smooth_e(e);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * A further optimization to reduce Python calls.  This computes the smooth
+ * position and applies it to the indicated node or nodes in one call.  The
+ * pos_node and hpr_node might be the same NodePath.
+ */
+INLINE bool SmoothMover::
+compute_and_apply_smooth_pos_hpr(NodePath &pos_node, NodePath &hpr_node) {
+  if (compute_smooth_position()) {
+    apply_smooth_pos_hpr(pos_node, hpr_node);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * A further optimization to reduce Python calls.  This
+ * computes the smooth position and applies it to the
+ * indicated node or nodes in one call.  The pos_node
+ * and hpr_node might be the same NodePath.
+ */
+INLINE bool SmoothMover::
+compute_and_apply_smooth_pos_hpr_e(NodePath &pos_node, NodePath &hpr_node, EmbeddedValue& e) {
+  if (compute_smooth_position()) {
+    apply_smooth_pos_hpr_e(pos_node, hpr_node, e);
+    return true;
+  }
+  return false;
 }
 
 /**
