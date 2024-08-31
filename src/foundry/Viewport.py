@@ -22,7 +22,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 # Base viewport class
 class Viewport(QtWidgets.QWidget, DirectObject):
 
-    ClearColor = LEGlobals.vec3GammaToLinear(Vec4(0.361, 0.361, 0.361, 1.0))
+    ClearColor = LEGlobals.vec3GammaToLinear(Vec4(0.0, 0.0, 0.0, 1.0))
 
     def __init__(self, vpType, window, doc):
         DirectObject.__init__(self)

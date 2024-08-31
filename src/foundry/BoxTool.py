@@ -380,9 +380,9 @@ class BoxTool(BaseTool):
         vp = base.viewportMgr.activeViewport
         if not vp:
             return
-        #if vp.is3D():
-        #    self.mouseDown3D()
-        #    return
+        if vp.is3D():
+            self.mouseDown3D()
+            return
 
         self.state.clickStart = Point2(vp.getMouse())
 

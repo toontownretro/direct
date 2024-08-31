@@ -65,7 +65,7 @@ class ModelHelper(MapHelper):
         if not modelPath:
             # Model wasn't specified in the class definition,
             # check for a property called "model"
-            modelPath = self.mapObject.getPropertyValue("model", default = "models/smiley.egg.pz")
+            modelPath = self.mapObject.getPropertyValue("model", default = "models/misc/smiley")
         else:
             # For some reason the fgd parser doesn't remove the quotes around the
             # model path string in the game class definition
