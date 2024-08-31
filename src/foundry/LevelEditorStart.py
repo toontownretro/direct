@@ -18,6 +18,7 @@ import builtins
 
 from panda3d.core import loadPrcFile, loadPrcFileData, ConfigVariableString, ConfigVariableDouble
 loadPrcFileData('', 'window-type none')
+loadPrcFileData('', 'threading-model')
 
 from direct.foundry.LevelEditor import LevelEditor
 base = LevelEditor()
