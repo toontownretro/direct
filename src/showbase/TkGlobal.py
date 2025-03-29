@@ -2,7 +2,7 @@
 
 import sys
 import Pmw
-
+from tkinter import *
 
 # This is required by the ihooks.py module used by Squeeze (used by
 # pandaSqueezer.py) so that Pmw initializes properly
