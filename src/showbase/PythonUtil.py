@@ -4219,7 +4219,7 @@ def recordFunctorCreationStacks():
     from direct.showbase import DConfig
     config = DConfig
     # off by default, very slow
-    if __dev__ and config.GetBool('record-functor-creation-stacks', 0):
+    if __dev__ and ConfigVariableBool('record-functor-creation-stacks', 0):
         if not hasattr(Functor, '_functorCreationStacksRecorded'):
             Functor = recordCreationStackStr(Functor)
             Functor._functorCreationStacksRecorded = True
