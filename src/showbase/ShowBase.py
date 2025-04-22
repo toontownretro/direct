@@ -3145,8 +3145,8 @@ class ShowBase(HostBase):
                 self.wxApp.Yield()
 
                 # Now do all the wxPython events waiting on this frame.
-                while self.wxApp.Pending():
-                    self.wxApp.Dispatch()
+                while self.wxApp.HasPendingEvents():
+                    self.wxApp.ProcessPendingEvents()
 
                 return task.again
 
