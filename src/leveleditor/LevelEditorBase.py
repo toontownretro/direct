@@ -280,23 +280,23 @@ class LevelEditorBase(DirectObject):
         view.camLens.setFilmSize(x, y)
 
     def save(self):
-        self.ui.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
+        self.ui.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         if self.currentFile:
             self.fileMgr.saveToFile(self.currentFile)
-        self.ui.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+        self.ui.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
     def saveAs(self, fileName):
-        self.ui.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
+        self.ui.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         self.fileMgr.saveToFile(fileName)
         self.currentFile = fileName
-        self.ui.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+        self.ui.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
     def load(self, fileName):
-        self.ui.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
+        self.ui.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         self.reset()
         self.fileMgr.loadFromFile(fileName)
         self.currentFile = fileName
-        self.ui.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+        self.ui.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
     def saveSettings(self):
         if self.settingsFile is None:
