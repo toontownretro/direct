@@ -110,11 +110,11 @@ class DistributedObjectBase(DirectObject):
                     dclass = repos.dclassesByName[cls.__name__]
                     field = dclass.getFieldByName('AutoInterest')
                     if field is not None:
-                        from pandac.PandaModules import DCPacker
+                        from panda3d.direct import DCPacker
                         p = DCPacker()
                         p.setUnpackData(field.getDefaultValue())
                         len = p.rawUnpackUint16()/4
-                        for i in xrange(len):
+                        for i in range(len):
                             zone = int(p.rawUnpackUint32())
                             autoInterests.add(zone)
                     autoInterests.update(autoInterests)

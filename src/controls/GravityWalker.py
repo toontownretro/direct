@@ -228,7 +228,9 @@ class GravityWalker(DirectObject.DirectObject):
         self.__gravity = gravity
         self.lifter.setGravity(self.__gravity)
 
-    def getGravity(self):
+    # Please remove ", gravity" when the system is unified
+    # with Pirates
+    def getGravity(self, gravity):
         return self.__gravity
 
     def setVelocity(self, velocity):
