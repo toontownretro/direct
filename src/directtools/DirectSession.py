@@ -575,7 +575,7 @@ class DirectSession(DirectObject):
                     base.mouseWatcher = winCtrl.mouseWatcher
                     base.mouseWatcherNode = winCtrl.mouseWatcher.node()
                     self.dr.mouseUpdate()
-                    LE_showInOneCam(self.selectedNPReadout, self.camera.getName())
+                    DG.LE_showInOneCam(self.selectedNPReadout, self.camera.getName())
                     if base.camList.index(NodePath(winCtrl.camNode)) in self.manipulationControl.widgetList:
                         self.widget = self.manipulationControl.widgetList[base.camList.index(NodePath(winCtrl.camNode))]
 

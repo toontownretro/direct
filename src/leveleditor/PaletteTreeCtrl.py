@@ -81,14 +81,14 @@ class PaletteTreeCtrl(wx.TreeCtrl):
             namestr = f"Group{i}"
             found = self.traverse(self.GetRootItem(), namestr)
 
-        newItem = self.AppendItem(parent, namestr)
+        newItem = self.Append(parent, namestr)
         itemData = ObjectGen(name=namestr)
         parentName = self.GetItemText(parent)
         if parentName == self.rootName:
             self.paletteUI.palette.add(itemData)
         else:
             self.paletteUI.palette.add(itemData, parentName)
-        self.SetItemPyData(newItem, itemData)
+        self.SetItemData(newItem, itemData)
 
         self.Expand(self.GetRootItem())
         self.ScrollTo(newItem)
@@ -110,8 +110,8 @@ class PaletteTreeCtrl(wx.TreeCtrl):
             itemName = self.GetItemText(item)
             itemData = self.GetItemData(item)
 
-            newItem = self.AppendItem(newParent, itemName)
-            self.SetItemPyData(newItem, itemData)
+            newItem = self.Append(newParent, itemName)
+            self.SetItemData(newItem, itemData)
 
             # if an item had children, we need to re-parent them as well
             if self.ItemHasChildren(item):
@@ -137,7 +137,7 @@ class PaletteTreeCtrl(wx.TreeCtrl):
                 # this is a file node, bailing out
                 return
 
-            newItem = self.AppendItem(dragToItem, itemName)
+            newItem = self.Append(dragToItem, itemName)
 
             itemObj = self.paletteUI.palette.findItem(itemName)
             if itemObj is not None:

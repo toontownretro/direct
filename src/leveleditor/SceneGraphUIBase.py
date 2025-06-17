@@ -74,7 +74,7 @@ class SceneGraphUIBase(wx.Panel):
             namestr = "%s.%s"%(child.node().getType(), child.node().getName())
             newItem = self.tree.PrependItem(parent, namestr)
             newItemId = "%s.%s"%(itemId, i)
-            self.tree.SetItemPyData(newItem, newItemId)
+            self.tree.SetItemData(newItem, newItemId)
 
             # recursing...
             self.traversePandaObjects(newItem, child)
@@ -137,7 +137,7 @@ class SceneGraphUIBase(wx.Panel):
             name = ' '
         namestr = "%s_%s_%s"%(obj[OG.OBJ_DEF].name, name, obj[OG.OBJ_UID])
         newItem = self.tree.AppendItem(parent, namestr)
-        self.tree.SetItemPyData(newItem, obj[OG.OBJ_UID])
+        self.tree.SetItemData(newItem, obj[OG.OBJ_UID])
 
         # adding children of PandaObj
         if self.shouldShowPandaObjChildren:
@@ -173,8 +173,8 @@ class SceneGraphUIBase(wx.Panel):
         while item:
             data = self.tree.GetItemText(item)
             itemId = self.tree.GetItemData(item)
-            newItem = self.tree.AppendItem(newParent, data)
-            self.tree.SetItemPyData(newItem, itemId)
+            newItem = self.tree.Append(newParent, data)
+            self.tree.SetItemData(newItem, itemId)
 
             # if an item had children, we need to re-parent them as well
             if self.tree.ItemHasChildren(item):
@@ -191,8 +191,8 @@ class SceneGraphUIBase(wx.Panel):
         if newParent is None:
             newParent = self.root
         itemId = self.tree.GetItemData(oldParent)
-        newItem = self.tree.AppendItem(newParent, child)
-        self.tree.SetItemPyData(newItem, itemId)
+        newItem = self.tree.Append(newParent, child)
+        self.tree.SetItemData(newItem, itemId)
         self.reParentTree(oldParent, newItem)
 
         obj = self.editor.objectMgr.findObjectById(itemId)

@@ -865,7 +865,7 @@ class GraphEditorUI(wx.Dialog):
     def AddTreeNodes(self, parentItem, items):
         for item in items:
             if isinstance(item, str):
-                self.tree.AppendItem(parentItem, item)
+                self.tree.Append(parentItem, item)
 
     def OnSelChanged(self, evt):
         item = evt.GetItem()

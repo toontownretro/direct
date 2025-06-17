@@ -135,7 +135,7 @@ class ProtoPaletteUI(wx.Panel):
         pos = self.ScreenToClient(pos)
 
         for menuItem in self.popupmenu.GetMenuItems():
-            self.popupmenu.RemoveItem(menuItem)
+            self.popupmenu.Remove(menuItem)
 
         hitItem, flags = self.tree.HitTest(pos)
         if hitItem.IsOk():
@@ -180,8 +180,8 @@ class ProtoPaletteUI(wx.Panel):
         itemData = ObjectBase(name=name, model=modelname, actor=True)
         self.editor.protoPalette.add(itemData)
 
-        newItem = self.tree.AppendItem(self.editor.ui.protoPaletteUI.tree.root, name)
-        self.tree.SetItemPyData(newItem, itemData)
+        newItem = self.tree.Append(self.editor.ui.protoPaletteUI.tree.root, name)
+        self.tree.SetItemData(newItem, itemData)
         self.tree.ScrollTo(newItem)
 
     def addNewItem(self, result):
@@ -192,8 +192,8 @@ class ProtoPaletteUI(wx.Panel):
         else:
             return
         self.palette.add(itemData)
-        newItem = self.tree.AppendItem(self.tree.root, itemData.name)
-        self.tree.SetItemPyData(newItem, itemData)
+        newItem = self.tree.Append(self.tree.root, itemData.name)
+        self.tree.SetItemData(newItem, itemData)
         self.tree.ScrollTo(newItem)
 
     def compareItems(self, item1, item2):

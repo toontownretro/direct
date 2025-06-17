@@ -580,7 +580,7 @@ class LevelEditorUIBase(WxPandaShell):
 
     def buildContextMenu(self, nodePath):
         for menuItem in self.contextMenu.GetMenuItems():
-            self.contextMenu.RemoveItem(menuItem)
+            self.contextMenu.Remove(menuItem)
 
         self.contextMenu.addItem('Replace This', call=lambda\
                                  p0=None, p1=False:self.replaceObject(p0, p1))
@@ -659,7 +659,7 @@ class ViewportMenu(wx.Menu):
         if parent is None:
             parent = self
         item = wx.MenuItem(parent, id, name)
-        parent.AppendItem(item)
+        parent.Append(item)
         if call is not None:
             self.Bind(wx.EVT_MENU, call, item)
 
