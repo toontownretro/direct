@@ -255,6 +255,9 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         INLINE PN_stdfloat get_play_rate(const std::string &anim_name);
         INLINE PN_stdfloat get_play_rate(const std::string &anim_name, const std::string &part_name);
         PN_stdfloat get_play_rate(const std::string &anim_name, const std::string &part_name, int layer);
+        
+        PN_stdfloat get_duration(const std::string &anim_name, const std::string &part_name, int layer=0);
+        PN_stdfloat get_duration(const std::string &anim_name, const std::string &part_name, int from_frame, int to_frame, int layer=0);
 
         INLINE int get_num_frames();
         INLINE int get_num_frames(const std::string &anim_name);
@@ -317,6 +320,19 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         PT(Character) get_part_bundle(const std::string &part_name, const std::string &lod_name);
 
         EXTENSION(PyObject *get_part_bundle_dict());
+        
+        INLINE void remove_part();
+        INLINE void remove_part(const std::string &part_name);
+        void remove_part(const std::string &part_name, const std::string &lod_name);
+        
+        INLINE void hide_part(const std::string &part_name);
+        void hide_part(const std::string &part_name, const std::string &lod_name);
+        
+        INLINE void show_part(const std::string &part_name);
+        void show_part(const std::string &part_name, const std::string &lod_name);
+        
+        INLINE void show_all_parts(const std::string &part_name);
+        void show_all_parts(const std::string &part_name, const std::string &lod_name);
 
         std::string get_current_anim(int layer=0);
         std::string get_current_anim(const std::string &part_name, int layer=0);
@@ -375,6 +391,13 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         NodePath *control_joint(NodePath *node, const std::string &part_name, const std::string &joint_name, const std::string &lod_name);
 
         void release_joint(const std::string &part_name, const std::string &joint_name);
+        
+        PT(Character) get_character();
+        
+        void set_joint_merge_parent(CActor *actor);
+        void add_joint_merge_child(CActor *actor);
+        void clear_joint_merge_parent();
+        void maintain_joint_merges();
 
     public:
         //////////////////////////////
@@ -498,6 +521,9 @@ class EXPCL_DIRECT_ACTOR CActor : public NodePath {
         Switches _switches;
 
         pvector<std::string> _sorted_LOD_names;
+        
+        CActor *joint_merge_parent = nullptr;
+        pvector<CActor *> joint_merge_children;
 
         static LightReMutex _cactor_thread_lock;
 

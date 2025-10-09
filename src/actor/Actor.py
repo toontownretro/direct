@@ -115,7 +115,12 @@ class Actor(DirectObject, CActor):
         super().setBlend(frameBlend, transitionBlend)
 
     def setPlayRate(self, rate, anim="", partName="", layer=0):
-        super().setPlayRate(rate, anim, partName, layer)
+        super().setPlayRate(float(rate), anim, partName, layer)
+        
+    def getDuration(self, animName="", partName="", fromFrame=0, toFrame=None, layer=0):
+        if not toFrame:
+            return super().getDuration(animName, partName, layer)
+        return super().getDuration(animName, partName, fromFrame, toFrame, layer)
 
     def drawInFront(self, frontPartName, backPartName, mode, root="", lodName=""):
         super().drawInFront(frontPartName, backPartName, mode, root, lodName)
@@ -233,6 +238,9 @@ class Actor(DirectObject, NodePath):
             # Mapping of channel index to AnimDef
             self.animsByIndex = {}
             self.weightLists = {}
+            # Joint Merges
+            self.mergeParent = None
+            self.mergedChildren = set()
 
         def getChannelIndex(self, animName):
             animDef = self.animsByName.get(animName)
@@ -250,6 +258,67 @@ class Actor(DirectObject, NodePath):
             if isinstance(animName, str):
                 return self.animsByName.get(animName)
             return self.animsByIndex.get(animName)
+            
+        def setJointMergeParent(self, part):
+            """
+            Same as addJointMergeChild(), but you call this on the child, passing
+            in the parent.
+            """
+            
+            if not part: return
+            if not self.getCharacter() or not part.getCharacter(): return
+            
+            self.clearJointMergeParent()
+            self.getCharacter().setJointMergeCharacter(part.getCharacter())
+            self.mergeParent = part
+            part.mergedChildren.add(self)
+            
+        def addJointMergeChild(self, part):
+            """
+            Adds the indicated PartDef as a joint merge child of this PartDef.
+            Makes child PartDef copy joint poses from this PartDef.
+
+            Same as setJointMergeParent(), but you call this on the parent,
+            passing in the child.
+            """
+            
+            if not part: return
+            if not self.getCharacter() or not part.getCharacter(): return
+            
+            part.clearJointMergeParent()
+            part.getCharacter().setJointMergeCharacter(self.getCharacter())
+            part.mergeParent = self
+            self.mergedChildren.add(part)
+                
+        def clearJointMergeParent(self):
+            """
+            Breaks a joint merge relationship to the current parent, if it has
+            one.
+            """
+            if self.mergeParent:
+                # TODO: Remove the link on the actual character.
+                if self in self.mergeParent.mergedChildren:
+                    self.mergeParent.mergedChildren.remove(self)
+                self.mergeParent = None
+
+        def maintainJointMerges(self):
+            if not self.getCharacter():
+                return
+
+            if self.mergeParent and self.mergeParent.getCharacter():
+                self.getCharacter().setJointMergeCharacter(self.mergeParent.getCharacter())
+
+            for child in self.mergedChildren:
+                if child.getCharacter():
+                    child.getCharacter().setJointMergeCharacter(self.getCharacter())
+                    
+        def setJointMergable(self, jointName, enabled):
+            if not self.getCharacter():
+                return
+                
+            character = self.getCharacter()
+            character.setJointMerge(character.findJoint(jointName), enabled)
+            
 
     def __init__(self, models=None, anims=None, other=None, copy=True,
                  lodNode=None, flattenable=True, setFinal=False,
@@ -1066,6 +1135,55 @@ class Actor(DirectObject, NodePath):
             return
 
         partDef.charNP.reparentTo(joint)
+        
+    def mergePart(self, partName, anotherPartName, lodName="lodRoot"):
+        """mergeParts(self, string, string, string, key="lodRoot")
+        Joint merge one actor part to another actor part."""
+        partBundleDict = self.__partBundleDict.get(lodName)
+        if not partBundleDict:
+            Actor.notify.warning("no lod named %s!" % (lodName))
+            return
+
+        partDef = partBundleDict.get(partName)
+        if not partDef:
+            Actor.notify.warning("no part named %s!" % (partName))
+            return
+
+        anotherPartDef = partBundleDict.get(anotherPartName)
+        if not anotherPartDef:
+            Actor.notify.warning("no part named %s!" % (anotherPartName))
+            return
+
+        partDef.setJointMergeParent(anotherPartDef)
+        
+    def unmergePart(self, partName, lodName="lodRoot"):
+        """unmergePart(self, string, key="lodRoot")
+        Unmerge part from any other part it is merged too."""
+
+        partBundleDict = self.__partBundleDict.get(lodName)
+        if not partBundleDict:
+            Actor.notify.warning("no lod named %s!" % (lodName))
+            return
+            
+        partDef = partBundleDict.get(partName)
+        if not partDef:
+            Actor.notify.warning("no part named %s!" % (partName))
+            return
+            
+        partDef.clearJointMergeParent()
+        
+    def setJointMergable(self, partName, jointName, enabled, lodName="lodRoot"):
+        partBundleDict = self.__partBundleDict.get(lodName)
+        if not partBundleDict:
+            Actor.notify.warning("no lod named %s!" % (lodName))
+            return
+            
+        partDef = partBundleDict.get(partName)
+        if not partDef:
+            Actor.notify.warning("no part named %s!" % (partName))
+            return
+        
+        partDef.setJointMergable(jointName, enabled)
 
     def drawInFront(self, frontPartName, backPartName, mode,
                     root=None, lodName=None):
@@ -1283,6 +1401,8 @@ class Actor(DirectObject, NodePath):
         """
         if self.__geomNode and (self.__geomNode.getNumChildren() > 0):
             assert self.notify.warning("called actor.removeNode() on %s without calling cleanup()" % self.getName())
+            # Just call cleanup here and save ourselves any errors, We've already logged the warning. 
+            self.cleanup(False)
         NodePath.removeNode(self)
 
     def clearPythonData(self):

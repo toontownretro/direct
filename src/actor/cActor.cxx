@@ -1539,6 +1539,105 @@ PN_stdfloat CActor::get_play_rate(const std::string &anim_name, const std::strin
     return 1.0;
 }
 
+PN_stdfloat CActor::get_duration(const std::string &anim_name, const std::string &part_name, int layer) {
+    AnimChannel *channel = nullptr;
+    PN_stdfloat play_rate = 0.0;
+    int from_frame = 0;
+    
+    if (!anim_name.empty()) {
+        // Return duration of a specific named channel.
+        pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+        if (anim_defs.empty()) { return 0.1; }
+        AnimDef &anim_def = anim_defs[0];
+        channel = anim_def.get_animation_channel();
+        play_rate = anim_def.get_play_rate();
+    } else {
+        // Return duration of current channel playing on a layer.
+        if (_part_bundle_dict.empty()) { return 0.1; }
+        
+        for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+            std::string curr_lod_name, curr_part_name;
+            std::string bundle_name(it->first);
+            PartDef &part_def = it->second;
+
+            // Get back both our lod name and our part name by splitting the string.
+            curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+            // Erase the lod name and the delimiter.
+            bundle_name.erase(0, bundle_name.find(':') + 1);
+            // The bundle name is now the part name.
+            curr_part_name = std::move(bundle_name);
+
+            // If the part name doesn't match, skip this part def.
+            if (curr_part_name.compare(part_name) != 0) { continue; }
+            
+            // Get the character for our PartDef and make sure it's not a nullptr.
+            PT(Character) character = part_def.get_character();
+            if (character == nullptr) { return 0.1; }
+            // Make sure the provided layer is valid before doing anything else.
+            if (!character->is_valid_layer_index(layer)) { return 0.1; }
+            // Get the animation layer and make sure it isn't a nullptr.
+            AnimLayer *anim_layer = character->get_anim_layer(layer);
+            if (anim_layer == nullptr) { return 0.1; }
+            if (!character->is_valid_channel_index(anim_layer->_sequence)) { return 0.1; }
+            channel = character->get_channel(anim_layer->_sequence);
+            play_rate = anim_layer->_play_rate;
+            break;
+        }
+    }
+    
+    int to_frame = channel->get_num_frames() - 1;
+    
+    return abs((((to_frame + 1) - from_frame) / channel->get_frame_rate()) / play_rate);
+}
+
+PN_stdfloat CActor::get_duration(const std::string &anim_name, const std::string &part_name, int from_frame, int to_frame, int layer) {
+    AnimChannel *channel = nullptr;
+    PN_stdfloat play_rate = 0.0;
+    
+    if (!anim_name.empty()) {
+        // Return duration of a specific named channel.
+        pvector<AnimDef> anim_defs = get_anim_defs(anim_name, part_name, EMPTY_STR);
+        if (anim_defs.empty()) { return 0.1; }
+        AnimDef &anim_def = anim_defs[0];
+        channel = anim_def.get_animation_channel();
+        play_rate = anim_def.get_play_rate();
+    } else {
+        // Return duration of current channel playing on a layer.
+        if (_part_bundle_dict.empty()) { return 0.1; }
+        
+        for (PartBundleDict::iterator it = _part_bundle_dict.begin(); it != _part_bundle_dict.end(); it++) {
+            std::string curr_lod_name, curr_part_name;
+            std::string bundle_name(it->first);
+            PartDef &part_def = it->second;
+
+            // Get back both our lod name and our part name by splitting the string.
+            curr_lod_name = bundle_name.substr(0, bundle_name.find(':'));
+            // Erase the lod name and the delimiter.
+            bundle_name.erase(0, bundle_name.find(':') + 1);
+            // The bundle name is now the part name.
+            curr_part_name = std::move(bundle_name);
+
+            // If the part name doesn't match, skip this part def.
+            if (curr_part_name.compare(part_name) != 0) { continue; }
+            
+            // Get the character for our PartDef and make sure it's not a nullptr.
+            PT(Character) character = part_def.get_character();
+            if (character == nullptr) { return 0.1; }
+            // Make sure the provided layer is valid before doing anything else.
+            if (!character->is_valid_layer_index(layer)) { return 0.1; }
+            // Get the animation layer and make sure it isn't a nullptr.
+            AnimLayer *anim_layer = character->get_anim_layer(layer);
+            if (anim_layer == nullptr) { return 0.1; }
+            if (!character->is_valid_channel_index(anim_layer->_sequence)) { return 0.1; }
+            channel = character->get_channel(anim_layer->_sequence);
+            play_rate = anim_layer->_play_rate;
+            break;
+        }
+    }
+    
+    return abs((((to_frame + 1) - from_frame) / channel->get_frame_rate()) / play_rate);
+}
+
 int CActor::get_num_frames(const std::string &anim_name, const std::string &part_name, int layer) {
     if (!anim_name.empty()) {
         // Return num frames of a specific channel.
@@ -1748,6 +1847,8 @@ bool CActor::bind_anim(CActor::PartDef &part_def, CActor::AnimDef &anim_def, PT(
 
     // Add in our animation def to the index vector.
     part_def._anims_by_index.emplace_back(node);
+    
+    maintain_joint_merges();
 
     return true;
 }
@@ -1907,6 +2008,8 @@ void CActor::load_model_internal(NodePath &model, const std::string &part_name, 
         AnimIndexNode node { i, anim_def };
         part_def._anims_by_index.emplace_back(node);
     }
+    
+    maintain_joint_merges();
 }
 
 void CActor::prepare_bundle(const NodePath &bundle_np, const NodePath &part_model, const std::string &part_name, const std::string &lod_name) {
@@ -2360,6 +2463,106 @@ PT(Character) CActor::get_part_bundle(const std::string &part_name, const std::s
 
     PartDef &part_def = it->second;
     return part_def._character;
+}
+
+/**
+ * remove_part(string part_name, string lod_name)
+ *
+ * Remove the geometry and animations of the named part of the
+ * optional named lod if present.
+ * NOTE: This will remove child geometry also!
+**/
+void CActor::remove_part(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return;
+    }
+    
+    PartDef &part_def = it->second;
+    NodePath &char_np = part_def._character_np;
+    if (!char_np.is_empty()) {
+        char_np.remove_node();
+    }
+    NodePath &part_model = part_def._part_model;
+    if (!part_model.is_empty()) {
+        part_model.remove_node();
+    }
+    _part_bundle_dict.erase(it);
+}
+
+
+/**
+ * hide_part(string part_name, string lod_name)
+ * 
+ * Make the given part of the optionally given lod not render,
+ * even though still in the tree.
+ * NOTE: This will affect child geometry
+**/
+void CActor::hide_part(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return;
+    }
+    
+    PartDef &part_def = it->second;
+    NodePath &char_np = part_def._character_np;
+    if (!char_np.is_empty()) {
+        char_np.hide();
+    }
+}
+
+/**
+ * show_part(string part_name, string lod_name)
+ * 
+ * Make the given part render while in the tree.
+ * NOTE: This will affect child geometry
+**/
+void CActor::show_part(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return;
+    }
+    
+    PartDef &part_def = it->second;
+    NodePath &char_np = part_def._character_np;
+    if (!char_np.is_empty()) {
+        char_np.show();
+    }
+}
+
+/**
+ * show_all_parts(string part_name, string lod_name)
+ * 
+ * Make the given part and all its children render while in the tree.
+ * NOTE: This will affect child geometry
+**/
+void CActor::show_all_parts(const std::string &part_name, const std::string &lod_name) {
+    std::string bundle_name(lod_name + ":" + part_name);
+
+    PartBundleDict::iterator it = _part_bundle_dict.find(bundle_name);
+    if (it == _part_bundle_dict.end()) {
+        actor_cat.warning() << "No LOD named " << lod_name << " or no part named " << part_name << "!\n";
+        return;
+    }
+
+    PartDef &part_def = it->second;
+    NodePath &char_np = part_def._character_np;
+    NodePathCollection children = char_np.get_children();
+    if (!char_np.is_empty()) {
+        char_np.show();
+    }
+    if (!children.is_empty()) {
+        children.show();
+    }
 }
 
 /**
@@ -3773,7 +3976,8 @@ NodePath *CActor::control_joint(NodePath *node, const std::string &part_name, co
     }
 
     if (!any_good) { actor_cat.warning() << "Cannot control joint " << joint_name << '\n'; }
-
+    
+    maintain_joint_merges();
     return node;
 }
 /**
@@ -3811,6 +4015,86 @@ void CActor::release_joint(const std::string &part_name, const std::string &join
         if (joint == -1) { continue; }
 
         character->clear_joint_controller_node(joint);
+    }
+}
+
+PT(Character) CActor::get_character() {
+    PT(Character) character = nullptr;
+    NodePath characterNode = find("**/+CharacterNode");
+    if (!characterNode.is_empty()) {
+        PT(CharacterNode) characterRNode = (CharacterNode *)characterNode.node();
+        character = characterRNode->get_character();
+    }
+    return character;
+}
+
+/**
+ * Same as add_joint_merge_child(), but you call this on the child, passing
+ * in the parent.
+ */
+void CActor::set_joint_merge_parent(CActor *actor) {
+    clear_joint_merge_parent();
+    
+    if (!actor) { return; }
+    
+    if (actor->get_character() != nullptr && get_character() != nullptr) {
+        get_character()->set_joint_merge_character(actor->get_character());
+    }
+    
+    joint_merge_parent = actor;
+    actor->joint_merge_children.push_back(this);
+}
+
+/**
+ * Adds the indicated actor as a joint merge child of this Actor.
+ * Makes child "actor" copy joint poses from this Actor.
+ * 
+ * Same as set_joint_merge_parent(), but you call this on the parent,
+ * passing in the child.
+ */
+void CActor::add_joint_merge_child(CActor *actor) {
+    if (!actor) { return; }
+    
+    actor->clear_joint_merge_parent();
+    
+    joint_merge_children.push_back(actor);
+    if (actor->get_character() != nullptr && get_character() != nullptr) {
+        actor->get_character()->set_joint_merge_character(get_character());
+    }
+    
+    actor->joint_merge_parent = this;
+}
+
+/**
+ * Breaks a joint merge relationship to the current parent, if it has
+ * one.
+ */
+void CActor::clear_joint_merge_parent() {
+    if (!joint_merge_parent) { return; }
+    
+    pvector<CActor *> &children = joint_merge_parent->joint_merge_children;
+    if (!children.empty()) {
+        pvector<CActor *>::iterator it = std::find(children.begin(), children.end(), this);
+        if (it != children.end()) {
+            // TODO: Remove the link on the actual character.
+            children.erase(it);
+        }
+    }
+    joint_merge_parent = nullptr;
+}
+
+void CActor::maintain_joint_merges() {
+    if (!get_character()) { return; }
+    
+    if (joint_merge_parent && joint_merge_parent->get_character()) {
+        get_character()->set_joint_merge_character(joint_merge_parent->get_character());
+    }
+    
+    for (size_t i = 0; i < joint_merge_children.size(); i++) {
+        CActor *child = joint_merge_children[i];
+        PT(Character) character = child->get_character();
+        if (!character) { continue; }
+        character->set_joint_merge_character(get_character());
     }
 }
 
