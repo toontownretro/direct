@@ -357,6 +357,58 @@ NodePath CActor::get_part_model(const std::string &part_name) {
     return get_part_model(part_name, "lodRoot");
 }
 
+/**
+ * remove_part()
+ *
+ * Remove the geometry and animations of the named part of the
+ * optional named lod if present.
+ * NOTE: This will remove child geometry also!
+**/
+INLINE void CActor::remove_part() {
+    remove_part("modelRoot", "lodRoot");
+}
+
+/**
+ * remove_part(string part_name)
+ *
+ * Remove the geometry and animations of the named part of the
+ * optional named lod if present.
+ * NOTE: This will remove child geometry also!
+**/
+INLINE void CActor::remove_part(const std::string &part_name) {
+    remove_part(part_name, "lodRoot");
+}
+
+/**
+ * hide_part(string part_name)
+ * 
+ * Make the given part of the optionally given lod not render,
+ * even though still in the tree.
+ * NOTE: This will affect child geometry
+**/
+INLINE void CActor::hide_part(const std::string &part_name) {
+    hide_part(part_name, "lodRoot");
+}
+
+/**
+ * show_part(string part_name)
+ *
+ * Make the given part render while in the tree.
+ * NOTE: This will affect child geometry
+**/
+INLINE void CActor::show_part(const std::string &part_name) {
+    show_part(part_name, "lodRoot");
+}
+
+/**
+ * show_all_parts(string part_name)
+ * 
+ * Make the given part and all its children render while in the tree.
+ * NOTE: This will affect child geometry
+**/
+INLINE void CActor::show_all_parts(const std::string &part_name) {
+    show_all_parts(part_name, "lodRoot");
+}
 
 /**
  * get_part_bundle()
