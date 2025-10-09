@@ -21,6 +21,7 @@
 #include "pmap.h"
 #include "vector_int.h"
 #include "pmutex.h"
+#include "reMutex.h"
 #include "eventQueue.h"
 
 /**
@@ -63,24 +64,28 @@ PUBLISHED:
   static CIntervalManager *get_global_ptr();
 
 private:
-  void finish_interval(CInterval *interval);
-  void remove_index(int index);
-
   enum Flags {
     F_external      = 0x0001,
     F_meta_interval = 0x0002,
   };
+  
   class IntervalDef {
   public:
     PT(CInterval) _interval;
     int _flags;
     int _next_slot;
   };
+  
   typedef pvector<IntervalDef> Intervals;
-  Intervals _intervals;
   typedef pmap<std::string, int> NameIndex;
-  NameIndex _name_index;
   typedef vector_int Removed;
+  
+  void finish_interval(CInterval *interval);
+  void remove(NameIndex::iterator ni);
+  void remove_index(int index);
+
+  Intervals _intervals;
+  NameIndex _name_index;
   Removed _removed;
   EventQueue *_event_queue;
 
@@ -88,6 +93,7 @@ private:
   int _next_event_index;
 
   Mutex _lock;
+  ReMutex _lock2;
 
   static CIntervalManager *_global_ptr;
 };

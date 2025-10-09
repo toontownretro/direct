@@ -40,7 +40,7 @@ __all__ = ['ShowBase', 'WindowControls']
 #import VerboseImport
 
 from panda3d.core import *
-from panda3d.direct import throw_new_frame, init_app_for_gui
+from panda3d.direct import CShowBase, init_app_for_gui
 from panda3d.direct import storeAccessibilityShortcutKeys, allowAccessibilityShortcutKeys
 
 import sys
@@ -80,7 +80,7 @@ def exitfunc():
 # Now ShowBase is a DirectObject.  We need this so ShowBase can hang
 # hooks on messages, particularly on window-event.  This doesn't
 # *seem* to cause anyone any problems.
-class ShowBase(HostBase):
+class ShowBase(CShowBase, HostBase):
 
     notify = directNotify.newCategory("ShowBase")
 
@@ -96,7 +96,7 @@ class ShowBase(HostBase):
         This constructor will add various things to the Python builtins scope,
         including this instance itself (under the name ``base``).
         """
-
+        CShowBase.__init__(self)
         HostBase.__init__(self)
 
         from . import ShowBaseGlobal
@@ -269,7 +269,7 @@ class ShowBase(HostBase):
 
         #: The global :class:`~panda3d.core.GraphicsEngine`, as returned by
         #: GraphicsEngine.getGlobalPtr()
-        self.graphicsEngine = GraphicsEngine.getGlobalPtr()
+        self.graphicsEngine = GraphicsEngine.getGlobalPtr() #self.getGraphicsEngine()
         self.graphics_engine = self.graphicsEngine
         self.setupRender()
         self.setupRender2d()
@@ -475,6 +475,7 @@ class ShowBase(HostBase):
     # that way the owner of the new cTrav doesn't need to hold onto the
     # previous one in order to put it back
     def pushCTrav(self, cTrav):
+        self.add_collision_traverser(cTrav)
         self.cTravStack.push(self.cTrav)
         self.cTrav = cTrav
 
@@ -2042,6 +2043,7 @@ class ShowBase(HostBase):
             # set up the shadow collision traverser
             self.shadowTrav = CollisionTraverser("base.shadowTrav")
             self.shadowTrav.setRespectPrevTransform(False)
+            self.add_collision_traverser(self.shadowTrav)
 
     def __shadowCollisionLoop(self, state):
         # run the collision traversal if we have a
@@ -2129,7 +2131,7 @@ class ShowBase(HostBase):
 
         # Lerp stuff needs this event, and it must be generated in
         # C++, not in Python.
-        throw_new_frame()
+        self.throw_new_frame()
         return Task.cont
 
     def __igLoopSync(self, state):
@@ -2175,7 +2177,7 @@ class ShowBase(HostBase):
 
         # Lerp stuff needs this event, and it must be generated in
         # C++, not in Python.
-        throw_new_frame()
+        self.throw_new_frame()
         return Task.cont
 
     def restart(self, clusterSync=False, cluster=None):
@@ -2202,8 +2204,29 @@ class ShowBase(HostBase):
         # between collisionLoop and igLoop
         if self.fixedSimulationStep:
             self.simTaskMgr.add(self.__collisionLoop, 'collisionLoop', sort = 30)
+            '''
+            if self.cTrav:
+                self.add_collision_traverser(self.cTrav)
+            if self.appTrav:
+                self.add_collision_traverser(self.appTrav)
+            if self.shadowTrav:
+                self.add_collision_traverser(self.shadowTrav)
+            self.begin_collisions_traversal(self.simTaskMgr.mgr, self.render)
+            '''
         else:
             self.taskMgr.add(self.__collisionLoop, 'collisionLoop', sort = 30)
+            ''''
+            if self.cTrav:
+                self.add_collision_traverser(self.cTrav)
+            if self.appTrav:
+                self.add_collision_traverser(self.appTrav)
+            if self.shadowTrav:
+                self.add_collision_traverser(self.shadowTrav)
+            self.begin_collisions_traversal(self.taskMgr.mgr, self.render)
+            '''
+            
+        if not ConfigVariableBool('cull-animation').value:
+            self.begin_animate_characters(self.taskMgr.mgr, self.render)
 
         if ConfigVariableBool('garbage-collect-states').value:
             self.taskMgr.add(self.__garbageCollectStates, 'garbageCollectStates', sort = 46)
@@ -2212,7 +2235,8 @@ class ShowBase(HostBase):
         # so that it will get run after most tasks
         self.cluster = cluster
         if not clusterSync or cluster is None:
-            self.taskMgr.add(self.__igLoop, 'igLoop', sort = 50)
+            #self.taskMgr.add(self.__igLoop, 'igLoop', sort = 50)
+            self.startIgLoop(self.taskMgr.mgr, 50)
         else:
             self.taskMgr.add(self.__igLoopSync, 'igLoop', sort = 50)
         # the audioLoop updates the positions of 3D sounds.
@@ -2222,9 +2246,13 @@ class ShowBase(HostBase):
 
     def shutdown(self):
         self.taskMgr.remove('audioLoop')
-        self.taskMgr.remove('igLoop')
+        #self.taskMgr.remove('igLoop')
+        self.stopIgLoop()
         self.taskMgr.remove('shadowCollisionLoop')
-        self.taskMgr.remove('collisionLoop')
+        #self.taskMgr.remove('collisionLoop')
+        self.stop_collisions_traversal()
+        if not ConfigVariableBool('cull-animation').value:
+            self.stop_animate_characters()
         self.taskMgr.remove('dataLoop')
         self.taskMgr.remove('resetPrevTransform')
         self.taskMgr.remove('ivalLoop')

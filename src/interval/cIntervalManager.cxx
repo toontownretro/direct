@@ -15,6 +15,8 @@
 #include "cMetaInterval.h"
 #include "dcast.h"
 #include "mutexHolder.h"
+#include "reMutexHolder.h"
+#include "jobSystem.h"
 
 CIntervalManager *CIntervalManager::_global_ptr;
 
@@ -255,7 +257,23 @@ get_max_index() const {
 void CIntervalManager::
 step() {
   MutexHolder holder(_lock);
-
+  
+  // We can't do this for Python Intervals. Annoyingly. 
+  // So we can't use the job system with these.
+  /*
+  JobSystem *jsys = JobSystem::get_global_ptr();
+  jsys->parallel_process<NameIndex::iterator>(_name_index.begin(), _name_index.size(), [&] (NameIndex::iterator ni) {
+    int index = (*ni).second;
+    const IntervalDef &def = _intervals[index];
+    nassertv(def._interval != nullptr);
+    if (!def._interval->step_play()) {
+      // This interval is finished and wants to be removed from the active
+      // list.
+      remove(ni);
+    }
+  });
+  */
+  
   NameIndex::iterator ni;
   ni = _name_index.begin();
   while (ni != _name_index.end()) {
@@ -417,6 +435,15 @@ finish_interval(CInterval *interval) {
   default:
     interval->priv_finalize();
   }
+}
+
+void CIntervalManager::remove(NameIndex::iterator ni) {
+  ReMutexHolder holder2(_lock2);
+
+  int index = (*ni).second;
+
+  _name_index.erase(ni);
+  remove_index(index);
 }
 
 /**

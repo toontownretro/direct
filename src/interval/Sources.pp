@@ -5,7 +5,7 @@
   #define OTHER_LIBS \
     downloader:c linmath:c \
     anim:c event:c gobj:c pnmimage:c mathutil:c \
-    pgraph:c putil:c panda:m express:c pandaexpress:m \
+    pgraph:c putil:c panda:m express:c pandaexpress:m jobsystem:c \
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m \
     prc gsgbase:c pstatclient:c \

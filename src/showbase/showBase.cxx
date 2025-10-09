@@ -20,12 +20,12 @@ extern "C" { void CPSEnableForegroundOperation(ProcessSerialNumber* psn); }
 #endif
 
 #include "showBase.h"
-
-#include "throw_event.h"
 #include "graphicsWindow.h"
 #include "renderBuffer.h"
 #include "camera.h"
+#include "characterNode.h"
 #include "graphicsPipeSelection.h"
+#include "jobSystem.h"
 
 #ifdef _WIN32
 #include <windows.h>  // For SystemParametersInfo()
@@ -48,17 +48,190 @@ ConfigureFn(config_showbase) {
 ConfigVariableSearchPath particle_path
 ("particle-path",
  PRC_DESC("The directories to search for particle files to be loaded."));
+ 
+ConfigVariableBool parallel_animation
+("parallel-animation", false,
+ PRC_DESC("When cull-animation is false, this controls whether or not "
+          "animations for all characters should be computed in parallel."));
+          
+TypeHandle CShowBase::_type_handle;
 
 ConfigVariableSearchPath &
 get_particle_path() {
   return particle_path;
 }
 
-// Throw the "NewFrame" event in the C++ world.  Some of the lerp code depends
-// on receiving this.
-void
-throw_new_frame() {
-  throw_event("NewFrame");
+AsyncTask::DoneStatus CShowBase::
+traverse_collisions(GenericAsyncTask *task, void *user_data) {
+  CShowBase *this_ptr = (CShowBase *)user_data;
+  
+  if (!this_ptr->traversal_path || this_ptr->traversal_path.is_empty()) { return AsyncTask::DoneStatus::DS_cont; }
+  
+  JobSystem *js = JobSystem::get_global_ptr();
+  js->parallel_process(this_ptr->traversers.size(), [&] (int i) {
+  //for (size_t i = 0; i < this_ptr->traversers.size(); ++i) {
+    CollisionTraverser *traverser = this_ptr->traversers[i];
+    traverser->traverse(this_ptr->traversal_path);
+  //};
+  }, 2);
+  
+  throw_event("collisionLoopFinished");
+  return AsyncTask::DoneStatus::DS_cont;
+}
+
+void CShowBase::
+add_collision_traverser(CollisionTraverser *trav) {
+  nassertv(trav != nullptr);
+  traversers.push_back(trav);
+}
+
+void CShowBase::
+begin_collisions_traversal(PT(AsyncTaskManager) mgr, NodePath &path) {
+  if (!mgr || !path || collision_task) { return; }
+  
+  // This is the NodePath we will traverse with.
+  traversal_path = path;
+  
+  // Create our task to traverse collisions.
+  collision_task = new GenericAsyncTask("collisionLoop", &traverse_collisions, this);
+  // Make the collisionLoop task run before igLoop,
+  // but leave enough room for the app to insert tasks
+  // between collisionLoop and igLoop
+  collision_task->set_sort(30);
+  // Add the task to the task manager.
+  mgr->add(collision_task);
+}
+
+void CShowBase::
+stop_collisions_traversal() {
+  // Remove our collisions task.
+  if (collision_task) {
+      collision_task->remove();
+      delete collision_task;
+  }
+  collision_task = nullptr;
+    
+  // Clear all of our traversers.
+  traversers.clear();
+}
+
+void CShowBase::
+anim_traverse_single(PandaNode *node) {
+  // Visit all the children.
+  PandaNode::Children children = node->get_children();
+  int num_children = children.get_num_children();
+  for (int i = 0; i < num_children; ++i) {
+    const PandaNode::DownConnection &child = children.get_child_connection(i);
+    anim_traverse_single(child.get_child());
+  }
+  
+  // If we aren't dealing with a character, Then just return,
+  if (!node->is_of_type(CharacterNode::get_class_type())) { return; }
+  
+  CharacterNode *char_node = (CharacterNode *)node;
+  char_node->update(false);
+}
+
+void CShowBase::
+anim_traverse_parallel(PandaNode *node) {
+  // Visit all the children.
+  PandaNode::Children children = node->get_children();
+  JobSystem *js = JobSystem::get_global_ptr();
+  js->parallel_process_per_item(children.get_num_children(), [this, &children] (int i) {
+    const PandaNode::DownConnection &child = children.get_child_connection(i);
+    anim_traverse_parallel(child.get_child());
+  });
+  
+  // If we aren't dealing with a character, Then just return,
+  if (!node->is_of_type(CharacterNode::get_class_type())) { return; }
+  
+  CharacterNode *char_node = (CharacterNode *)node;
+  char_node->update(false);
+}
+
+AsyncTask::DoneStatus CShowBase::
+animate_characters(GenericAsyncTask *task, void *user_data) {
+  CShowBase *this_ptr = (CShowBase *)user_data;
+  
+  if (!this_ptr->root_node ) { return AsyncTask::DoneStatus::DS_cont; }
+  
+  if (parallel_animation) {
+    this_ptr->anim_traverse_parallel(this_ptr->root_node);
+  } else {
+    this_ptr->anim_traverse_single(this_ptr->root_node);
+  }
+  
+  return AsyncTask::DoneStatus::DS_cont;
+}
+
+void CShowBase::
+begin_animate_characters(PT(AsyncTaskManager) mgr, NodePath &root) {
+  if (!mgr || animate_task) { return; }
+  
+  if (root.is_empty()) { return; }
+    
+  // This is the root NodePath all of the characters we will animate are children of.
+  root_node = root.node();
+  
+  // Create our task to animate characters.
+  animate_task = new GenericAsyncTask("animateCharacters", &animate_characters, this);
+  // We will animate AFTER collisions are handled.
+  animate_task->set_sort(31);
+  // Add the task to the task manager.
+  mgr->add(animate_task);
+}
+
+void CShowBase::
+stop_animate_characters() {
+  // Remove our collisions task.
+  if (animate_task) {
+      animate_task->remove();
+      delete animate_task;
+  }
+  animate_task = nullptr;
+  
+  // We no longer reference the old path.
+  root_node = nullptr;
+}
+
+void CShowBase::
+start_ig_loop(PT(AsyncTaskManager) mgr, int sort) {
+  if (!mgr || ig_loop_task) { return; }
+  
+  // Create our task to handle rendering and some other things.
+  ig_loop_task = new GenericAsyncTask("igLoop", &ig_loop, this);
+  // We allow a custom sort if needed.
+  ig_loop_task->set_sort(sort);
+  // Add the task to the task manager.
+  mgr->add(ig_loop_task);
+}
+
+void CShowBase::
+stop_ig_loop() {
+  if (ig_loop_task) {
+      ig_loop_task->remove();
+      delete ig_loop_task;
+  }
+  ig_loop_task = nullptr;
+}
+
+AsyncTask::DoneStatus CShowBase::
+ig_loop(GenericAsyncTask *task, void *user_data) {
+  CShowBase *this_ptr = (CShowBase *)user_data;
+  PT(GraphicsEngine) engine = this_ptr->get_graphics_engine();
+  
+  // TODO: Support OnScreenDebug.
+  
+  // TODO: Support Recorder.
+  
+  // Finally, render the frame.
+  engine->render_frame();
+  if (this_ptr->cluster_sync_flag) {
+    engine->sync_frame();
+  }
+  
+  this_ptr->throw_new_frame();
+  return AsyncTask::DoneStatus::DS_cont;
 }
 
 // Initialize the application for making a Gui-based app, such as wx.  At the

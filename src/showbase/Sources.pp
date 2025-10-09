@@ -3,11 +3,11 @@
   #define LOCAL_LIBS \
     directbase
   #define OTHER_LIBS \
-    pgraph:c pgraphnodes:c gsgbase:c gobj:c mathutil:c pstatclient:c \
+    anim:c pgraph:c pgraphnodes:c gsgbase:c gobj:c mathutil:c pstatclient:c \
     downloader:c pnmimage:c prc \
     pipeline:c cull:c \
     $[if $[HAVE_NET],net:c] $[if $[WANT_NATIVE_NET],nativenet:c] \
-    display:c linmath:c event:c putil:c panda:m \
+    collide:c jobsystem:c display:c linmath:c event:c putil:c panda:m \
     express:c pandaexpress:m \
     interrogatedb  \
     dtoolutil:c dtoolbase:c dtool:m
@@ -18,8 +18,12 @@
     User32.lib
 
   #define SOURCES \
-    showBase.cxx showBase.h \
+    showBase.cxx showBase.h showBase.I \
+    messenger.h messenger.I \
     $[if $[IS_OSX],showBase_assist.mm]
+    
+  #define COMPOSITE_SOURCES  \
+    messenger.cxx
 
   #define IGATESCAN all
 #end lib_target
