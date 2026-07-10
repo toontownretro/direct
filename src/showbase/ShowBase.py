@@ -703,7 +703,7 @@ class ShowBase(HostBase):
 
         # Give the window a chance to truly open.
         self.graphicsEngine.openWindows()
-        if win is not None and not win.isValid():
+        if win is not None and not self.isMainWindowOpen():
             self.notify.info("Window did not open, removing.")
             self.closeWindow(win)
             win = None
@@ -722,7 +722,7 @@ class ShowBase(HostBase):
                 win = func()
 
                 self.graphicsEngine.openWindows()
-                if win is not None and not win.isValid():
+                if win is not None and not self.isMainWindowOpen():
                     self.notify.info("Window did not open, removing.")
                     self.closeWindow(win)
                     win = None
@@ -960,6 +960,11 @@ class ShowBase(HostBase):
             self.__doStartDirect()
 
         return self.win is not None
+
+    def isMainWindowOpen(self):
+        if self.win != None:
+            return self.win.isValid()
+        return 0
 
     def openMainWindow(self, *args, **kw):
         """
@@ -1524,6 +1529,7 @@ class ShowBase(HostBase):
         self.dataRoot = NodePath('dataRoot')
         # Cache the node so we do not ask for it every frame
         self.dataRootNode = self.dataRoot.node()
+        self.dataUnused = NodePath('dataUnused')
 
         # Now we have the main trackball & drive interfaces.
         # useTrackball() and useDrive() switch these in and out; only
