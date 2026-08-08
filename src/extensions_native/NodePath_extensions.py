@@ -434,6 +434,699 @@ def iPosHprScale(self, other = None):
 Dtool_funcToMethod(iPosHprScale, NodePath)
 del iPosHprScale
 #####################################################################
+def __lerp(self, functorFunc, duration, blendType, taskName=None):
+        """
+        __lerp(self, functorFunc, float, string, string)
+        Basic lerp functionality used by other lerps.
+        Fire off a lerp. Make it a task if taskName given.
+        """
+        # functorFunc is a function which can be called to create a functor.
+        # functor creation is defered so initial state (sampled in functorFunc)
+        # will be appropriate for the time the lerp is spawned
+        from direct.task import Task
+        from direct.interval import LerpBlendHelpers
+        from direct.task.TaskManagerGlobal import taskMgr
+
+        # make the task function
+        def lerpTaskFunc(task):
+            from panda3d.core import Lerp
+            from panda3d.core import ClockObject
+            from direct.task.Task import Task, cont, done
+            if task.init == 1:
+                # make the lerp
+                functor = task.functorFunc()
+                task.lerp = Lerp(functor, task.duration, task.blendType)
+                task.init = 0
+            dt = globalClock.getDt()
+            task.lerp.setStepSize(dt)
+            task.lerp.step()
+            if (task.lerp.isDone()):
+                # Reset the init flag, in case the task gets re-used
+                task.init = 1
+                return(done)
+            else:
+                return(cont)
+
+        # make the lerp task
+        lerpTask = Task.Task(lerpTaskFunc)
+        lerpTask.init = 1
+        lerpTask.functorFunc = functorFunc
+        lerpTask.duration = duration
+        lerpTask.blendType = LerpBlendHelpers.getBlend(blendType)
+
+        if (taskName == None):
+            # don't spawn a task, return one instead
+            return lerpTask
+        else:
+            # spawn the lerp task
+            taskMgr.add(lerpTask, taskName)
+            return lerpTask
+
+Dtool_funcToMethod(__lerp, NodePath)
+del __lerp
+#####################################################################
+def __autoLerp(self, functorFunc, time, blendType, taskName):
+        """_autoLerp(self, functor, float, string, string)
+        This lerp uses C++ to handle the stepping. Bonus is
+        its more efficient, trade-off is there is less control"""
+        from panda3d.core import AutonomousLerp
+        from direct.interval import LerpBlendHelpers
+        # make a lerp that lives in C++ land
+        functor = functorFunc()
+        lerp = AutonomousLerp(functor, time,
+                              LerpBlendHelpers.getBlend(blendType),
+                              base.eventHandler)
+        lerp.start()
+        return lerp
+
+Dtool_funcToMethod(__autoLerp, NodePath)
+del __autoLerp
+#####################################################################
+
+# user callable lerp methods
+def lerpColor(self, *posArgs, **keyArgs):
+        """lerpColor(self, *positionArgs, **keywordArgs)
+        determine which lerpColor* to call based on arguments
+        """
+        if (len(posArgs) == 2):
+            return self.lerpColorVBase4(*posArgs, **keyArgs)
+        elif (len(posArgs) == 3):
+            return self.lerpColorVBase4VBase4(*posArgs, **keyArgs)
+        elif (len(posArgs) == 5):
+            return self.lerpColorRGBA(*posArgs, **keyArgs)
+        elif (len(posArgs) == 9):
+            return self.lerpColorRGBARGBA(**posArgs, **keyArgs)
+        else:
+            # bad args
+            raise Exception("Error: NodePath.lerpColor: bad number of args")
+
+Dtool_funcToMethod(lerpColor, NodePath)
+del lerpColor
+#####################################################################
+
+def lerpColorRGBA(self, r, g, b, a, time,
+                      blendType="noBlend", auto=None, task=None):
+        """lerpColorRGBA(self, float, float, float, float, float,
+        string="noBlend", string=none, string=none)
+        """
+        def functorFunc(self = self, r = r, g = g, b = b, a = a):
+            from panda3d.core import ColorLerpFunctor
+            # just end rgba values, use current color rgba values for start
+            startColor = self.getColor()
+            functor = ColorLerpFunctor(
+                self,
+                startColor[0], startColor[1],
+                startColor[2], startColor[3],
+                r, g, b, a)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorRGBA, NodePath)
+del lerpColorRGBA
+#####################################################################
+def lerpColorRGBARGBA(self, sr, sg, sb, sa, er, eg, eb, ea, time,
+                          blendType="noBlend", auto=None, task=None):
+        """lerpColorRGBARGBA(self, float, float, float, float, float,
+        float, float, float, float, string="noBlend", string=none, string=none)
+        """
+        def functorFunc(self = self, sr = sr, sg = sg, sb = sb, sa = sa,
+                        er = er, eg = eg, eb = eb, ea = ea):
+            from panda3d.core import ColorLerpFunctor
+            # start and end rgba values
+            functor = ColorLerpFunctor(self, sr, sg, sb, sa,
+                                                        er, eg, eb, ea)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorRGBARGBA, NodePath)
+del lerpColorRGBARGBA
+#####################################################################
+def lerpColorVBase4(self, endColor, time,
+                        blendType="noBlend", auto=None, task=None):
+        """lerpColorVBase4(self, VBase4, float, string="noBlend", string=none,
+        string=none)
+        """
+        def functorFunc(self = self, endColor = endColor):
+            from panda3d.core import ColorLerpFunctor
+            # just end vec4, use current color for start
+            startColor = self.getColor()
+            functor = ColorLerpFunctor(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorVBase4, NodePath)
+del lerpColorVBase4
+#####################################################################
+def lerpColorVBase4VBase4(self, startColor, endColor, time,
+                          blendType="noBlend", auto=None, task=None):
+        """lerpColorVBase4VBase4(self, VBase4, VBase4, float, string="noBlend",
+        string=none, string=none)
+        """
+        def functorFunc(self = self, startColor = startColor,
+                        endColor = endColor):
+            from panda3d.core import ColorLerpFunctor
+            # start color and end vec
+            functor = ColorLerpFunctor(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+
+Dtool_funcToMethod(lerpColorVBase4VBase4, NodePath)
+del lerpColorVBase4VBase4
+#####################################################################
+    # user callable lerp methods
+def lerpColorScale(self, *posArgs, **keyArgs):
+        """lerpColorScale(self, *positionArgs, **keywordArgs)
+        determine which lerpColorScale* to call based on arguments
+        """
+        if (len(posArgs) == 2):
+            return self.lerpColorScaleVBase4(*posArgs, **keyArgs)
+        elif (len(posArgs) == 3):
+            return self.lerpColorScaleVBase4VBase4(*posArgs, **keyArgs)
+        elif (len(posArgs) == 5):
+            return self.lerpColorScaleRGBA(*posArgs, **keyArgs)
+        elif (len(posArgs) == 9):
+            return self.lerpColorScaleRGBARGBA(*posArgs, **keyArgs)
+        else:
+            # bad args
+            raise Exception("Error: NodePath.lerpColorScale: bad number of args")
+
+
+Dtool_funcToMethod(lerpColorScale, NodePath)
+del lerpColorScale
+#####################################################################
+def lerpColorScaleRGBA(self, r, g, b, a, time,
+                      blendType="noBlend", auto=None, task=None):
+        """lerpColorScaleRGBA(self, float, float, float, float, float,
+        string="noBlend", string=none, string=none)
+        """
+        def functorFunc(self = self, r = r, g = g, b = b, a = a):
+            from panda3d.core import ColorScaleLerpFunctor
+            # just end rgba values, use current color rgba values for start
+            startColor = self.getColor()
+            functor = ColorScaleLerpFunctor(
+                self,
+                startColor[0], startColor[1],
+                startColor[2], startColor[3],
+                r, g, b, a)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorScaleRGBA, NodePath)
+del lerpColorScaleRGBA
+#####################################################################
+def lerpColorScaleRGBARGBA(self, sr, sg, sb, sa, er, eg, eb, ea, time,
+                          blendType="noBlend", auto=None, task=None):
+        """lerpColorScaleRGBARGBA(self, float, float, float, float, float,
+        float, float, float, float, string="noBlend", string=none, string=none)
+        """
+        def functorFunc(self = self, sr = sr, sg = sg, sb = sb, sa = sa,
+                        er = er, eg = eg, eb = eb, ea = ea):
+            from panda3d.core import ColorScaleLerpFunctor
+            # start and end rgba values
+            functor = ColorScaleLerpFunctor(self, sr, sg, sb, sa,
+                                                        er, eg, eb, ea)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorScaleRGBARGBA, NodePath)
+del lerpColorScaleRGBARGBA
+#####################################################################
+def lerpColorScaleVBase4(self, endColor, time,
+                        blendType="noBlend", auto=None, task=None):
+        """lerpColorScaleVBase4(self, VBase4, float, string="noBlend", string=none,
+        string=none)
+        """
+        def functorFunc(self = self, endColor = endColor):
+            from panda3d.core import ColorScaleLerpFunctor
+            # just end vec4, use current color for start
+            startColor = self.getColor()
+            functor = ColorScaleLerpFunctor(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorScaleVBase4, NodePath)
+del lerpColorScaleVBase4
+#####################################################################
+def lerpColorScaleVBase4VBase4(self, startColor, endColor, time,
+                          blendType="noBlend", auto=None, task=None):
+        """lerpColorScaleVBase4VBase4(self, VBase4, VBase4, float, string="noBlend",
+        string=none, string=none)
+        """
+        def functorFunc(self = self, startColor = startColor,
+                        endColor = endColor):
+            from panda3d.core import ColorScaleLerpFunctor
+            # start color and end vec
+            functor = ColorScaleLerpFunctor(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+
+Dtool_funcToMethod(lerpColorScaleVBase4VBase4, NodePath)
+del lerpColorScaleVBase4VBase4
+#####################################################################
+def lerpHpr(self, *posArgs, **keyArgs):
+        """lerpHpr(self, *positionArgs, **keywordArgs)
+        Determine whether to call lerpHprHPR or lerpHprVBase3
+        based on first argument
+        """
+        # check to see if lerping with
+        # three floats or a VBase3
+        if (len(posArgs) == 4):
+            return self.lerpHprHPR(*posArgs, **keyArgs)
+        elif(len(posArgs) == 2):
+            return self.lerpHprVBase3(*posArgs, **keyArgs)
+        else:
+            # bad args
+            raise Exception("Error: NodePath.lerpHpr: bad number of args")
+
+Dtool_funcToMethod(lerpHpr, NodePath)
+del lerpHpr
+#####################################################################
+def lerpHprHPR(self, h, p, r, time, other=None,
+                   blendType="noBlend", auto=None, task=None, shortest=1):
+        """lerpHprHPR(self, float, float, float, float, string="noBlend",
+        string=none, string=none, NodePath=none)
+        Perform a hpr lerp with three floats as the end point
+        """
+        def functorFunc(self = self, h = h, p = p, r = r,
+                        other = other, shortest=shortest):
+            from panda3d.core import HprLerpFunctor
+            # it's individual hpr components
+            if (other != None):
+                # lerp wrt other
+                startHpr = self.getHpr(other)
+                functor = HprLerpFunctor(
+                    self,
+                    startHpr[0], startHpr[1], startHpr[2],
+                    h, p, r, other)
+                if shortest:
+                    functor.takeShortest()
+            else:
+                startHpr = self.getHpr()
+                functor = HprLerpFunctor(
+                    self,
+                    startHpr[0], startHpr[1], startHpr[2],
+                    h, p, r)
+                if shortest:
+                    functor.takeShortest()
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpHprHPR, NodePath)
+del lerpHprHPR
+#####################################################################
+def lerpHprVBase3(self, hpr, time, other=None,
+                      blendType="noBlend", auto=None, task=None, shortest=1):
+        """lerpHprVBase3(self, VBase3, float, string="noBlend", string=none,
+        string=none, NodePath=None)
+        Perform a hpr lerp with a VBase3 as the end point
+        """
+        def functorFunc(self = self, hpr = hpr,
+                        other = other, shortest=shortest):
+            from panda3d.core import HprLerpFunctor
+            # it's a vbase3 hpr
+            if (other != None):
+                # lerp wrt other
+                functor = HprLerpFunctor(
+                    self, (self.getHpr(other)), hpr, other)
+                if shortest:
+                    functor.takeShortest()
+            else:
+                functor = HprLerpFunctor(
+                    self, (self.getHpr()), hpr)
+                if shortest:
+                    functor.takeShortest()
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+Dtool_funcToMethod(lerpHprVBase3, NodePath)
+del lerpHprVBase3
+#####################################################################
+def lerpPos(self, *posArgs, **keyArgs):
+        """lerpPos(self, *positionArgs, **keywordArgs)
+        Determine whether to call lerpPosXYZ or lerpPosPoint3
+        based on the first argument
+        """
+        # check to see if lerping with three
+        # floats or a Point3
+        if (len(posArgs) == 4):
+            return self.lerpPosXYZ(*posArgs, **keyArgs)
+        elif(len(posArgs) == 2):
+            return self.lerpPosPoint3(*posArgs, **keyArgs)
+        else:
+            # bad number off args
+            raise Exception("Error: NodePath.lerpPos: bad number of args")
+
+Dtool_funcToMethod(lerpPos, NodePath)
+del lerpPos
+#####################################################################
+def lerpPosXYZ(self, x, y, z, time, other=None,
+                   blendType="noBlend", auto=None, task=None):
+        """lerpPosXYZ(self, float, float, float, float, string="noBlend",
+        string=None, NodePath=None)
+        Perform a pos lerp with three floats as the end point
+        """
+        def functorFunc(self = self, x = x, y = y, z = z, other = other):
+            from panda3d.core import PosLerpFunctor
+            if (other != None):
+                # lerp wrt other
+                startPos = self.getPos(other)
+                functor = PosLerpFunctor(self,
+                                         startPos[0], startPos[1], startPos[2],
+                                         x, y, z, other)
+            else:
+                startPos = self.getPos()
+                functor = PosLerpFunctor(self, startPos[0],
+                                         startPos[1], startPos[2], x, y, z)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return  self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpPosXYZ, NodePath)
+del lerpPosXYZ
+#####################################################################
+def lerpPosPoint3(self, pos, time, other=None,
+                      blendType="noBlend", auto=None, task=None):
+        """lerpPosPoint3(self, Point3, float, string="noBlend", string=None,
+        string=None, NodePath=None)
+        Perform a pos lerp with a Point3 as the end point
+        """
+        def functorFunc(self = self, pos = pos, other = other):
+            from panda3d.core import PosLerpFunctor
+            if (other != None):
+                #lerp wrt other
+                functor = PosLerpFunctor(
+                    self, (self.getPos(other)), pos, other)
+            else:
+                functor = PosLerpFunctor(
+                    self, (self.getPos()), pos)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+Dtool_funcToMethod(lerpPosPoint3, NodePath)
+del lerpPosPoint3
+#####################################################################
+def lerpPosHpr(self, *posArgs, **keyArgs):
+        """lerpPosHpr(self, *positionArgs, **keywordArgs)
+        Determine whether to call lerpPosHprXYZHPR or lerpHprPoint3VBase3
+        based on first argument
+        """
+        # check to see if lerping with
+        # six floats or a Point3 and a VBase3
+        if (len(posArgs) == 7):
+            return self.lerpPosHprXYZHPR(*posArgs, **keyArgs)
+        elif(len(posArgs) == 3):
+            return self.lerpPosHprPoint3VBase3(*posArgs, **keyArgs)
+        else:
+            # bad number off args
+            raise Exception("Error: NodePath.lerpPosHpr: bad number of args")
+
+Dtool_funcToMethod(lerpPosHpr, NodePath)
+del lerpPosHpr
+#####################################################################
+def lerpPosHprPoint3VBase3(self, pos, hpr, time, other=None,
+                               blendType="noBlend", auto=None, task=None, shortest=1):
+        """lerpPosHprPoint3VBase3(self, Point3, VBase3, string="noBlend",
+        string=none, string=none, NodePath=None)
+        """
+        def functorFunc(self = self, pos = pos, hpr = hpr,
+                        other = other, shortest=shortest):
+            from panda3d.core import PosHprLerpFunctor
+            if (other != None):
+                # lerp wrt other
+                startPos = self.getPos(other)
+                startHpr = self.getHpr(other)
+                functor = PosHprLerpFunctor(
+                    self, startPos, pos,
+                    startHpr, hpr, other)
+                if shortest:
+                    functor.takeShortest()
+            else:
+                startPos = self.getPos()
+                startHpr = self.getHpr()
+                functor = PosHprLerpFunctor(
+                    self, startPos, pos,
+                    startHpr, hpr)
+                if shortest:
+                    functor.takeShortest()
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpPosHprPoint3VBase3, NodePath)
+del lerpPosHprPoint3VBase3
+#####################################################################
+def lerpPosHprXYZHPR(self, x, y, z, h, p, r, time, other=None,
+                         blendType="noBlend", auto=None, task=None, shortest=1):
+        """lerpPosHpr(self, float, string="noBlend", string=none,
+        string=none, NodePath=None)
+        """
+        def functorFunc(self = self, x = x, y = y, z = z,
+                        h = h, p = p, r = r, other = other, shortest=shortest):
+            from panda3d.core import PosHprLerpFunctor
+            if (other != None):
+                # lerp wrt other
+                startPos = self.getPos(other)
+                startHpr = self.getHpr(other)
+                functor = PosHprLerpFunctor(self,
+                                            startPos[0], startPos[1],
+                                            startPos[2], x, y, z,
+                                            startHpr[0], startHpr[1],
+                                            startHpr[2], h, p, r,
+                                            other)
+                if shortest:
+                    functor.takeShortest()
+            else:
+                startPos = self.getPos()
+                startHpr = self.getHpr()
+                functor = PosHprLerpFunctor(self,
+                                            startPos[0], startPos[1],
+                                            startPos[2], x, y, z,
+                                            startHpr[0], startHpr[1],
+                                            startHpr[2], h, p, r)
+                if shortest:
+                    functor.takeShortest()
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+Dtool_funcToMethod(lerpPosHprXYZHPR, NodePath)
+del lerpPosHprXYZHPR
+#####################################################################
+def lerpPosHprScale(self, pos, hpr, scale, time, other=None,
+                        blendType="noBlend", auto=None, task=None, shortest=1):
+        """lerpPosHpr(self, Point3, VBase3, float, float, string="noBlend",
+        string=none, string=none, NodePath=None)
+        Only one case, no need for extra args. Call the appropriate lerp
+        (auto, spawned, or blocking) based on how(if) a task name is given
+        """
+        def functorFunc(self = self, pos = pos, hpr = hpr,
+                        scale = scale, other = other, shortest=shortest):
+            from panda3d.core import PosHprScaleLerpFunctor
+            if (other != None):
+                # lerp wrt other
+                startPos = self.getPos(other)
+                startHpr = self.getHpr(other)
+                startScale = self.getScale(other)
+                functor = PosHprScaleLerpFunctor(self,
+                                                 startPos, pos,
+                                                 startHpr, hpr,
+                                                 startScale, scale, other)
+                if shortest:
+                    functor.takeShortest()
+            else:
+                startPos = self.getPos()
+                startHpr = self.getHpr()
+                startScale = self.getScale()
+                functor = PosHprScaleLerpFunctor(self,
+                                                 startPos, pos,
+                                                 startHpr, hpr,
+                                                 startScale, scale)
+                if shortest:
+                    functor.takeShortest()
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+Dtool_funcToMethod(lerpPosHprScale, NodePath)
+del lerpPosHprScale
+#####################################################################
+def lerpScale(self, *posArgs, **keyArgs):
+        """lerpSclae(self, *positionArgs, **keywordArgs)
+        Determine whether to call lerpScaleXYZ or lerpScaleaseV3
+        based on the first argument
+        """
+        # check to see if lerping with three
+        # floats or a Point3
+        if (len(posArgs) == 4):
+            return self.lerpScaleXYZ(*posArgs, **keyArgs)
+        elif(len(posArgs) == 2):
+            return self.lerpScaleVBase3(*posArgs, **keyArgs)
+        else:
+            # bad number off args
+            raise Exception("Error: NodePath.lerpScale: bad number of args")
+
+Dtool_funcToMethod(lerpScale, NodePath)
+del lerpScale
+#####################################################################
+def lerpScaleVBase3(self, scale, time, other=None,
+                        blendType="noBlend", auto=None, task=None):
+        """lerpPos(self, VBase3, float, string="noBlend", string=none,
+        string=none, NodePath=None)
+        """
+        def functorFunc(self = self, scale = scale, other = other):
+            from panda3d.core import ScaleLerpFunctor
+            if (other != None):
+                # lerp wrt other
+                functor = ScaleLerpFunctor(self,
+                                           (self.getScale(other)),
+                                           scale, other)
+            else:
+                functor = ScaleLerpFunctor(self,
+                                           (self.getScale()), scale)
+
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpScaleVBase3, NodePath)
+del lerpScaleVBase3
+#####################################################################
+def lerpScaleXYZ(self, sx, sy, sz, time, other=None,
+                     blendType="noBlend", auto=None, task=None):
+        """lerpPos(self, float, float, float, float, string="noBlend",
+        string=none, string=none, NodePath=None)
+        """
+        def functorFunc(self = self, sx = sx, sy = sy, sz = sz, other = other):
+            from panda3d.core import ScaleLerpFunctor
+            if (other != None):
+                # lerp wrt other
+                startScale = self.getScale(other)
+                functor = ScaleLerpFunctor(self,
+                                           startScale[0], startScale[1],
+                                           startScale[2], sx, sy, sz, other)
+            else:
+                startScale = self.getScale()
+                functor = ScaleLerpFunctor(self,
+                                           startScale[0], startScale[1],
+                                           startScale[2], sx, sy, sz)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+
+
+Dtool_funcToMethod(lerpScaleXYZ, NodePath)
+del lerpScaleXYZ
+#####################################################################
 def place(self):
     from direct.showbase import ShowBaseGlobal
     ShowBaseGlobal.base.startDirect(fWantTk = 1)
