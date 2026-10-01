@@ -23,6 +23,7 @@
 #include "datagramIterator.h"
 #include "throw_event.h"
 #include "pStatTimer.h"
+#include "stringStream.h"
 
 #ifdef HAVE_PYTHON
 #include "py_panda.h"
@@ -64,6 +65,7 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   _handle_c_updates(true),
   _client_datagram(true),
   _handle_datagrams_internally(handle_datagrams_internally),
+  _track_clsends(false),
   _simulated_disconnect(false),
   _verbose(distributed_cat.is_spam()),
   _in_quiet_zone(0),
@@ -1058,7 +1060,7 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
           distributed_cat.debug() << "Calling function callback in check_datagram_ai()!\n";
           nassertr(_python_ai_datagramiterator != nullptr, false);
 
-          PyObject *result = PyObject_CallOneArg(PycallBackFunction, _python_ai_datagramiterator);
+          PyObject *result = PyObject_CallObject(PycallBackFunction, _python_ai_datagramiterator);
 
           Py_XDECREF(result);
           if (PyErr_Occurred()) {
@@ -1124,6 +1126,38 @@ bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do)  {
       DCClass *dclass = (DCClass *)PyLong_AsVoidPtr(dclass_obj_this);
       Py_XDECREF(dclass_obj_this);
       nassertr(dclass != nullptr, false);
+
+      if (_track_clsends) {
+        DatagramIterator di(_di);
+        int field_id = di.get_uint16();
+        DCField *field = dclass->get_field_by_index(field_id);
+        if (field != (DCField *)NULL) {
+          if (field->is_clsend() || field->is_ownsend()) {
+            // need to look up sender avatar
+            PyObject *senderId = PyLong_FromUnsignedLong(get_msg_sender() & 0xffffffff);
+            PyObject *senderObj = PyDict_GetItem(doId2do, senderId);
+            Py_DECREF(senderId);
+            if (senderObj != NULL) {
+              const char *trackMethodName = "trackClientSendMsg";
+              if (PyObject_HasAttrString(senderObj, trackMethodName)) {
+                PyObject *func = PyObject_GetAttrString(senderObj, trackMethodName);
+                if (func != (PyObject *)NULL) {
+                  PyObject *args = Py_BuildValue("(y#)", (const char *)_dg.get_data(), (Py_ssize_t)_dg.get_length());
+                  if (args != (PyObject *)NULL) {
+                    PyObject *result;
+                    Py_INCREF(senderObj);
+                    result = PyObject_CallObject(func, args);
+                    Py_DECREF(senderObj);
+                    Py_XDECREF(result);
+                    Py_DECREF(args);
+                  }
+                  Py_DECREF(func);
+                }
+              }
+            }
+          }
+        }
+      }
 
       Py_XINCREF(distobj);
       invoke_extension(dclass).receive_update(distobj, _di);
