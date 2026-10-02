@@ -1158,7 +1158,6 @@ bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do)  {
           }
         }
       }
-
       Py_XINCREF(distobj);
       invoke_extension(dclass).receive_update(distobj, _di);
       Py_XDECREF(distobj);
