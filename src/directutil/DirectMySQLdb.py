@@ -1,4 +1,6 @@
-from MySQLdb import *
+# Custom: MySQLdb does not support Python 3
+# from MySQLdb import *
+from pymysql import *
 
 ### DCR: from MySQLdb __init__.py
 def Connect(*args, **kwargs):

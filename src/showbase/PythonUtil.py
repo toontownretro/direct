@@ -48,6 +48,7 @@ import importlib
 from . import BpDb
 import bisect
 import functools
+import unicodedata
 from typing import Callable
 
 __report_indent = 3

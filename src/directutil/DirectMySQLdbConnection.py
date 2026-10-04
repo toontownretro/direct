@@ -1,23 +1,30 @@
-import MySQLdb
-from MySQLdb.connections import *
+# Custom: MySQLdb does not support Python 3
+# import MySQLdb
+# from MySQLdb.connections import *
+import pymysql as MySQLdb
+from pymysql.connections import *
 
 class DirectMySQLdbConnection(Connection):
     ### DCR: from MySQLdb connections.py Connection.__init__
     def __init__(self, *args, **kwargs):
         ### DCR: fixed up relative imports
-        from MySQLdb.constants import CLIENT, FIELD_TYPE
-        from MySQLdb.converters import conversions
+        # Custom: MySQLdb does not support Python 3
+        from pymysql.constants import CLIENT, FIELD_TYPE
+        from pymysql.converters import conversions
         from weakref import proxy, WeakValueDictionary
 
         import types
 
         kwargs2 = kwargs.copy()
 
+        """
         conv = kwargs.get('conv', conversions)
 
         kwargs2['conv'] = dict([ (k, v) for k, v in conv.items()
                                  if type(k) is int ])
+        """
 
+        """
         self.cursorclass = kwargs2.pop('cursorclass', self.default_cursor)
         charset = kwargs2.pop('charset', '')
 
@@ -28,26 +35,34 @@ class DirectMySQLdbConnection(Connection):
 
         use_unicode = kwargs2.pop('use_unicode', use_unicode)
         sql_mode = kwargs2.pop('sql_mode', '')
+        """
 
         client_flag = kwargs.get('client_flag', 0)
         ### DCR: fixed up module reference
+        """
         client_version = tuple([ int(n) for n in MySQLdb.connections._mysql.get_client_info().split('.')[:2] ])
         if client_version >= (4, 1):
             client_flag |= CLIENT.MULTI_STATEMENTS
         if client_version >= (5, 0):
             client_flag |= CLIENT.MULTI_RESULTS
+        """
+        client_flag |= CLIENT.MULTI_STATEMENTS
+        client_flag |= CLIENT.MULTI_RESULTS
 
         kwargs2['client_flag'] = client_flag
 
         ### DCR: skip over the Connection __init__
         #super(Connection, self).__init__(*args, **kwargs2)
-        MySQLdb._mysql.connection.__init__(self, *args, **kwargs2)
+        MySQLdb.Connection.__init__(self, *args, **kwargs2)
 
+        """
         self.encoders = dict([ (k, v) for k, v in conv.items()
                                if type(k) is not int ])
+        """
 
         self._server_version = tuple([ int(n) for n in self.get_server_info().split('.')[:2] ])
 
+        """
         db = proxy(self)
         ### DCR: these functions create memory leaks with gc.DEBUG_SAVEALL turned on
         """
@@ -83,8 +98,9 @@ class DirectMySQLdbConnection(Connection):
             self.converter[FIELD_TYPE.VAR_STRING].insert(-1, (None, string_decoder))
             self.converter[FIELD_TYPE.BLOB].insert(-1, (None, string_decoder))
 
-        self.encoders[types.StringType] = string_literal
-        self.encoders[types.UnicodeType] = unicode_literal
+        self.encoders[bytes] = string_literal
+        self.encoders[str] = unicode_literal
+        """
         self._transactional = self.server_capabilities & CLIENT.TRANSACTIONS
         if self._transactional:
             # PEP-249 requires autocommit to be initially off
